@@ -1,13 +1,22 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
-import { finalExamQuestions, glossary, learningCards, sectionLabels, type CardData } from './courseData'
+import { finalExamQuestions, learningCards, sectionLabels, type CardData } from './courseData'
+import { glossaryTerms } from './glossary'
+import GlossaryTerm from './components/GlossaryTerm'
+import NightSky from './components/NightSky'
+import SkeletonBlock from './components/SkeletonBlock'
 import {
   getCompletionConfigFromQuery,
   getLmsEnvironmentDiagnostics,
   sendTrainingCompletion,
   type CompletionResult,
 } from './lmsCompletion'
+
+const LargeVisualization = lazy(() => import('./components/LargeVisualization'))
+const AuditorOverlay = lazy(() => import('./components/AuditorOverlay'))
+const InteractiveFormExplorer = lazy(() => import('./components/InteractiveFormExplorer'))
+const FinalExamSection = lazy(() => import('./components/FinalExamSection'))
 
 type ResumeState = {
   screenIndex: number
@@ -90,8 +99,7 @@ const sectionStartIndices = sectionOrder.map((section) => ({
 const sectionByCardId = new Map(learningCards.map((card) => [card.id, card.section]))
 
 function GlossaryText({ text }: { text: string }) {
-  const terms = Object.keys(glossary)
-  const sortedTerms = terms.sort((a, b) => b.length - a.length)
+  const sortedTerms = glossaryTerms
 
   const parts: Array<{ text: string; term?: string }> = []
   let cursor = 0
@@ -126,12 +134,7 @@ function GlossaryText({ text }: { text: string }) {
     <>
       {parts.map((part, index) =>
         part.term ? (
-          <span key={`${part.term}-${index}`} className="group relative cursor-help rounded bg-teal-50 px-1 text-teal-800">
-            {part.text}
-            <span className="pointer-events-none absolute -top-2 left-0 z-20 hidden w-72 -translate-y-full rounded-md border border-slate-200 bg-white p-2 text-xs text-slate-700 shadow-lg group-hover:block">
-              <strong>{part.term}:</strong> {glossary[part.term]}
-            </span>
-          </span>
+          <GlossaryTerm key={`${part.term}-${index}`} term={part.text} />
         ) : (
           <span key={`text-${index}`}>{part.text}</span>
         ),
@@ -207,8 +210,6 @@ function App() {
     return cms485Hotspots.filter((hotspot) => currentCard.formHotspotIds?.includes(hotspot.id))
   }, [currentCard])
 
-  const activeHotspot = relevantHotspots.find((hotspot) => hotspot.id === activeHotspotId) ?? relevantHotspots[0]
-
   const canGoNext = qaDebugMode
     ? screenIndex < completionScreenIndex
     : isContentScreen
@@ -240,6 +241,7 @@ function App() {
 
   useEffect(() => {
     document.body.classList.toggle('dark-mode', darkMode)
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light')
     window.localStorage.setItem(THEME_KEY, darkMode ? 'dark' : 'light')
   }, [darkMode])
 
@@ -339,108 +341,38 @@ function App() {
     formExplorerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
-  const renderVisualization = (card: CardData) => {
-    const viz = card.visualization
-
-    if (viz.type === 'goodBad') {
-      return (
-        <div className="grid gap-3 md:grid-cols-2">
-          <article className="rounded-xl border border-emerald-300 bg-emerald-50 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Good Example</p>
-            <p className="mt-1 text-sm text-emerald-900">{viz.goodExample}</p>
-          </article>
-          <article className="rounded-xl border border-amber-300 bg-amber-50 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Bad Example</p>
-            <p className="mt-1 text-sm text-amber-900">{viz.badExample}</p>
-          </article>
-        </div>
-      )
-    }
-
-    if (viz.type === 'templateBuilder') {
-      const builtText = templateBuilderByCardId[card.id] ?? []
-      return (
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            {viz.chips?.map((chip) => (
-              <button
-                key={chip}
-                type="button"
-                className="rounded-full border border-teal-300 bg-teal-50 px-3 py-1 text-xs text-teal-900"
-                onClick={() =>
-                  setTemplateBuilderByCardId((prev) => ({
-                    ...prev,
-                    [card.id]: [...(prev[card.id] ?? []), chip],
-                  }))
-                }
-              >
-                + {chip}
-              </button>
-            ))}
-          </div>
-          <div className="rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-700">
-            {builtText.length ? builtText.join(' | ') : 'Build a compliant sentence by selecting chips.'}
-          </div>
-          <button
-            type="button"
-            className="secondary !px-3 !py-1.5 !text-xs"
-            onClick={() =>
-              setTemplateBuilderByCardId((prev) => ({
-                ...prev,
-                [card.id]: [],
-              }))
-            }
-          >
-            Reset Builder
-          </button>
-        </div>
-      )
-    }
-
-    return (
-      <div className="space-y-2">
-        <p className="text-sm text-slate-700">{viz.prompt}</p>
-        <div className="grid gap-2">
-          {viz.options?.map((option) => (
-            <button key={option} type="button" className="option-btn transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
-              {option}
-            </button>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <main className="app-shell animate-fade-in-up">
-      <section className="sticky top-0 z-30 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur">
+    <main className="app-shell bg-page text-primary animate-fade-in-up">
+      {darkMode ? <NightSky /> : null}
+
+      <section className="sticky top-0 z-30 rounded-2xl border border-subtle bg-surface p-3 shadow-card backdrop-blur">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-slate-800">CMS-485 LMS · CMS-aligned / CoP-compliant / audit-ready</p>
+          <p className="text-sm font-semibold text-primary">CMS-485 LMS · CMS-aligned / CoP-compliant / audit-ready</p>
           <div className="flex flex-wrap gap-2">
             <span className="stats-chip">Knowledge ✅ {knowledgeInputStats.correct} · ❌ {knowledgeInputStats.incorrect}</span>
-            <button type="button" className={`secondary !px-3 !py-1.5 !text-xs ${qaDebugMode ? '!bg-teal-700 !text-white' : ''}`} onClick={() => setQaDebugMode((prev) => !prev)}>
+            <button type="button" className={`secondary mode-toggle ${qaDebugMode ? 'active' : ''}`} onClick={() => setQaDebugMode((prev) => !prev)}>
               QA Debug: {qaDebugMode ? 'ON' : 'OFF'}
             </button>
-            <button type="button" className={`secondary !px-3 !py-1.5 !text-xs ${darkMode ? '!bg-slate-900 !text-white' : ''}`} onClick={() => setDarkMode((prev) => !prev)}>
+            <button type="button" className={`secondary mode-toggle ${darkMode ? 'active' : ''}`} onClick={() => setDarkMode((prev) => !prev)}>
               {darkMode ? 'Dark' : 'Light'} Mode
             </button>
           </div>
         </div>
 
         <div className="grid gap-2">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+          <div className="progress-track">
             <motion.div
-              className="h-full bg-gradient-to-r from-teal-500 to-cyan-500"
+              className="progress-fill"
               animate={{ width: `${((screenIndex + 1) / totalScreens) * 100}%` }}
               transition={{ type: 'spring', stiffness: 140, damping: 22 }}
             />
           </div>
-          <div className="flex flex-wrap gap-1 text-[11px] text-slate-600">
+          <div className="flex flex-wrap gap-1 text-[11px] text-muted">
             {sectionStartIndices.map((item, idx) => {
               const screenStart = item.start * 2
               const active = screenIndex >= screenStart && (idx === sectionStartIndices.length - 1 || screenIndex < sectionStartIndices[idx + 1].start * 2)
               return (
-                <span key={item.section} className={`rounded-full px-2 py-1 ${active ? 'bg-teal-600 text-white' : 'bg-slate-100'}`}>
+                <span key={item.section} className={`section-chip ${active ? 'active' : ''}`}>
                   {sectionLabels[item.section]}
                 </span>
               )
@@ -475,14 +407,14 @@ function App() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className={`secondary !px-3 !py-1.5 !text-xs ${currentCardMode === 'learner' ? '!bg-teal-700 !text-white' : ''}`}
+                    className={`secondary mode-toggle ${currentCardMode === 'learner' ? 'active' : ''}`}
                     onClick={() => setCardModeById((prev) => ({ ...prev, [currentCard.id]: 'learner' }))}
                   >
                     Learner Mode
                   </button>
                   <button
                     type="button"
-                    className={`secondary !px-3 !py-1.5 !text-xs ${currentCardMode === 'auditor' ? '!bg-slate-800 !text-white' : ''}`}
+                    className={`secondary mode-toggle ${currentCardMode === 'auditor' ? 'active' : ''}`}
                     onClick={() => setCardModeById((prev) => ({ ...prev, [currentCard.id]: 'auditor' }))}
                   >
                     Auditor Mode
@@ -510,8 +442,8 @@ function App() {
                 <div className="flex items-center justify-between gap-2">
                   <p className="section-label">Practical Example</p>
                   <div className="flex gap-2">
-                    <button type="button" className="secondary !px-3 !py-1 !text-xs" onClick={() => copyText(currentCard.practicalExample)}>Copy compliant text</button>
-                    <button type="button" className="secondary !px-3 !py-1 !text-xs">Listen (stub)</button>
+                    <button type="button" className="secondary btn-sm" onClick={() => copyText(currentCard.practicalExample)}>Copy compliant text</button>
+                    <button type="button" className="tertiary btn-sm">Listen (stub)</button>
                   </div>
                 </div>
                 <p><GlossaryText text={currentCard.practicalExample} /></p>
@@ -535,8 +467,31 @@ function App() {
 
               <section className="objective-box">
                 <p className="section-label">Visualization / Interaction</p>
-                {renderVisualization(currentCard)}
+                <Suspense fallback={<SkeletonBlock label="Loading visualization" />}>
+                  <LargeVisualization
+                    card={currentCard}
+                    builtText={templateBuilderByCardId[currentCard.id] ?? []}
+                    onAddChip={(chip) =>
+                      setTemplateBuilderByCardId((prev) => ({
+                        ...prev,
+                        [currentCard.id]: [...(prev[currentCard.id] ?? []), chip],
+                      }))
+                    }
+                    onResetBuilder={() =>
+                      setTemplateBuilderByCardId((prev) => ({
+                        ...prev,
+                        [currentCard.id]: [],
+                      }))
+                    }
+                  />
+                </Suspense>
               </section>
+
+              {currentCardMode === 'auditor' ? (
+                <Suspense fallback={<SkeletonBlock label="Loading auditor lens" />}>
+                  <AuditorOverlay card={currentCard} />
+                </Suspense>
+              ) : null}
 
               {currentCard.id === 'plan-required-elements' ? (
                 <section className="objective-box" ref={formExplorerRef}>
@@ -555,7 +510,7 @@ function App() {
                         <button
                           key={item}
                           type="button"
-                          className={`rounded-lg border px-3 py-2 text-left text-sm transition ${checked ? 'border-teal-700 bg-teal-50' : 'border-slate-300 bg-white hover:border-teal-400'}`}
+                          className={`checklist-item ${checked ? 'active' : ''}`}
                           onClick={() => setChecklistState((prev) => ({ ...prev, [item]: !prev[item] }))}
                         >
                           {checked ? '✅' : '⬜'} {item}
@@ -566,68 +521,47 @@ function App() {
 
                   <p className="section-label mt-3">Risk → Intervention → Measurable Goal mini-sim</p>
                   <div className="grid gap-2 md:grid-cols-3">
-                    <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Risk" value={mappingState.risk} onChange={(e) => setMappingState((prev) => ({ ...prev, risk: e.target.value }))} />
-                    <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Intervention" value={mappingState.intervention} onChange={(e) => setMappingState((prev) => ({ ...prev, intervention: e.target.value }))} />
-                    <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Measurable Goal" value={mappingState.goal} onChange={(e) => setMappingState((prev) => ({ ...prev, goal: e.target.value }))} />
+                    <input className="field-input" placeholder="Risk" value={mappingState.risk} onChange={(e) => setMappingState((prev) => ({ ...prev, risk: e.target.value }))} />
+                    <input className="field-input" placeholder="Intervention" value={mappingState.intervention} onChange={(e) => setMappingState((prev) => ({ ...prev, intervention: e.target.value }))} />
+                    <input className="field-input" placeholder="Measurable Goal" value={mappingState.goal} onChange={(e) => setMappingState((prev) => ({ ...prev, goal: e.target.value }))} />
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2 mt-3">
-                    <article className="rounded-lg border border-emerald-300 bg-emerald-50 p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-900">Compliant goal example</p>
+                    <article className="status-card status-success">
+                      <p className="text-xs font-semibold uppercase tracking-wide">Compliant goal example</p>
                       <p className="text-sm mt-1">Patient will complete bed-to-chair transfer with stand-by assist and no loss of balance for 14 days.</p>
                     </article>
-                    <article className="rounded-lg border border-amber-300 bg-amber-50 p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">Noncompliant goal example</p>
+                    <article className="status-card status-warning">
+                      <p className="text-xs font-semibold uppercase tracking-wide">Noncompliant goal example</p>
                       <p className="text-sm mt-1">Improve mobility.</p>
                     </article>
                   </div>
 
-                  <div className="mt-3 rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-700">
+                  <div className="mt-3 rounded-lg border border-subtle bg-surface p-3 text-sm text-secondary">
                     <p className="font-semibold">Supervisor POC completeness attestation</p>
                     <p className="mt-1">“I attest required POC elements are complete, patient-specific, and traceable to assessment evidence prior to claim progression.”</p>
-                    <button type="button" className="secondary !px-3 !py-1.5 !text-xs mt-2" onClick={() => copyText('I attest required POC elements are complete, patient-specific, and traceable to assessment evidence prior to claim progression.')}>Copy attestation snippet</button>
+                    <button type="button" className="secondary btn-sm mt-2" onClick={() => copyText('I attest required POC elements are complete, patient-specific, and traceable to assessment evidence prior to claim progression.')}>Copy attestation snippet</button>
                   </div>
                 </section>
               ) : null}
 
               {relevantHotspots.length ? (
-                <section className="objective-box" ref={formExplorerRef}>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="section-label">CMS-485 Interactive Form Explorer</p>
-                    <div className="flex gap-2">
-                      <button type="button" className="secondary !px-3 !py-1.5 !text-xs" onClick={showFormZone}>Show me on the form</button>
-                      <button type="button" className="secondary !px-3 !py-1.5 !text-xs" onClick={() => setIsFormExplorerOpen((prev) => !prev)}>
-                        {isFormExplorerOpen ? 'Collapse' : 'Expand'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {isFormExplorerOpen ? (
-                    <>
-                      <div className="relative mt-2 overflow-hidden rounded-xl border border-slate-300 bg-white">
-                        <img src="/branding/cms-485-form.svg" alt="CMS-485 Plan of Care form" className="w-full" />
-                        {relevantHotspots.map((hotspot) => {
-                          const active = activeHotspot?.id === hotspot.id
-                          return (
-                            <button
-                              key={hotspot.id}
-                              type="button"
-                              className={`absolute rounded-md border-2 transition-all ${active ? 'border-teal-700 bg-teal-500/20' : 'border-teal-400/80 bg-teal-400/10'} ${pulseGuideOn && !active ? 'animate-pulse' : ''}`}
-                              style={{ left: `${hotspot.x}%`, top: `${hotspot.y}%`, width: `${hotspot.w}%`, height: `${hotspot.h}%` }}
-                              onClick={() => {
-                                setActiveHotspotId(hotspot.id)
-                                setPulseGuideOn(false)
-                              }}
-                            />
-                          )
-                        })}
-                      </div>
-                      {activeHotspot ? (
-                        <p className="mt-2 text-sm text-slate-700"><strong>{activeHotspot.label}:</strong> {activeHotspot.description}</p>
-                      ) : null}
-                    </>
-                  ) : null}
-                </section>
+                <div ref={formExplorerRef}>
+                  <Suspense fallback={<SkeletonBlock label="Loading form explorer" />}>
+                    <InteractiveFormExplorer
+                      hotspots={relevantHotspots}
+                      activeHotspotId={activeHotspotId}
+                      isOpen={isFormExplorerOpen}
+                      pulseGuideOn={pulseGuideOn}
+                      onToggleOpen={() => setIsFormExplorerOpen((prev) => !prev)}
+                      onShowZone={showFormZone}
+                      onActivateHotspot={(id) => {
+                        setActiveHotspotId(id)
+                        setPulseGuideOn(false)
+                      }}
+                    />
+                  </Suspense>
+                </div>
               ) : null}
             </>
           ) : null}
@@ -678,49 +612,23 @@ function App() {
           ) : null}
 
           {screenIndex === examScreenIndex ? (
-            <>
-              <div className="card-top-row">
-                <span className="badge">Final Exam</span>
-                <span className="badge ghost">24 questions · pass 80%</span>
-              </div>
-              <h1>Final Exam</h1>
-              <section className="exam-grid">
-                {finalExamQuestions.map((question, index) => (
-                  <article key={question.id} className="challenge-item">
-                    <p className="challenge-question">{index + 1}. {question.question}</p>
-                    <div className="option-grid">
-                      {question.options.map((option) => {
-                        const selected = finalExamAnswers[question.id] === option
-                        return (
-                          <button
-                            key={option}
-                            type="button"
-                            className={`option-btn ${selected ? 'selected' : ''}`}
-                            onClick={() => setFinalExamAnswers((prev) => ({ ...prev, [question.id]: option }))}
-                          >
-                            {option}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </article>
-                ))}
-              </section>
-              <div className="challenge-actions">
-                <button type="button" className="secondary" disabled={!qaDebugMode && !finalExamFullyAnswered} onClick={() => setFinalExamSubmitted(true)}>
-                  Submit Final Exam
-                </button>
-                <button type="button" className="secondary" onClick={() => { setFinalExamAnswers({}); setFinalExamSubmitted(false) }}>
-                  Reset Exam
-                </button>
-              </div>
-              {finalExamSubmitted ? (
-                <section className="recap-panel">
-                  <p className="recap-title">Score: {finalExamScore}% · {finalExamPassed ? 'Pass' : 'Needs remediation'}</p>
-                  <p>{missedQuestions.length ? 'Review missed-question screen next for targeted card links.' : 'No missed questions. Proceed to completion.'}</p>
-                </section>
-              ) : null}
-            </>
+            <Suspense fallback={<SkeletonBlock label="Loading final exam" />}>
+              <FinalExamSection
+                finalExamAnswers={finalExamAnswers}
+                qaDebugMode={qaDebugMode}
+                finalExamFullyAnswered={finalExamFullyAnswered}
+                finalExamSubmitted={finalExamSubmitted}
+                finalExamScore={finalExamScore}
+                finalExamPassed={finalExamPassed}
+                missedCount={missedQuestions.length}
+                onSelectAnswer={(questionId, answer) => setFinalExamAnswers((prev) => ({ ...prev, [questionId]: answer }))}
+                onSubmit={() => setFinalExamSubmitted(true)}
+                onReset={() => {
+                  setFinalExamAnswers({})
+                  setFinalExamSubmitted(false)
+                }}
+              />
+            </Suspense>
           ) : null}
 
           {screenIndex === missedReviewScreenIndex ? (
@@ -739,7 +647,7 @@ function App() {
                         <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
                           <span>{item.question}</span>
                           {card ? (
-                            <button type="button" className="secondary !px-3 !py-1.5 !text-xs" onClick={() => jumpToCard(card.id)}>
+                            <button type="button" className="secondary btn-sm" onClick={() => jumpToCard(card.id)}>
                               Review: {card.title}
                             </button>
                           ) : null}
@@ -779,10 +687,13 @@ function App() {
             </>
           ) : null}
 
-          <footer className="card-actions sticky bottom-0 rounded-xl border border-slate-200 bg-white/95 p-3 backdrop-blur-sm">
+          <footer className="card-actions nav-footer sticky bottom-0 rounded-xl border border-subtle bg-surface p-3 backdrop-blur-sm">
             <button type="button" className="secondary" onClick={() => setScreenIndex((prev) => Math.max(prev - 1, 0))} disabled={!canGoPrev}>
               Previous
             </button>
+            <div className="nav-logo-wrap" aria-hidden="true">
+              <img className="nav-logo" src="/branding/careindeed-logo.png" alt="CareIndeed" />
+            </div>
             <button type="button" className="primary" onClick={() => setScreenIndex((prev) => Math.min(prev + 1, completionScreenIndex))} disabled={!canGoNext || screenIndex === completionScreenIndex}>
               Next
             </button>

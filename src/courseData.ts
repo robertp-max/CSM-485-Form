@@ -382,11 +382,3 @@ export const finalExamQuestions = [
   { id: 'q24', cardId: 'alignment-crosswalk', question: 'Crosswalk purpose is to:', options: ['Improve aesthetics', 'Maintain same-story alignment across documents', 'Reduce page count'], correctAnswer: 'Maintain same-story alignment across documents' },
 ]
 
-export const glossary: Record<string, string> = {
-  CoP: 'Conditions of Participation: operational and quality requirements for Medicare-participating agencies.',
-  PDGM: 'Patient-Driven Groupings Model: home health payment grouping approach using clinical/coding factors.',
-  FTF: 'Face-to-Face encounter: timing and relevance requirement supporting eligibility/certification.',
-  VO: 'Verbal/Oral Order: spoken order requiring written trace and timely authentication.',
-  homebound: 'Coverage concept requiring qualifying barriers and considerable effort to leave home.',
-  'skilled need': 'Clinical requirement that services need professional judgment and are reasonable/necessary.',
-}
