@@ -30,6 +30,7 @@ type Hotspot = {
 }
 
 const RESUME_KEY = 'cms485-course-progress-v3'
+const THEME_KEY = 'cms485-theme'
 
 const cms485Hotspots: Hotspot[] = [
   { id: 'patient-cert', label: 'Patient + Certification', description: 'Identifiers, SOC, cert period, and timeline consistency.', x: 4, y: 6, w: 42, h: 12 },
@@ -147,6 +148,7 @@ function App() {
   const [finalExamAnswers, setFinalExamAnswers] = useState<Record<string, string>>(initial.finalExamAnswers)
   const [finalExamSubmitted, setFinalExamSubmitted] = useState(initial.finalExamSubmitted)
   const [qaDebugMode, setQaDebugMode] = useState(initial.qaDebugMode)
+  const [darkMode, setDarkMode] = useState(() => window.localStorage.getItem(THEME_KEY) === 'dark')
   const [knowledgeInputStats, setKnowledgeInputStats] = useState(initial.knowledgeInputStats)
   const [cardModeById, setCardModeById] = useState(initial.cardModeById)
   const [completionMessage, setCompletionMessage] = useState('')
@@ -235,6 +237,11 @@ function App() {
 
     window.localStorage.setItem(RESUME_KEY, JSON.stringify(payload))
   }, [screenIndex, cardAnswers, finalExamAnswers, finalExamSubmitted, qaDebugMode, knowledgeInputStats, cardModeById])
+
+  useEffect(() => {
+    document.body.classList.toggle('dark-mode', darkMode)
+    window.localStorage.setItem(THEME_KEY, darkMode ? 'dark' : 'light')
+  }, [darkMode])
 
   useEffect(() => {
     if (!relevantHotspots.length) {
@@ -413,6 +420,9 @@ function App() {
             <span className="stats-chip">Knowledge ✅ {knowledgeInputStats.correct} · ❌ {knowledgeInputStats.incorrect}</span>
             <button type="button" className={`secondary !px-3 !py-1.5 !text-xs ${qaDebugMode ? '!bg-teal-700 !text-white' : ''}`} onClick={() => setQaDebugMode((prev) => !prev)}>
               QA Debug: {qaDebugMode ? 'ON' : 'OFF'}
+            </button>
+            <button type="button" className={`secondary !px-3 !py-1.5 !text-xs ${darkMode ? '!bg-slate-900 !text-white' : ''}`} onClick={() => setDarkMode((prev) => !prev)}>
+              {darkMode ? 'Dark' : 'Light'} Mode
             </button>
           </div>
         </div>
