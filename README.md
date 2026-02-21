@@ -49,6 +49,11 @@ The final card now attempts completion in this order:
 
 This project is Vercel-ready as a Vite app.
 
+### Public access
+
+- When deployed to Vercel, this app is publicly accessible by default (no built-in login gate in this codebase).
+- Share the production URL directly with Moodle or QA users.
+
 1. Push this repo to GitHub.
 2. In Vercel, click **Add New Project** and import the repo.
 3. Use defaults (Vite is auto-detected):

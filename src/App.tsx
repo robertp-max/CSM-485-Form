@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
+import { finalExamQuestions, glossary, learningCards, sectionLabels, type CardData } from './courseData'
 import {
   getCompletionConfigFromQuery,
   getLmsEnvironmentDiagnostics,
@@ -7,747 +9,800 @@ import {
   type CompletionResult,
 } from './lmsCompletion'
 
-type Interaction =
-  | {
-      type: 'mcq'
-      question: string
-      options: string[]
-      correctOption: string
-      successText: string
-    }
-  | {
-      type: 'multi'
-      question: string
-      options: string[]
-      correctOptions: string[]
-      successText: string
-    }
-
-type TrainingCard = {
-  id: string
-  title: string
-  subtitle?: string
-  durationMin: number
-  label: 'Learning' | 'Game Checkpoint' | 'Scenario' | 'Pulse Break' | 'Wrap-Up'
-  content: string[]
-  interaction?: Interaction
+type ResumeState = {
+  screenIndex: number
+  cardAnswers: Record<string, string>
+  finalExamAnswers: Record<string, string>
+  finalExamSubmitted: boolean
+  qaDebugMode: boolean
+  knowledgeInputStats: { correct: number; incorrect: number }
+  cardModeById: Record<string, 'learner' | 'auditor'>
 }
 
-type ChallengeQuestion = {
+type Hotspot = {
   id: string
-  topic: string
-  prompt: string
-  options: string[]
-  correctOption: string
-  rationale: string
+  label: string
+  description: string
+  x: number
+  y: number
+  w: number
+  h: number
 }
 
-const finalChallengeQuestions: ChallengeQuestion[] = [
-  {
-    id: 'q1',
-    topic: 'Certification period integrity',
-    prompt: 'Which mismatch is highest risk in CSM-485 review?',
-    options: [
-      'Narrative wording preference',
-      'Certification period dates that conflict across sections',
-      'Minor punctuation differences',
-      'Font size inconsistency',
-    ],
-    correctOption: 'Certification period dates that conflict across sections',
-    rationale: 'Date conflicts can invalidate timelines and disrupt physician authorization workflow.',
-  },
-  {
-    id: 'q2',
-    topic: 'Physician sign-off requirements',
-    prompt: 'Before submission, which element is required for compliant handoff?',
-    options: [
-      'Optional peer comment only',
-      'Physician signature and date',
-      'Sticky-note reminder on draft',
-      'Verbal team acknowledgment only',
-    ],
-    correctOption: 'Physician signature and date',
-    rationale: 'Signature/date verification is a core control in final review readiness.',
-  },
-  {
-    id: 'q3',
-    topic: 'Diagnosis discrepancy escalation',
-    prompt: 'If diagnosis text changed in the latest note, best first action is:',
-    options: [
-      'Submit now and reconcile later',
-      'Ignore unless billing team flags it',
-      'Escalate discrepancy and reconcile before sign-off',
-      'Delete diagnosis section',
-    ],
-    correctOption: 'Escalate discrepancy and reconcile before sign-off',
-    rationale: 'Reconciliation before submission prevents downstream rework and quality risk.',
-  },
-  {
-    id: 'q4',
-    topic: 'Pre-submit verification workflow',
-    prompt: 'Which set represents non-negotiable pre-submit checks?',
-    options: [
-      'Patient identifiers, care period dates, intervention/goal alignment',
-      'Logo placement, page color, bullet style',
-      'Only patient initials',
-      'Only diagnosis code formatting',
-    ],
-    correctOption: 'Patient identifiers, care period dates, intervention/goal alignment',
-    rationale: 'These fields directly impact clinical continuity and review acceptance.',
-  },
-  {
-    id: 'q5',
-    topic: 'Early risk escalation timing',
-    prompt: 'When should a CSM-485 discrepancy be escalated?',
-    options: [
-      'After final submission only',
-      'Immediately when mismatch is identified',
-      'Only if a payer denies claim',
-      'At month end close',
-    ],
-    correctOption: 'Immediately when mismatch is identified',
-    rationale: 'Early escalation protects care continuity and timeline integrity.',
-  },
+const RESUME_KEY = 'cms485-course-progress-v3'
+
+const cms485Hotspots: Hotspot[] = [
+  { id: 'patient-cert', label: 'Patient + Certification', description: 'Identifiers, SOC, cert period, and timeline consistency.', x: 4, y: 6, w: 42, h: 12 },
+  { id: 'diagnosis', label: 'Diagnosis Fields', description: 'Principal/secondary logic and sequencing linkage.', x: 4, y: 21, w: 42, h: 16 },
+  { id: 'orders-frequency', label: 'Orders + Frequency', description: 'Discipline specificity, visit intensity, PRN controls.', x: 4, y: 40, w: 42, h: 18 },
+  { id: 'functional-safety', label: 'Function + Safety', description: 'Functional limits, safety controls, readmission interventions.', x: 52, y: 21, w: 44, h: 18 },
+  { id: 'goals-discharge', label: 'Goals + Discharge', description: 'Measurable outcomes, rehab potential, discharge criteria.', x: 52, y: 42, w: 44, h: 18 },
+  { id: 'meds-treatments', label: 'Meds + Treatments', description: 'Medication/treatment details and skilled monitoring trace.', x: 4, y: 63, w: 42, h: 16 },
+  { id: 'signature-block', label: 'Signature + Attestation', description: 'Practitioner signature/date and billing hard-stop evidence.', x: 52, y: 63, w: 44, h: 16 },
 ]
 
-const cards: TrainingCard[] = [
-  {
-    id: 'hero',
-    title: 'CSM-485 Mastery Experience',
-    subtitle: 'Nurse training pathway | estimated 38-42 minutes',
-    durationMin: 3,
-    label: 'Learning',
-    content: [
-      'Welcome to the CareIndeed training flow for physician plan of care compliance and documentation quality.',
-      'Move through each card, complete game checkpoints, and finish with a readiness confirmation for Moodle unlock.',
-    ],
-  },
-  {
-    id: 'mission',
-    title: 'Why CSM-485 Precision Matters',
-    durationMin: 4,
-    label: 'Learning',
-    content: [
-      'The care plan is the single source of truth between physician directives, nursing execution, and interdisciplinary communication.',
-      'Accurate CSM-485 completion lowers rework, reduces delays, and protects continuity and reimbursement confidence.',
-    ],
-  },
-  {
-    id: 'anatomy',
-    title: 'Form Anatomy: Non-Negotiable Fields',
-    durationMin: 5,
-    label: 'Learning',
-    content: [
-      'Verify patient identifiers, certification period, diagnoses, orders, visit frequencies, and signatures before submission.',
-      'Cross-check that narrative, interventions, and goals align with physician intent and current patient status.',
-    ],
-    interaction: {
-      type: 'multi',
-      question: 'Select all core elements that must be verified before final submission.',
-      options: [
-        'Patient identifiers',
-        'Physician signature and date',
-        'Care period dates',
-        'Nurse favorite color',
-        'Intervention/goal alignment',
-      ],
-      correctOptions: [
-        'Patient identifiers',
-        'Physician signature and date',
-        'Care period dates',
-        'Intervention/goal alignment',
-      ],
-      successText: 'Great eye. You captured the required verification set.',
-    },
-  },
-  {
-    id: 'mythbuster',
-    title: 'Game Checkpoint: Myth or Fact',
-    durationMin: 4,
-    label: 'Game Checkpoint',
-    content: [
-      'Keep momentum: short challenge to lock in compliance behavior before the workflow section.',
-    ],
-    interaction: {
-      type: 'mcq',
-      question:
-        'Statement: If all orders are present, a missing physician signature can be corrected after submission with no workflow impact.',
-      options: ['Fact', 'Myth'],
-      correctOption: 'Myth',
-      successText: 'Correct. Signature gaps can delay acceptance and trigger rework.',
-    },
-  },
-  {
-    id: 'workflow',
-    title: 'Workflow Rhythm: Draft -> Verify -> Handoff',
-    durationMin: 5,
-    label: 'Learning',
-    content: [
-      'Best-performing teams use a repeatable cadence: complete draft, self-verify, peer check, then physician handoff.',
-      'Escalate mismatches immediately when visit notes, goals, and ordered services are not aligned.',
-    ],
-  },
-  {
-    id: 'field-hunt',
-    title: 'Game Checkpoint: Field Hunt',
-    durationMin: 5,
-    label: 'Game Checkpoint',
-    content: [
-      'Challenge mode: identify which update creates a true compliance risk and should be escalated first.',
-    ],
-    interaction: {
-      type: 'mcq',
-      question: 'Which issue should trigger immediate escalation?',
-      options: [
-        'Minor spacing inconsistency in narrative text',
-        'Certification period dates conflict across sections',
-        'Bullet style mismatch in notes',
-        'Header capitalization differs from template',
-      ],
-      correctOption: 'Certification period dates conflict across sections',
-      successText: 'Exactly. Date conflicts can invalidate timelines and downstream approvals.',
-    },
-  },
-  {
-    id: 'risk-signals',
-    title: 'Risk Signals to Catch Early',
-    durationMin: 4,
-    label: 'Learning',
-    content: [
-      'Watch for conflicting diagnoses, unsigned amendments, and care goals that do not map to planned interventions.',
-      'Early correction protects patient continuity and prevents bottlenecks before review windows close.',
-    ],
-  },
-  {
-    id: 'pulse-break',
-    title: 'Pulse Break: 60-Second Reset',
-    subtitle: 'Keep it lively: quick reflection before final scenario',
-    durationMin: 2,
-    label: 'Pulse Break',
-    content: [
-      'Pause for one minute: What two errors are most common on your current caseload?',
-      'Mentally anchor your correction strategy before moving into the scenario card.',
-    ],
-  },
-  {
-    id: 'scenario',
-    title: 'Scenario Sprint',
-    durationMin: 4,
-    label: 'Scenario',
-    content: [
-      'Scenario: You have a complete draft, but physician signature date is outside certification period and diagnosis text changed in latest note.',
-      'Choose the strongest first action for compliant workflow recovery.',
-    ],
-    interaction: {
-      type: 'mcq',
-      question: 'Best first action?',
-      options: [
-        'Submit anyway and annotate later',
-        'Escalate discrepancy, reconcile dates/diagnoses, then resubmit for sign-off',
-        'Delete diagnosis section and continue',
-        'Wait 48 hours and see if issue resolves itself',
-      ],
-      correctOption: 'Escalate discrepancy, reconcile dates/diagnoses, then resubmit for sign-off',
-      successText: 'Perfect. Reconciliation before submission protects compliance and care integrity.',
-    },
-  },
-  {
-    id: 'competency-check',
-    title: 'Final Competency Challenge',
-    subtitle: 'Practice scorecard with unlimited retries',
-    durationMin: 6,
-    label: 'Game Checkpoint',
-    content: [
-      'Complete this scored challenge to confirm CSM-485 readiness.',
-      'You can retry as needed and still continue to final completion and Moodle quiz.',
-    ],
-  },
-  {
-    id: 'completion',
-    title: 'Training Complete: Ready for Moodle Quiz',
-    subtitle: 'Final card sends completion event and unlock signal',
-    durationMin: 2,
-    label: 'Wrap-Up',
-    content: [
-      'You completed the CSM-485 learning path and interactive checkpoints.',
-      'Select Complete Training to send completion status to your LMS integration and continue to the quiz.',
-    ],
-  },
-]
+const parseResumeState = (): ResumeState => {
+  try {
+    const raw = window.localStorage.getItem(RESUME_KEY)
+    if (!raw) {
+      return {
+        screenIndex: 0,
+        cardAnswers: {},
+        finalExamAnswers: {},
+        finalExamSubmitted: false,
+        qaDebugMode: false,
+        knowledgeInputStats: { correct: 0, incorrect: 0 },
+        cardModeById: {},
+      }
+    }
+
+    const parsed = JSON.parse(raw) as ResumeState
+    return {
+      screenIndex: Number.isFinite(parsed.screenIndex) ? parsed.screenIndex : 0,
+      cardAnswers: parsed.cardAnswers ?? {},
+      finalExamAnswers: parsed.finalExamAnswers ?? {},
+      finalExamSubmitted: parsed.finalExamSubmitted ?? false,
+      qaDebugMode: parsed.qaDebugMode ?? false,
+      knowledgeInputStats: parsed.knowledgeInputStats ?? { correct: 0, incorrect: 0 },
+      cardModeById: parsed.cardModeById ?? {},
+    }
+  } catch {
+    return {
+      screenIndex: 0,
+      cardAnswers: {},
+      finalExamAnswers: {},
+      finalExamSubmitted: false,
+      qaDebugMode: false,
+      knowledgeInputStats: { correct: 0, incorrect: 0 },
+      cardModeById: {},
+    }
+  }
+}
+
+const sectionOrder = Array.from(new Set(learningCards.map((card) => card.section)))
+
+const sectionStartIndices = sectionOrder.map((section) => ({
+  section,
+  start: learningCards.findIndex((card) => card.section === section),
+}))
+
+const sectionByCardId = new Map(learningCards.map((card) => [card.id, card.section]))
+
+function GlossaryText({ text }: { text: string }) {
+  const terms = Object.keys(glossary)
+  const sortedTerms = terms.sort((a, b) => b.length - a.length)
+
+  const parts: Array<{ text: string; term?: string }> = []
+  let cursor = 0
+  const lower = text.toLowerCase()
+
+  while (cursor < text.length) {
+    let foundTerm: string | null = null
+    let foundIndex = -1
+
+    for (const term of sortedTerms) {
+      const index = lower.indexOf(term.toLowerCase(), cursor)
+      if (index !== -1 && (foundIndex === -1 || index < foundIndex)) {
+        foundIndex = index
+        foundTerm = term
+      }
+    }
+
+    if (!foundTerm || foundIndex === -1) {
+      parts.push({ text: text.slice(cursor) })
+      break
+    }
+
+    if (foundIndex > cursor) {
+      parts.push({ text: text.slice(cursor, foundIndex) })
+    }
+
+    parts.push({ text: text.slice(foundIndex, foundIndex + foundTerm.length), term: foundTerm })
+    cursor = foundIndex + foundTerm.length
+  }
+
+  return (
+    <>
+      {parts.map((part, index) =>
+        part.term ? (
+          <span key={`${part.term}-${index}`} className="group relative cursor-help rounded bg-teal-50 px-1 text-teal-800">
+            {part.text}
+            <span className="pointer-events-none absolute -top-2 left-0 z-20 hidden w-72 -translate-y-full rounded-md border border-slate-200 bg-white p-2 text-xs text-slate-700 shadow-lg group-hover:block">
+              <strong>{part.term}:</strong> {glossary[part.term]}
+            </span>
+          </span>
+        ) : (
+          <span key={`text-${index}`}>{part.text}</span>
+        ),
+      )}
+    </>
+  )
+}
 
 function App() {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [completionMessage, setCompletionMessage] = useState('')
-  const [coverImageMissing, setCoverImageMissing] = useState(false)
-  const [coverImageIndex, setCoverImageIndex] = useState(0)
-  const [mcqAnswers, setMcqAnswers] = useState<Record<string, string>>({})
-  const [multiAnswers, setMultiAnswers] = useState<Record<string, string[]>>({})
-  const [challengeAnswers, setChallengeAnswers] = useState<Record<string, string>>({})
-  const [challengeSubmitted, setChallengeSubmitted] = useState(false)
-  const [missedTopicCounts, setMissedTopicCounts] = useState<Record<string, number>>({})
-  const [lastCompletionResult, setLastCompletionResult] = useState<CompletionResult | null>(null)
-  const [debugCopyMessage, setDebugCopyMessage] = useState('')
+  const initial = parseResumeState()
 
-  const currentCard = cards[currentIndex]
-  const isCoverCard = currentCard.id === 'hero'
-  const isFirst = currentIndex === 0
-  const isLast = currentIndex === cards.length - 1
-  const totalMinutes = cards.reduce((sum, card) => sum + card.durationMin, 0)
-  const remainingMinutes = cards.slice(currentIndex + 1).reduce((sum, card) => sum + card.durationMin, 0)
+  const [screenIndex, setScreenIndex] = useState(initial.screenIndex)
+  const [cardAnswers, setCardAnswers] = useState<Record<string, string>>(initial.cardAnswers)
+  const [finalExamAnswers, setFinalExamAnswers] = useState<Record<string, string>>(initial.finalExamAnswers)
+  const [finalExamSubmitted, setFinalExamSubmitted] = useState(initial.finalExamSubmitted)
+  const [qaDebugMode, setQaDebugMode] = useState(initial.qaDebugMode)
+  const [knowledgeInputStats, setKnowledgeInputStats] = useState(initial.knowledgeInputStats)
+  const [cardModeById, setCardModeById] = useState(initial.cardModeById)
+  const [completionMessage, setCompletionMessage] = useState('')
+  const [lastCompletionResult, setLastCompletionResult] = useState<CompletionResult | null>(null)
+
+  const [isFormExplorerOpen, setIsFormExplorerOpen] = useState(true)
+  const [activeHotspotId, setActiveHotspotId] = useState<string | null>(null)
+  const [pulseGuideOn, setPulseGuideOn] = useState(false)
+  const [checklistState, setChecklistState] = useState<Record<string, boolean>>({})
+  const [mappingState, setMappingState] = useState({ risk: '', intervention: '', goal: '' })
+  const [templateBuilderByCardId, setTemplateBuilderByCardId] = useState<Record<string, string[]>>({})
 
   const completionConfig = getCompletionConfigFromQuery()
-  const isDebugLms = new URLSearchParams(window.location.search).get('debugLms') === '1'
+  const queryParams = new URLSearchParams(window.location.search)
+  const isDebugLms = queryParams.get('debugLms') === '1'
   const lmsDiagnostics = getLmsEnvironmentDiagnostics()
+
+  const totalLearningScreens = learningCards.length * 2
+  const examScreenIndex = totalLearningScreens
+  const missedReviewScreenIndex = totalLearningScreens + 1
+  const completionScreenIndex = totalLearningScreens + 2
+  const totalScreens = totalLearningScreens + 3
+
+  const inLearningFlow = screenIndex < totalLearningScreens
+  const currentCard: CardData | null = inLearningFlow ? learningCards[Math.floor(screenIndex / 2)] : null
+  const isKnowledgeScreen = inLearningFlow && screenIndex % 2 === 1
+  const isContentScreen = inLearningFlow && !isKnowledgeScreen
+
+  const currentCardMode = currentCard ? cardModeById[currentCard.id] ?? 'learner' : 'learner'
+  const currentCardSelection = currentCard ? cardAnswers[currentCard.id] ?? '' : ''
+  const currentCardCorrect = currentCard ? currentCardSelection === currentCard.knowledgeCheck.correctAnswer : false
+
+  const knowledgeChecksCompleted = Object.keys(cardAnswers).length
+  const allKnowledgeChecksCompleted = knowledgeChecksCompleted === learningCards.length
+
+  const finalExamCorrectCount = finalExamQuestions.filter((question) => finalExamAnswers[question.id] === question.correctAnswer).length
+  const finalExamScore = Math.round((finalExamCorrectCount / finalExamQuestions.length) * 100)
+  const finalExamPassed = finalExamSubmitted && finalExamScore >= 80
+  const finalExamFullyAnswered = Object.keys(finalExamAnswers).length === finalExamQuestions.length
+
+  const missedQuestions = finalExamQuestions.filter((question) => finalExamSubmitted && finalExamAnswers[question.id] !== question.correctAnswer)
+
+  const cardToScreen = useMemo(() => {
+    const map = new Map<string, number>()
+    learningCards.forEach((card, index) => map.set(card.id, index * 2))
+    return map
+  }, [])
+
+  const totalDuration = useMemo(() => learningCards.reduce((sum, card) => sum + card.coreContent.length + 1, 0) + 12, [])
+
+  const relevantHotspots = useMemo(() => {
+    if (!currentCard?.formHotspotIds?.length) {
+      return [] as Hotspot[]
+    }
+
+    return cms485Hotspots.filter((hotspot) => currentCard.formHotspotIds?.includes(hotspot.id))
+  }, [currentCard])
+
+  const activeHotspot = relevantHotspots.find((hotspot) => hotspot.id === activeHotspotId) ?? relevantHotspots[0]
+
+  const canGoNext = qaDebugMode
+    ? screenIndex < completionScreenIndex
+    : isContentScreen
+      ? true
+      : isKnowledgeScreen
+        ? currentCardCorrect
+        : screenIndex === examScreenIndex
+          ? finalExamPassed
+          : screenIndex < completionScreenIndex
+
+  const canGoPrev = qaDebugMode ? screenIndex > 0 : screenIndex > 0 && !(isKnowledgeScreen && !currentCardCorrect)
+  const canCompleteTraining = qaDebugMode ? true : allKnowledgeChecksCompleted && finalExamPassed
+
+  const formExplorerRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const payload: ResumeState = {
+      screenIndex,
+      cardAnswers,
+      finalExamAnswers,
+      finalExamSubmitted,
+      qaDebugMode,
+      knowledgeInputStats,
+      cardModeById,
+    }
+
+    window.localStorage.setItem(RESUME_KEY, JSON.stringify(payload))
+  }, [screenIndex, cardAnswers, finalExamAnswers, finalExamSubmitted, qaDebugMode, knowledgeInputStats, cardModeById])
+
+  useEffect(() => {
+    if (!relevantHotspots.length) {
+      setActiveHotspotId(null)
+      return
+    }
+
+    setActiveHotspotId(relevantHotspots[0].id)
+  }, [currentCard?.id, relevantHotspots.length])
+
+  useEffect(() => {
+    if (!isFormExplorerOpen || !relevantHotspots.length) {
+      setPulseGuideOn(false)
+      return
+    }
+
+    const timeout = window.setTimeout(() => setPulseGuideOn(true), 8000)
+    return () => window.clearTimeout(timeout)
+  }, [isFormExplorerOpen, currentCard?.id, relevantHotspots.length, activeHotspotId])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'ArrowRight') {
-        setCurrentIndex((prev) => Math.min(prev + 1, cards.length - 1))
+      if (event.key === 'ArrowRight' && canGoNext && screenIndex < completionScreenIndex) {
+        setScreenIndex((prev) => Math.min(prev + 1, completionScreenIndex))
       }
-      if (event.key === 'ArrowLeft') {
-        setCurrentIndex((prev) => Math.max(prev - 1, 0))
+
+      if (event.key === 'ArrowLeft' && canGoPrev) {
+        setScreenIndex((prev) => Math.max(prev - 1, 0))
       }
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
-
-  const toggleMultiAnswer = (cardId: string, option: string) => {
-    setMultiAnswers((prev) => {
-      const existing = prev[cardId] ?? []
-      const next = existing.includes(option) ? existing.filter((item) => item !== option) : [...existing, option]
-      return { ...prev, [cardId]: next }
-    })
-  }
-
-  const interactionSolved = (card: TrainingCard) => {
-    if (!card.interaction) return true
-
-    if (card.interaction.type === 'mcq') {
-      return (mcqAnswers[card.id] ?? '') === card.interaction.correctOption
-    }
-
-    const selected = multiAnswers[card.id] ?? []
-    const correct = card.interaction.correctOptions
-    return selected.length === correct.length && selected.every((item) => correct.includes(item))
-  }
-
-  const completedCheckpoints = cards.filter((card) => card.interaction && interactionSolved(card)).length
-  const totalCheckpoints = cards.filter((card) => card.interaction).length
-  const xp = completedCheckpoints * 120
-  const challengeCorrect = finalChallengeQuestions.filter(
-    (question) => challengeAnswers[question.id] === question.correctOption,
-  ).length
-  const challengeScore = Math.round((challengeCorrect / finalChallengeQuestions.length) * 100)
-  const challengePassed = challengeSubmitted && challengeScore >= 80
-  const challengeComplete = Object.keys(challengeAnswers).length === finalChallengeQuestions.length
-  const personalizedRecapTopics = Object.entries(missedTopicCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-  const coverImageCandidates = [
-    '/branding/cover-training.png',
-    '/branding/cover-training.jpg',
-    '/branding/cover-training.jpeg',
-    '/branding/cover-training.webp',
-  ]
-  const coverImageSrc = coverImageCandidates[Math.min(coverImageIndex, coverImageCandidates.length - 1)]
-
-  const tryNextCoverImage = () => {
-    if (coverImageIndex < coverImageCandidates.length - 1) {
-      setCoverImageIndex((prev) => prev + 1)
-    } else {
-      setCoverImageMissing(true)
-    }
-  }
+  }, [canGoNext, canGoPrev, screenIndex, completionScreenIndex])
 
   const completeTraining = async () => {
     const payload = {
       event: 'training.completed' as const,
-      module: 'CSM-485',
+      module: 'CMS-485 LMS',
       completedAt: new Date().toISOString(),
-      trainingMinutes: totalMinutes,
-      checkpointsCompleted: completedCheckpoints,
-      challengeScore,
-      challengePassed,
-      personalizedRecapTopics: personalizedRecapTopics.map(([topic]) => topic),
+      trainingMinutes: totalDuration,
+      checkpointsCompleted: knowledgeChecksCompleted,
+      challengeScore: finalExamScore,
+      challengePassed: finalExamPassed,
+      personalizedRecapTopics: [...new Set(missedQuestions.map((item) => sectionLabels[sectionByCardId.get(item.cardId) ?? 'orientation']))],
     }
 
     try {
       const result = await sendTrainingCompletion(payload, completionConfig)
       setLastCompletionResult(result)
       const anySuccess = result.scorm || result.xapi || result.webhook || result.postMessage
-
-      if (anySuccess) {
-        const activeChannels = [
-          result.scorm ? 'SCORM' : null,
-          result.xapi ? 'xAPI' : null,
-          result.webhook ? 'webhook' : null,
-          result.postMessage ? 'LTI postMessage' : null,
-        ].filter(Boolean)
-
-        setCompletionMessage(
-          `Training marked complete via ${activeChannels.join(', ')}. You can return to Moodle for the quiz.`,
-        )
-      } else {
-        setCompletionMessage('Completion was attempted, but no LMS channel confirmed. Verify launch configuration.')
-      }
+      setCompletionMessage(
+        anySuccess
+          ? 'Completion recorded. Certificate wording: CMS-aligned / CoP-compliant / audit-ready.'
+          : 'Completion attempted but no LMS channel confirmed success. Verify launch settings.',
+      )
     } catch {
-      setCompletionMessage('Completion could not be sent. Please retry or notify your administrator.')
+      setCompletionMessage('Completion could not be sent. Retry or contact LMS admin.')
     }
   }
 
-  const buildDebugReport = () => {
-    const reportLines = [
-      'CSM-485 LMS Debug Report',
-      `Generated: ${new Date().toISOString()}`,
-      `URL: ${window.location.href}`,
-      '',
-      'Environment',
-      `- In iframe: ${lmsDiagnostics.inIframe ? 'Yes' : 'No'}`,
-      `- SCORM detected: ${lmsDiagnostics.scormVersion ?? 'None'}`,
-      `- SCORM 2004 API: ${lmsDiagnostics.hasScormApi2004 ? 'Found' : 'Not found'}`,
-      `- SCORM 1.2 API: ${lmsDiagnostics.hasScormApi12 ? 'Found' : 'Not found'}`,
-      `- Parent window available: ${lmsDiagnostics.hasParentWindow ? 'Yes' : 'No'}`,
-      '',
-      'Configuration',
-      `- Webhook configured: ${completionConfig.completionEndpoint ? 'Yes' : 'No'}`,
-      `- xAPI endpoint configured: ${completionConfig.xapiEndpoint ? 'Yes' : 'No'}`,
-      `- xAPI actor email configured: ${completionConfig.xapiActorEmail ? 'Yes' : 'No'}`,
-      `- LTI target origin: ${completionConfig.ltiTargetOrigin || '*'}`,
-      '',
-      'Last completion attempt',
-      `- SCORM sent: ${lastCompletionResult?.scorm ? 'Success' : 'No/failed'}`,
-      `- xAPI sent: ${lastCompletionResult?.xapi ? 'Success' : 'No/failed'}`,
-      `- Webhook sent: ${lastCompletionResult?.webhook ? 'Success' : 'No/failed'}`,
-      `- postMessage sent: ${lastCompletionResult?.postMessage ? 'Success' : 'No/failed'}`,
-      `- Errors: ${lastCompletionResult?.errors.length ? lastCompletionResult.errors.join(', ') : 'None'}`,
-    ]
-
-    return reportLines.join('\n')
+  const resetProgress = () => {
+    setScreenIndex(0)
+    setCardAnswers({})
+    setFinalExamAnswers({})
+    setFinalExamSubmitted(false)
+    setKnowledgeInputStats({ correct: 0, incorrect: 0 })
+    setCompletionMessage('')
+    setLastCompletionResult(null)
+    setChecklistState({})
+    setMappingState({ risk: '', intervention: '', goal: '' })
+    window.localStorage.removeItem(RESUME_KEY)
   }
 
-  const copyDebugReport = async () => {
+  const jumpToCard = (cardId: string) => {
+    const target = cardToScreen.get(cardId)
+    if (typeof target === 'number') {
+      setScreenIndex(target)
+    }
+  }
+
+  const copyText = async (value: string) => {
     try {
-      await navigator.clipboard.writeText(buildDebugReport())
-      setDebugCopyMessage('Debug report copied. Paste this into Slack/email for your Moodle admin.')
+      await navigator.clipboard.writeText(value)
     } catch {
-      setDebugCopyMessage('Could not copy automatically. Clipboard permissions may be blocked in this browser.')
+      // noop
     }
+  }
+
+  const showFormZone = () => {
+    if (!relevantHotspots.length || !formExplorerRef.current) return
+    setIsFormExplorerOpen(true)
+    setActiveHotspotId(relevantHotspots[0].id)
+    setPulseGuideOn(false)
+    formExplorerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  const renderVisualization = (card: CardData) => {
+    const viz = card.visualization
+
+    if (viz.type === 'goodBad') {
+      return (
+        <div className="grid gap-3 md:grid-cols-2">
+          <article className="rounded-xl border border-emerald-300 bg-emerald-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Good Example</p>
+            <p className="mt-1 text-sm text-emerald-900">{viz.goodExample}</p>
+          </article>
+          <article className="rounded-xl border border-amber-300 bg-amber-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Bad Example</p>
+            <p className="mt-1 text-sm text-amber-900">{viz.badExample}</p>
+          </article>
+        </div>
+      )
+    }
+
+    if (viz.type === 'templateBuilder') {
+      const builtText = templateBuilderByCardId[card.id] ?? []
+      return (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {viz.chips?.map((chip) => (
+              <button
+                key={chip}
+                type="button"
+                className="rounded-full border border-teal-300 bg-teal-50 px-3 py-1 text-xs text-teal-900"
+                onClick={() =>
+                  setTemplateBuilderByCardId((prev) => ({
+                    ...prev,
+                    [card.id]: [...(prev[card.id] ?? []), chip],
+                  }))
+                }
+              >
+                + {chip}
+              </button>
+            ))}
+          </div>
+          <div className="rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-700">
+            {builtText.length ? builtText.join(' | ') : 'Build a compliant sentence by selecting chips.'}
+          </div>
+          <button
+            type="button"
+            className="secondary !px-3 !py-1.5 !text-xs"
+            onClick={() =>
+              setTemplateBuilderByCardId((prev) => ({
+                ...prev,
+                [card.id]: [],
+              }))
+            }
+          >
+            Reset Builder
+          </button>
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-2">
+        <p className="text-sm text-slate-700">{viz.prompt}</p>
+        <div className="grid gap-2">
+          {viz.options?.map((option) => (
+            <button key={option} type="button" className="option-btn transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
-    <main className="app-shell">
-      <header className="brand-header">
-        <div className="brand-stack">
-          <img
-            src="/branding/logo-dark.png"
-            alt="CareIndeed"
-            className="brand-logo"
-            onError={(event) => {
-              const element = event.currentTarget
-              element.style.display = 'none'
-            }}
-          />
-          <p className="brand-tag">Nurse Training Experience · CSM-485</p>
+    <main className="app-shell animate-fade-in-up">
+      <section className="sticky top-0 z-30 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-slate-800">CMS-485 LMS · CMS-aligned / CoP-compliant / audit-ready</p>
+          <div className="flex flex-wrap gap-2">
+            <span className="stats-chip">Knowledge ✅ {knowledgeInputStats.correct} · ❌ {knowledgeInputStats.incorrect}</span>
+            <button type="button" className={`secondary !px-3 !py-1.5 !text-xs ${qaDebugMode ? '!bg-teal-700 !text-white' : ''}`} onClick={() => setQaDebugMode((prev) => !prev)}>
+              QA Debug: {qaDebugMode ? 'ON' : 'OFF'}
+            </button>
+          </div>
         </div>
-        <div className="stats-chip-wrap">
-          <span className="stats-chip">XP {xp}</span>
-          <span className="stats-chip">{completedCheckpoints}/{totalCheckpoints} checkpoints</span>
-          <span className="stats-chip">Challenge {challengeSubmitted ? `${challengeScore}%` : 'Not graded yet'}</span>
-        </div>
-      </header>
 
-      <section className="hero-strip" aria-label="Training summary">
-        <div>
-          <p className="hero-kicker">Mission-ready learning path</p>
-          <h2>{totalMinutes} min guided flow</h2>
-          <p>Estimated time remaining: {remainingMinutes} min</p>
-        </div>
-        <div className="hero-meter" role="progressbar" aria-valuemin={0} aria-valuemax={cards.length} aria-valuenow={currentIndex + 1}>
-          <span style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }} />
+        <div className="grid gap-2">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+            <motion.div
+              className="h-full bg-gradient-to-r from-teal-500 to-cyan-500"
+              animate={{ width: `${((screenIndex + 1) / totalScreens) * 100}%` }}
+              transition={{ type: 'spring', stiffness: 140, damping: 22 }}
+            />
+          </div>
+          <div className="flex flex-wrap gap-1 text-[11px] text-slate-600">
+            {sectionStartIndices.map((item, idx) => {
+              const screenStart = item.start * 2
+              const active = screenIndex >= screenStart && (idx === sectionStartIndices.length - 1 || screenIndex < sectionStartIndices[idx + 1].start * 2)
+              return (
+                <span key={item.section} className={`rounded-full px-2 py-1 ${active ? 'bg-teal-600 text-white' : 'bg-slate-100'}`}>
+                  {sectionLabels[item.section]}
+                </span>
+              )
+            })}
+          </div>
         </div>
       </section>
 
-      <section className="training-card" role="region" aria-live="polite">
-        {isCoverCard ? (
-          <section className="cover-card-stage" aria-label="Training banner card">
-            {!coverImageMissing ? (
-              <img
-                src={coverImageSrc}
-                alt="CMS-485 Form Training cover"
-                className="cover-image"
-                onLoad={() => setCoverImageMissing(false)}
-                onError={tryNextCoverImage}
-              />
-            ) : null}
+      <section className="hero-strip mt-3 animate-fade-in-up" aria-label="Training summary">
+        <div>
+          <p className="hero-kicker">Interactive compliance workflow</p>
+          <h2>{totalDuration}+ minute guided flow</h2>
+          <p>Screen {screenIndex + 1} of {totalScreens} · Keyboard: ← → · Focus-safe controls</p>
+        </div>
+      </section>
 
-            {coverImageMissing ? (
-              <div className="cover-fallback">
-                <p>
-                  Cover image not found. Add one of these files in <code>public/branding</code>:
-                </p>
-                <ul>
-                  <li><code>cover-training.png</code></li>
-                  <li><code>cover-training.jpg</code></li>
-                  <li><code>cover-training.jpeg</code></li>
-                </ul>
-              </div>
-            ) : null}
-
-            <div className="cover-action-row">
-              <button type="button" className="primary" onClick={() => setCurrentIndex(1)}>
-                Start Training
-              </button>
-            </div>
-          </section>
-        ) : (
-          <>
-            <div className="card-top-row">
-              <span className="badge">
-                Card {currentIndex + 1} of {cards.length}
-              </span>
-              <span className="badge ghost">{currentCard.label}</span>
-              <div className="card-jump" aria-label="Card selector">
-                {cards.map((card, index) => (
+      <AnimatePresence mode="wait">
+        <motion.section
+          key={screenIndex}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.22 }}
+          className="training-card mt-3 transition-all duration-300 hover:shadow-xl"
+          role="region"
+          aria-live="polite"
+        >
+          {currentCard && isContentScreen ? (
+            <>
+              <div className="card-top-row">
+                <span className="badge">{sectionLabels[currentCard.section]}</span>
+                <div className="flex items-center gap-2">
                   <button
-                    key={card.id}
                     type="button"
-                    className={`jump-dot ${index === currentIndex ? 'active' : ''}`}
-                    onClick={() => setCurrentIndex(index)}
-                    aria-label={`Go to ${card.title}`}
-                  />
-                ))}
+                    className={`secondary !px-3 !py-1.5 !text-xs ${currentCardMode === 'learner' ? '!bg-teal-700 !text-white' : ''}`}
+                    onClick={() => setCardModeById((prev) => ({ ...prev, [currentCard.id]: 'learner' }))}
+                  >
+                    Learner Mode
+                  </button>
+                  <button
+                    type="button"
+                    className={`secondary !px-3 !py-1.5 !text-xs ${currentCardMode === 'auditor' ? '!bg-slate-800 !text-white' : ''}`}
+                    onClick={() => setCardModeById((prev) => ({ ...prev, [currentCard.id]: 'auditor' }))}
+                  >
+                    Auditor Mode
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <h1>{currentCard.title}</h1>
-            {currentCard.subtitle ? <p className="subtitle">{currentCard.subtitle}</p> : null}
-            <p className="duration-pill">Estimated card time: {currentCard.durationMin} min</p>
-            <div className="copy-block">
-              {currentCard.content.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
-            </div>
+              <h1>{currentCard.title}</h1>
 
-            {currentCard.interaction ? (
-              <section className="game-panel">
-                <p className="game-title">Interactive checkpoint</p>
-                <p>{currentCard.interaction.question}</p>
-
-                {currentCard.interaction.type === 'mcq' ? (
-                  <div className="option-grid">
-                    {currentCard.interaction.options.map((option) => {
-                      const selected = mcqAnswers[currentCard.id] === option
-                      return (
-                        <button
-                          key={option}
-                          type="button"
-                          className={`option-btn ${selected ? 'selected' : ''}`}
-                          onClick={() => setMcqAnswers((prev) => ({ ...prev, [currentCard.id]: option }))}
-                        >
-                          {option}
-                        </button>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <div className="option-grid">
-                    {currentCard.interaction.options.map((option) => {
-                      const selected = (multiAnswers[currentCard.id] ?? []).includes(option)
-                      return (
-                        <button
-                          key={option}
-                          type="button"
-                          className={`option-btn ${selected ? 'selected' : ''}`}
-                          onClick={() => toggleMultiAnswer(currentCard.id, option)}
-                        >
-                          {option}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {interactionSolved(currentCard) ? <p className="success-note">{currentCard.interaction.successText}</p> : null}
+              <section className="objective-box">
+                <p className="section-label">Learning Objective</p>
+                <p><GlossaryText text={currentCard.objective} /></p>
               </section>
-            ) : null}
 
-            {currentCard.id === 'competency-check' ? (
-              <section className="game-panel">
-                <p className="game-title">Scored challenge</p>
-                <p>Answer all 5 questions. Passing threshold: 80%.</p>
+              <section className="copy-block">
+                <p className="section-label">Core Content</p>
+                <ul>
+                  {currentCard.coreContent.map((item) => (
+                    <li key={item}><GlossaryText text={item} /></li>
+                  ))}
+                </ul>
+              </section>
 
-                <div className="challenge-grid">
-                  {finalChallengeQuestions.map((question, index) => (
-                    <article key={question.id} className="challenge-item">
-                      <p className="challenge-question">
-                        {index + 1}. {question.prompt}
-                      </p>
-                      <div className="option-grid">
-                        {question.options.map((option) => {
-                          const selected = challengeAnswers[question.id] === option
+              <section className="example-box">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="section-label">Practical Example</p>
+                  <div className="flex gap-2">
+                    <button type="button" className="secondary !px-3 !py-1 !text-xs" onClick={() => copyText(currentCard.practicalExample)}>Copy compliant text</button>
+                    <button type="button" className="secondary !px-3 !py-1 !text-xs">Listen (stub)</button>
+                  </div>
+                </div>
+                <p><GlossaryText text={currentCard.practicalExample} /></p>
+              </section>
+
+              <section className="red-flag-box">
+                <p className="section-label">Common Mistake / Red Flag</p>
+                <p><GlossaryText text={currentCard.redFlag} /></p>
+              </section>
+
+              {currentCard.deepDive ? (
+                <section className="objective-box">
+                  <p className="section-label">Clinical Deep Dive</p>
+                  <ul>
+                    {currentCard.deepDive.map((item) => (
+                      <li key={item}><GlossaryText text={item} /></li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+
+              <section className="objective-box">
+                <p className="section-label">Visualization / Interaction</p>
+                {renderVisualization(currentCard)}
+              </section>
+
+              {currentCard.id === 'plan-required-elements' ? (
+                <section className="objective-box" ref={formExplorerRef}>
+                  <p className="section-label">Required Elements Checklist (Interactive)</p>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {[
+                      'Diagnoses complete and current',
+                      'Safety + readmission interventions listed',
+                      'Measurable goals with timeframe',
+                      'Education/discharge criteria documented',
+                      'Advance directive status documented',
+                      'Supervisor completeness attestation ready',
+                    ].map((item) => {
+                      const checked = checklistState[item]
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          className={`rounded-lg border px-3 py-2 text-left text-sm transition ${checked ? 'border-teal-700 bg-teal-50' : 'border-slate-300 bg-white hover:border-teal-400'}`}
+                          onClick={() => setChecklistState((prev) => ({ ...prev, [item]: !prev[item] }))}
+                        >
+                          {checked ? '✅' : '⬜'} {item}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <p className="section-label mt-3">Risk → Intervention → Measurable Goal mini-sim</p>
+                  <div className="grid gap-2 md:grid-cols-3">
+                    <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Risk" value={mappingState.risk} onChange={(e) => setMappingState((prev) => ({ ...prev, risk: e.target.value }))} />
+                    <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Intervention" value={mappingState.intervention} onChange={(e) => setMappingState((prev) => ({ ...prev, intervention: e.target.value }))} />
+                    <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Measurable Goal" value={mappingState.goal} onChange={(e) => setMappingState((prev) => ({ ...prev, goal: e.target.value }))} />
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2 mt-3">
+                    <article className="rounded-lg border border-emerald-300 bg-emerald-50 p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-900">Compliant goal example</p>
+                      <p className="text-sm mt-1">Patient will complete bed-to-chair transfer with stand-by assist and no loss of balance for 14 days.</p>
+                    </article>
+                    <article className="rounded-lg border border-amber-300 bg-amber-50 p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">Noncompliant goal example</p>
+                      <p className="text-sm mt-1">Improve mobility.</p>
+                    </article>
+                  </div>
+
+                  <div className="mt-3 rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-700">
+                    <p className="font-semibold">Supervisor POC completeness attestation</p>
+                    <p className="mt-1">“I attest required POC elements are complete, patient-specific, and traceable to assessment evidence prior to claim progression.”</p>
+                    <button type="button" className="secondary !px-3 !py-1.5 !text-xs mt-2" onClick={() => copyText('I attest required POC elements are complete, patient-specific, and traceable to assessment evidence prior to claim progression.')}>Copy attestation snippet</button>
+                  </div>
+                </section>
+              ) : null}
+
+              {relevantHotspots.length ? (
+                <section className="objective-box" ref={formExplorerRef}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="section-label">CMS-485 Interactive Form Explorer</p>
+                    <div className="flex gap-2">
+                      <button type="button" className="secondary !px-3 !py-1.5 !text-xs" onClick={showFormZone}>Show me on the form</button>
+                      <button type="button" className="secondary !px-3 !py-1.5 !text-xs" onClick={() => setIsFormExplorerOpen((prev) => !prev)}>
+                        {isFormExplorerOpen ? 'Collapse' : 'Expand'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {isFormExplorerOpen ? (
+                    <>
+                      <div className="relative mt-2 overflow-hidden rounded-xl border border-slate-300 bg-white">
+                        <img src="/branding/cms-485-form.svg" alt="CMS-485 Plan of Care form" className="w-full" />
+                        {relevantHotspots.map((hotspot) => {
+                          const active = activeHotspot?.id === hotspot.id
                           return (
                             <button
-                              key={option}
+                              key={hotspot.id}
                               type="button"
-                              className={`option-btn ${selected ? 'selected' : ''}`}
-                              onClick={() =>
-                                setChallengeAnswers((prev) => ({
-                                  ...prev,
-                                  [question.id]: option,
-                                }))
-                              }
-                            >
-                              {option}
-                            </button>
+                              className={`absolute rounded-md border-2 transition-all ${active ? 'border-teal-700 bg-teal-500/20' : 'border-teal-400/80 bg-teal-400/10'} ${pulseGuideOn && !active ? 'animate-pulse' : ''}`}
+                              style={{ left: `${hotspot.x}%`, top: `${hotspot.y}%`, width: `${hotspot.w}%`, height: `${hotspot.h}%` }}
+                              onClick={() => {
+                                setActiveHotspotId(hotspot.id)
+                                setPulseGuideOn(false)
+                              }}
+                            />
                           )
                         })}
                       </div>
-                      {challengeSubmitted ? <p className="rationale-note">{question.rationale}</p> : null}
-                    </article>
-                  ))}
+                      {activeHotspot ? (
+                        <p className="mt-2 text-sm text-slate-700"><strong>{activeHotspot.label}:</strong> {activeHotspot.description}</p>
+                      ) : null}
+                    </>
+                  ) : null}
+                </section>
+              ) : null}
+            </>
+          ) : null}
+
+          {currentCard && isKnowledgeScreen ? (
+            <>
+              <div className="card-top-row">
+                <span className="badge">Knowledge Check</span>
+                <span className="badge ghost">Section gate</span>
+              </div>
+              <h1>{currentCard.title} — Checkpoint</h1>
+              <section className="game-panel">
+                <p className="game-title">Question</p>
+                <p>{currentCard.knowledgeCheck.question}</p>
+                <div className="option-grid">
+                  {currentCard.knowledgeCheck.options.map((option) => {
+                    const selected = currentCardSelection === option
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        className={`option-btn ${selected ? 'selected' : ''}`}
+                        onClick={() => {
+                          const correct = option === currentCard.knowledgeCheck.correctAnswer
+                          setKnowledgeInputStats((prev) => ({
+                            correct: prev.correct + (correct ? 1 : 0),
+                            incorrect: prev.incorrect + (correct ? 0 : 1),
+                          }))
+                          setCardAnswers((prev) => ({ ...prev, [currentCard.id]: option }))
+                        }}
+                      >
+                        {option}
+                      </button>
+                    )
+                  })}
                 </div>
-
-                <div className="challenge-actions">
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={!challengeComplete}
-                    onClick={() => {
-                      setChallengeSubmitted(true)
-
-                      const missedTopics = finalChallengeQuestions
-                        .filter((question) => challengeAnswers[question.id] !== question.correctOption)
-                        .map((question) => question.topic)
-
-                      if (missedTopics.length) {
-                        setMissedTopicCounts((prev) => {
-                          const next = { ...prev }
-                          missedTopics.forEach((topic) => {
-                            next[topic] = (next[topic] ?? 0) + 1
-                          })
-                          return next
-                        })
-                      }
-                    }}
-                  >
-                    Grade Challenge
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => {
-                      setChallengeAnswers({})
-                      setChallengeSubmitted(false)
-                    }}
-                  >
-                    Retry
-                  </button>
-                </div>
-
-                {challengeSubmitted ? (
-                  <p className={`success-note ${challengePassed ? '' : 'warn'}`}>
-                    Score: {challengeScore}% · {challengePassed ? 'Pass' : 'Needs retry (80% required)'}
+                {currentCardSelection ? (
+                  <p className={`success-note ${currentCardCorrect ? '' : 'warn'}`}>
+                    {currentCardCorrect
+                      ? `Correct. ${currentCard.knowledgeCheck.rationale}`
+                      : qaDebugMode
+                        ? 'Incorrect. QA Debug ON: gate bypass enabled.'
+                        : 'Incorrect. Back/Next locked until correct.'}
                   </p>
                 ) : null}
               </section>
-            ) : null}
+            </>
+          ) : null}
 
-            {currentCard.id === 'completion' ? (
-              <section className="recap-panel" aria-label="Personalized recap">
-                <p className="recap-title">Your personalized recap</p>
-                {personalizedRecapTopics.length ? (
-                  <>
-                    <p>Based on your challenge attempts, focus on these top review themes:</p>
-                    <ul>
-                      {personalizedRecapTopics.map(([topic, misses]) => (
-                        <li key={topic}>
-                          <strong>{topic}</strong> — revisit this area ({misses} miss{misses > 1 ? 'es' : ''})
+          {screenIndex === examScreenIndex ? (
+            <>
+              <div className="card-top-row">
+                <span className="badge">Final Exam</span>
+                <span className="badge ghost">24 questions · pass 80%</span>
+              </div>
+              <h1>Final Exam</h1>
+              <section className="exam-grid">
+                {finalExamQuestions.map((question, index) => (
+                  <article key={question.id} className="challenge-item">
+                    <p className="challenge-question">{index + 1}. {question.question}</p>
+                    <div className="option-grid">
+                      {question.options.map((option) => {
+                        const selected = finalExamAnswers[question.id] === option
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            className={`option-btn ${selected ? 'selected' : ''}`}
+                            onClick={() => setFinalExamAnswers((prev) => ({ ...prev, [question.id]: option }))}
+                          >
+                            {option}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </article>
+                ))}
+              </section>
+              <div className="challenge-actions">
+                <button type="button" className="secondary" disabled={!qaDebugMode && !finalExamFullyAnswered} onClick={() => setFinalExamSubmitted(true)}>
+                  Submit Final Exam
+                </button>
+                <button type="button" className="secondary" onClick={() => { setFinalExamAnswers({}); setFinalExamSubmitted(false) }}>
+                  Reset Exam
+                </button>
+              </div>
+              {finalExamSubmitted ? (
+                <section className="recap-panel">
+                  <p className="recap-title">Score: {finalExamScore}% · {finalExamPassed ? 'Pass' : 'Needs remediation'}</p>
+                  <p>{missedQuestions.length ? 'Review missed-question screen next for targeted card links.' : 'No missed questions. Proceed to completion.'}</p>
+                </section>
+              ) : null}
+            </>
+          ) : null}
+
+          {screenIndex === missedReviewScreenIndex ? (
+            <>
+              <div className="card-top-row">
+                <span className="badge">Missed Review</span>
+                <span className="badge ghost">Card-linked remediation</span>
+              </div>
+              <h1>Missed Questions Review</h1>
+              <section className="copy-block">
+                {missedQuestions.length ? (
+                  <ul>
+                    {missedQuestions.map((item) => {
+                      const card = learningCards.find((c) => c.id === item.cardId)
+                      return (
+                        <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
+                          <span>{item.question}</span>
+                          {card ? (
+                            <button type="button" className="secondary !px-3 !py-1.5 !text-xs" onClick={() => jumpToCard(card.id)}>
+                              Review: {card.title}
+                            </button>
+                          ) : null}
                         </li>
-                      ))}
-                    </ul>
-                    <p className="recap-note">Official graded assessment still occurs in your Moodle quiz.</p>
-                  </>
+                      )
+                    })}
+                  </ul>
                 ) : (
-                  <p>
-                    Great work—no recurring weak spots detected in practice attempts. Proceed to Moodle quiz with confidence.
-                  </p>
+                  <p>No missed questions to review.</p>
                 )}
               </section>
-            ) : null}
+            </>
+          ) : null}
 
-            <footer className="card-actions">
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => setCurrentIndex((prev) => Math.max(prev - 1, 0))}
-                disabled={isFirst}
-              >
-                Back
-              </button>
+          {screenIndex === completionScreenIndex ? (
+            <>
+              <div className="card-top-row">
+                <span className="badge">Completion</span>
+                <span className="badge ghost">Attestation</span>
+              </div>
+              <h1>Completion Screen</h1>
+              <section className="copy-block">
+                <ul>
+                  <li>Attestation: I completed this CMS-aligned / CoP-compliant / audit-ready training pathway.</li>
+                  <li>Course checks completed: {knowledgeChecksCompleted}/{learningCards.length}</li>
+                  <li>Final exam score: {finalExamSubmitted ? `${finalExamScore}%` : 'Not submitted'}</li>
+                </ul>
+              </section>
+              <footer className="card-actions">
+                <button type="button" className="secondary" onClick={resetProgress}>Restart Course</button>
+                <button type="button" className="primary" disabled={!canCompleteTraining} onClick={completeTraining}>Complete Training</button>
+              </footer>
+              {!canCompleteTraining && !qaDebugMode ? (
+                <p className="completion-lock-note">Complete all knowledge gates and pass final exam (80%) to unlock completion.</p>
+              ) : null}
+              {completionMessage ? <p className="completion-note">{completionMessage}</p> : null}
+            </>
+          ) : null}
 
-              {!isLast ? (
-                <button
-                  type="button"
-                  className="primary"
-                  onClick={() => setCurrentIndex((prev) => Math.min(prev + 1, cards.length - 1))}
-                  disabled={Boolean(currentCard.interaction) && !interactionSolved(currentCard)}
-                >
-                  Next
-                </button>
-              ) : (
-                <button type="button" className="primary" onClick={completeTraining}>
-                  Complete Training
-                </button>
-              )}
-            </footer>
-
-            {completionMessage ? <p className="completion-note">{completionMessage}</p> : null}
-          </>
-        )}
-      </section>
+          <footer className="card-actions sticky bottom-0 rounded-xl border border-slate-200 bg-white/95 p-3 backdrop-blur-sm">
+            <button type="button" className="secondary" onClick={() => setScreenIndex((prev) => Math.max(prev - 1, 0))} disabled={!canGoPrev}>
+              Previous
+            </button>
+            <button type="button" className="primary" onClick={() => setScreenIndex((prev) => Math.min(prev + 1, completionScreenIndex))} disabled={!canGoNext || screenIndex === completionScreenIndex}>
+              Next
+            </button>
+          </footer>
+        </motion.section>
+      </AnimatePresence>
 
       <p className="helper-text">
-        Tip: query options include <code>completionEndpoint</code>, <code>xapiEndpoint</code>, <code>xapiAuth</code>,
-        <code>xapiActorEmail</code>, and <code>ltiTargetOrigin</code>. Logos and cover go in <code>public/branding</code>.
+        App is public when deployed (no built-in auth gate in this codebase). Debug params: <code>debugLms=1</code>, <code>completionEndpoint</code>, <code>xapiEndpoint</code>, <code>xapiAuth</code>, <code>xapiActorEmail</code>, <code>ltiTargetOrigin</code>.
       </p>
 
       {isDebugLms ? (
         <section className="debug-panel" aria-label="LMS diagnostics panel">
-          <p className="debug-title">LMS Diagnostics (debugLms=1)</p>
-          <div className="debug-actions">
-            <button type="button" className="secondary" onClick={copyDebugReport}>
-              Copy LMS debug report
-            </button>
-            {debugCopyMessage ? <p className="debug-note">{debugCopyMessage}</p> : null}
-          </div>
+          <p className="debug-title">LMS Diagnostics</p>
           <ul>
             <li>In iframe: {lmsDiagnostics.inIframe ? 'Yes' : 'No'}</li>
             <li>SCORM detected: {lmsDiagnostics.scormVersion ?? 'None'}</li>
             <li>SCORM 2004 API: {lmsDiagnostics.hasScormApi2004 ? 'Found' : 'Not found'}</li>
             <li>SCORM 1.2 API: {lmsDiagnostics.hasScormApi12 ? 'Found' : 'Not found'}</li>
             <li>Parent window available: {lmsDiagnostics.hasParentWindow ? 'Yes' : 'No'}</li>
-            <li>Webhook configured: {completionConfig.completionEndpoint ? 'Yes' : 'No'}</li>
-            <li>xAPI endpoint configured: {completionConfig.xapiEndpoint ? 'Yes' : 'No'}</li>
-            <li>xAPI actor email configured: {completionConfig.xapiActorEmail ? 'Yes' : 'No'}</li>
-            <li>LTI target origin: {completionConfig.ltiTargetOrigin || '*'}</li>
           </ul>
-
           {lastCompletionResult ? (
-            <>
-              <p className="debug-title">Last completion attempt</p>
-              <ul>
-                <li>SCORM sent: {lastCompletionResult.scorm ? 'Success' : 'No/failed'}</li>
-                <li>xAPI sent: {lastCompletionResult.xapi ? 'Success' : 'No/failed'}</li>
-                <li>Webhook sent: {lastCompletionResult.webhook ? 'Success' : 'No/failed'}</li>
-                <li>postMessage sent: {lastCompletionResult.postMessage ? 'Success' : 'No/failed'}</li>
-                <li>Errors: {lastCompletionResult.errors.length ? lastCompletionResult.errors.join(', ') : 'None'}</li>
-              </ul>
-            </>
-          ) : (
-            <p className="debug-note">No completion attempt yet in this session.</p>
-          )}
+            <ul>
+              <li>SCORM sent: {lastCompletionResult.scorm ? 'Success' : 'No/failed'}</li>
+              <li>xAPI sent: {lastCompletionResult.xapi ? 'Success' : 'No/failed'}</li>
+              <li>Webhook sent: {lastCompletionResult.webhook ? 'Success' : 'No/failed'}</li>
+              <li>postMessage sent: {lastCompletionResult.postMessage ? 'Success' : 'No/failed'}</li>
+              <li>Errors: {lastCompletionResult.errors.length ? lastCompletionResult.errors.join(', ') : 'None'}</li>
+            </ul>
+          ) : null}
         </section>
       ) : null}
     </main>
