@@ -95,6 +95,44 @@
   text-align: left;
 }
 
+
+.cover-card-stage {
+  display: grid;
+  gap: 1rem;
+}
+
+.cover-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+}
+
+.cover-fallback {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.85rem;
+  color: #9a3412;
+  border: 1px dashed #fb923c;
+  border-radius: 10px;
+  background: #fff7ed;
+}
+
+.cover-fallback p {
+  margin: 0;
+}
+
+.cover-fallback ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.cover-action-row {
+  display: flex;
+  justify-content: center;
+}
+
 .card-top-row {
   display: flex;
   justify-content: space-between;

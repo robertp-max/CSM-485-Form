@@ -278,6 +278,8 @@ const cards: TrainingCard[] = [
 function App() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [completionMessage, setCompletionMessage] = useState('')
+  const [coverImageMissing, setCoverImageMissing] = useState(false)
+  const [coverImageIndex, setCoverImageIndex] = useState(0)
   const [mcqAnswers, setMcqAnswers] = useState<Record<string, string>>({})
   const [multiAnswers, setMultiAnswers] = useState<Record<string, string[]>>({})
   const [challengeAnswers, setChallengeAnswers] = useState<Record<string, string>>({})
@@ -287,6 +289,7 @@ function App() {
   const [debugCopyMessage, setDebugCopyMessage] = useState('')
 
   const currentCard = cards[currentIndex]
+  const isCoverCard = currentCard.id === 'hero'
   const isFirst = currentIndex === 0
   const isLast = currentIndex === cards.length - 1
   const totalMinutes = cards.reduce((sum, card) => sum + card.durationMin, 0)
@@ -342,6 +345,21 @@ function App() {
   const personalizedRecapTopics = Object.entries(missedTopicCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
+  const coverImageCandidates = [
+    '/branding/cover-training.png',
+    '/branding/cover-training.jpg',
+    '/branding/cover-training.jpeg',
+    '/branding/cover-training.webp',
+  ]
+  const coverImageSrc = coverImageCandidates[Math.min(coverImageIndex, coverImageCandidates.length - 1)]
+
+  const tryNextCoverImage = () => {
+    if (coverImageIndex < coverImageCandidates.length - 1) {
+      setCoverImageIndex((prev) => prev + 1)
+    } else {
+      setCoverImageMissing(true)
+    }
+  }
 
   const completeTraining = async () => {
     const payload = {
@@ -452,212 +470,247 @@ function App() {
       </section>
 
       <section className="training-card" role="region" aria-live="polite">
-        <div className="card-top-row">
-          <span className="badge">
-            Card {currentIndex + 1} of {cards.length}
-          </span>
-          <span className="badge ghost">{currentCard.label}</span>
-          <div className="card-jump" aria-label="Card selector">
-            {cards.map((card, index) => (
-              <button
-                key={card.id}
-                type="button"
-                className={`jump-dot ${index === currentIndex ? 'active' : ''}`}
-                onClick={() => setCurrentIndex(index)}
-                aria-label={`Go to ${card.title}`}
+        {isCoverCard ? (
+          <section className="cover-card-stage" aria-label="Training banner card">
+            {!coverImageMissing ? (
+              <img
+                src={coverImageSrc}
+                alt="CMS-485 Form Training cover"
+                className="cover-image"
+                onLoad={() => setCoverImageMissing(false)}
+                onError={tryNextCoverImage}
               />
-            ))}
-          </div>
-        </div>
+            ) : null}
 
-        <h1>{currentCard.title}</h1>
-        {currentCard.subtitle ? <p className="subtitle">{currentCard.subtitle}</p> : null}
-        <p className="duration-pill">Estimated card time: {currentCard.durationMin} min</p>
-        <div className="copy-block">
-          {currentCard.content.map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
-        </div>
-
-        {currentCard.interaction ? (
-          <section className="game-panel">
-            <p className="game-title">Interactive checkpoint</p>
-            <p>{currentCard.interaction.question}</p>
-
-            {currentCard.interaction.type === 'mcq' ? (
-              <div className="option-grid">
-                {currentCard.interaction.options.map((option) => {
-                  const selected = mcqAnswers[currentCard.id] === option
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      className={`option-btn ${selected ? 'selected' : ''}`}
-                      onClick={() => setMcqAnswers((prev) => ({ ...prev, [currentCard.id]: option }))}
-                    >
-                      {option}
-                    </button>
-                  )
-                })}
+            {coverImageMissing ? (
+              <div className="cover-fallback">
+                <p>
+                  Cover image not found. Add one of these files in <code>public/branding</code>:
+                </p>
+                <ul>
+                  <li><code>cover-training.png</code></li>
+                  <li><code>cover-training.jpg</code></li>
+                  <li><code>cover-training.jpeg</code></li>
+                </ul>
               </div>
-            ) : (
-              <div className="option-grid">
-                {currentCard.interaction.options.map((option) => {
-                  const selected = (multiAnswers[currentCard.id] ?? []).includes(option)
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      className={`option-btn ${selected ? 'selected' : ''}`}
-                      onClick={() => toggleMultiAnswer(currentCard.id, option)}
-                    >
-                      {option}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+            ) : null}
 
-            {interactionSolved(currentCard) ? <p className="success-note">{currentCard.interaction.successText}</p> : null}
+            <div className="cover-action-row">
+              <button type="button" className="primary" onClick={() => setCurrentIndex(1)}>
+                Start Training
+              </button>
+            </div>
           </section>
-        ) : null}
+        ) : (
+          <>
+            <div className="card-top-row">
+              <span className="badge">
+                Card {currentIndex + 1} of {cards.length}
+              </span>
+              <span className="badge ghost">{currentCard.label}</span>
+              <div className="card-jump" aria-label="Card selector">
+                {cards.map((card, index) => (
+                  <button
+                    key={card.id}
+                    type="button"
+                    className={`jump-dot ${index === currentIndex ? 'active' : ''}`}
+                    onClick={() => setCurrentIndex(index)}
+                    aria-label={`Go to ${card.title}`}
+                  />
+                ))}
+              </div>
+            </div>
 
-        {currentCard.id === 'competency-check' ? (
-          <section className="game-panel">
-            <p className="game-title">Scored challenge</p>
-            <p>Answer all 5 questions. Passing threshold: 80%.</p>
+            <h1>{currentCard.title}</h1>
+            {currentCard.subtitle ? <p className="subtitle">{currentCard.subtitle}</p> : null}
+            <p className="duration-pill">Estimated card time: {currentCard.durationMin} min</p>
+            <div className="copy-block">
+              {currentCard.content.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
 
-            <div className="challenge-grid">
-              {finalChallengeQuestions.map((question, index) => (
-                <article key={question.id} className="challenge-item">
-                  <p className="challenge-question">
-                    {index + 1}. {question.prompt}
-                  </p>
+            {currentCard.interaction ? (
+              <section className="game-panel">
+                <p className="game-title">Interactive checkpoint</p>
+                <p>{currentCard.interaction.question}</p>
+
+                {currentCard.interaction.type === 'mcq' ? (
                   <div className="option-grid">
-                    {question.options.map((option) => {
-                      const selected = challengeAnswers[question.id] === option
+                    {currentCard.interaction.options.map((option) => {
+                      const selected = mcqAnswers[currentCard.id] === option
                       return (
                         <button
                           key={option}
                           type="button"
                           className={`option-btn ${selected ? 'selected' : ''}`}
-                          onClick={() =>
-                            setChallengeAnswers((prev) => ({
-                              ...prev,
-                              [question.id]: option,
-                            }))
-                          }
+                          onClick={() => setMcqAnswers((prev) => ({ ...prev, [currentCard.id]: option }))}
                         >
                           {option}
                         </button>
                       )
                     })}
                   </div>
-                  {challengeSubmitted ? <p className="rationale-note">{question.rationale}</p> : null}
-                </article>
-              ))}
-            </div>
+                ) : (
+                  <div className="option-grid">
+                    {currentCard.interaction.options.map((option) => {
+                      const selected = (multiAnswers[currentCard.id] ?? []).includes(option)
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          className={`option-btn ${selected ? 'selected' : ''}`}
+                          onClick={() => toggleMultiAnswer(currentCard.id, option)}
+                        >
+                          {option}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
 
-            <div className="challenge-actions">
-              <button
-                type="button"
-                className="secondary"
-                disabled={!challengeComplete}
-                onClick={() => {
-                  setChallengeSubmitted(true)
-
-                  const missedTopics = finalChallengeQuestions
-                    .filter((question) => challengeAnswers[question.id] !== question.correctOption)
-                    .map((question) => question.topic)
-
-                  if (missedTopics.length) {
-                    setMissedTopicCounts((prev) => {
-                      const next = { ...prev }
-                      missedTopics.forEach((topic) => {
-                        next[topic] = (next[topic] ?? 0) + 1
-                      })
-                      return next
-                    })
-                  }
-                }}
-              >
-                Grade Challenge
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => {
-                  setChallengeAnswers({})
-                  setChallengeSubmitted(false)
-                }}
-              >
-                Retry
-              </button>
-            </div>
-
-            {challengeSubmitted ? (
-              <p className={`success-note ${challengePassed ? '' : 'warn'}`}>
-                Score: {challengeScore}% · {challengePassed ? 'Pass' : 'Needs retry (80% required)'}
-              </p>
+                {interactionSolved(currentCard) ? <p className="success-note">{currentCard.interaction.successText}</p> : null}
+              </section>
             ) : null}
-          </section>
-        ) : null}
 
-        {currentCard.id === 'completion' ? (
-          <section className="recap-panel" aria-label="Personalized recap">
-            <p className="recap-title">Your personalized recap</p>
-            {personalizedRecapTopics.length ? (
-              <>
-                <p>Based on your challenge attempts, focus on these top review themes:</p>
-                <ul>
-                  {personalizedRecapTopics.map(([topic, misses]) => (
-                    <li key={topic}>
-                      <strong>{topic}</strong> — revisit this area ({misses} miss{misses > 1 ? 'es' : ''})
-                    </li>
+            {currentCard.id === 'competency-check' ? (
+              <section className="game-panel">
+                <p className="game-title">Scored challenge</p>
+                <p>Answer all 5 questions. Passing threshold: 80%.</p>
+
+                <div className="challenge-grid">
+                  {finalChallengeQuestions.map((question, index) => (
+                    <article key={question.id} className="challenge-item">
+                      <p className="challenge-question">
+                        {index + 1}. {question.prompt}
+                      </p>
+                      <div className="option-grid">
+                        {question.options.map((option) => {
+                          const selected = challengeAnswers[question.id] === option
+                          return (
+                            <button
+                              key={option}
+                              type="button"
+                              className={`option-btn ${selected ? 'selected' : ''}`}
+                              onClick={() =>
+                                setChallengeAnswers((prev) => ({
+                                  ...prev,
+                                  [question.id]: option,
+                                }))
+                              }
+                            >
+                              {option}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {challengeSubmitted ? <p className="rationale-note">{question.rationale}</p> : null}
+                    </article>
                   ))}
-                </ul>
-                <p className="recap-note">Official graded assessment still occurs in your Moodle quiz.</p>
-              </>
-            ) : (
-              <p>
-                Great work—no recurring weak spots detected in practice attempts. Proceed to Moodle quiz with confidence.
-              </p>
-            )}
-          </section>
-        ) : null}
+                </div>
 
-        <footer className="card-actions">
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => setCurrentIndex((prev) => Math.max(prev - 1, 0))}
-            disabled={isFirst}
-          >
-            Back
-          </button>
+                <div className="challenge-actions">
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={!challengeComplete}
+                    onClick={() => {
+                      setChallengeSubmitted(true)
 
-          {!isLast ? (
-            <button
-              type="button"
-              className="primary"
-              onClick={() => setCurrentIndex((prev) => Math.min(prev + 1, cards.length - 1))}
-              disabled={Boolean(currentCard.interaction) && !interactionSolved(currentCard)}
-            >
-              Next
-            </button>
-          ) : (
-            <button type="button" className="primary" onClick={completeTraining}>
-              Complete Training
-            </button>
-          )}
-        </footer>
+                      const missedTopics = finalChallengeQuestions
+                        .filter((question) => challengeAnswers[question.id] !== question.correctOption)
+                        .map((question) => question.topic)
 
-        {completionMessage ? <p className="completion-note">{completionMessage}</p> : null}
+                      if (missedTopics.length) {
+                        setMissedTopicCounts((prev) => {
+                          const next = { ...prev }
+                          missedTopics.forEach((topic) => {
+                            next[topic] = (next[topic] ?? 0) + 1
+                          })
+                          return next
+                        })
+                      }
+                    }}
+                  >
+                    Grade Challenge
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => {
+                      setChallengeAnswers({})
+                      setChallengeSubmitted(false)
+                    }}
+                  >
+                    Retry
+                  </button>
+                </div>
+
+                {challengeSubmitted ? (
+                  <p className={`success-note ${challengePassed ? '' : 'warn'}`}>
+                    Score: {challengeScore}% · {challengePassed ? 'Pass' : 'Needs retry (80% required)'}
+                  </p>
+                ) : null}
+              </section>
+            ) : null}
+
+            {currentCard.id === 'completion' ? (
+              <section className="recap-panel" aria-label="Personalized recap">
+                <p className="recap-title">Your personalized recap</p>
+                {personalizedRecapTopics.length ? (
+                  <>
+                    <p>Based on your challenge attempts, focus on these top review themes:</p>
+                    <ul>
+                      {personalizedRecapTopics.map(([topic, misses]) => (
+                        <li key={topic}>
+                          <strong>{topic}</strong> — revisit this area ({misses} miss{misses > 1 ? 'es' : ''})
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="recap-note">Official graded assessment still occurs in your Moodle quiz.</p>
+                  </>
+                ) : (
+                  <p>
+                    Great work—no recurring weak spots detected in practice attempts. Proceed to Moodle quiz with confidence.
+                  </p>
+                )}
+              </section>
+            ) : null}
+
+            <footer className="card-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setCurrentIndex((prev) => Math.max(prev - 1, 0))}
+                disabled={isFirst}
+              >
+                Back
+              </button>
+
+              {!isLast ? (
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => setCurrentIndex((prev) => Math.min(prev + 1, cards.length - 1))}
+                  disabled={Boolean(currentCard.interaction) && !interactionSolved(currentCard)}
+                >
+                  Next
+                </button>
+              ) : (
+                <button type="button" className="primary" onClick={completeTraining}>
+                  Complete Training
+                </button>
+              )}
+            </footer>
+
+            {completionMessage ? <p className="completion-note">{completionMessage}</p> : null}
+          </>
+        )}
       </section>
 
       <p className="helper-text">
         Tip: query options include <code>completionEndpoint</code>, <code>xapiEndpoint</code>, <code>xapiAuth</code>,
-        <code>xapiActorEmail</code>, and <code>ltiTargetOrigin</code>. Logos go in <code>public/branding</code>.
+        <code>xapiActorEmail</code>, and <code>ltiTargetOrigin</code>. Logos and cover go in <code>public/branding</code>.
       </p>
 
       {isDebugLms ? (
