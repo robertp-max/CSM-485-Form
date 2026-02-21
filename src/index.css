@@ -16,19 +16,19 @@
   --brand-secondary-hover: #00696d;
   --brand-secondary-pressed: #00595d;
   --text-on-brand: #ffffff;
-  --wash-brand-primary-soft: rgba(199, 70, 1, 0.08);
-  --wash-brand-primary-strong: rgba(199, 70, 1, 0.12);
-  --wash-brand-secondary-soft: rgba(0, 121, 125, 0.08);
-  --wash-brand-secondary-strong: rgba(0, 121, 125, 0.12);
-  --wash-brand-secondary-pressed: rgba(0, 121, 125, 0.2);
-  --wash-brand-secondary-hotspot: rgba(0, 121, 125, 0.12);
-  --wash-brand-secondary-hotspot-active: rgba(0, 121, 125, 0.22);
+  --wash-brand-primary-soft: rgba(199, 70, 1, 0.14);
+  --wash-brand-primary-strong: rgba(199, 70, 1, 0.2);
+  --wash-brand-secondary-soft: rgba(0, 121, 125, 0.14);
+  --wash-brand-secondary-strong: rgba(0, 121, 125, 0.2);
+  --wash-brand-secondary-pressed: rgba(0, 121, 125, 0.3);
+  --wash-brand-secondary-hotspot: rgba(0, 121, 125, 0.2);
+  --wash-brand-secondary-hotspot-active: rgba(0, 121, 125, 0.34);
 
-  --bg-page: #f4f6f8;
+  --bg-page: #edf1f5;
   --bg-surface: #ffffff;
   --bg-card: #ffffff;
-  --bg-card-muted: #eef2f5;
-  --bg-soft-wash: rgba(0, 121, 125, 0.08);
+  --bg-card-muted: #dde5ed;
+  --bg-soft-wash: rgba(0, 121, 125, 0.16);
 
   --text-primary: #17212e;
   --text-secondary: #324255;
@@ -41,15 +41,15 @@
   --shadow-card: 0 12px 28px rgba(16, 26, 41, 0.08);
   --shadow-float: 0 20px 44px rgba(16, 26, 41, 0.14);
 
-  --status-success-bg: #eef9f6;
+  --status-success-bg: #ffffff;
   --status-success-border: #7db9a6;
-  --status-success-text: #185245;
-  --status-warning-bg: #fff4eb;
+  --status-success-text: #12473c;
+  --status-warning-bg: #ffffff;
   --status-warning-border: #e8b393;
-  --status-warning-text: #703111;
-  --status-danger-bg: #fef0f1;
+  --status-warning-text: #673016;
+  --status-danger-bg: #ffffff;
   --status-danger-border: #d5a1a5;
-  --status-danger-text: #7b2429;
+  --status-danger-text: #701f24;
 }
 
 [data-theme='dark'] {

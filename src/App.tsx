@@ -40,6 +40,7 @@ type Hotspot = {
 
 const RESUME_KEY = 'cms485-course-progress-v3'
 const THEME_KEY = 'cms485-theme'
+const INTRO_SCREEN_INDEX = -1
 
 const cms485Hotspots: Hotspot[] = [
   { id: 'patient-cert', label: 'Patient + Certification', description: 'Identifiers, SOC, cert period, and timeline consistency.', x: 4, y: 6, w: 42, h: 12 },
@@ -56,7 +57,7 @@ const parseResumeState = (): ResumeState => {
     const raw = window.localStorage.getItem(RESUME_KEY)
     if (!raw) {
       return {
-        screenIndex: 0,
+        screenIndex: INTRO_SCREEN_INDEX,
         cardAnswers: {},
         finalExamAnswers: {},
         finalExamSubmitted: false,
@@ -68,7 +69,7 @@ const parseResumeState = (): ResumeState => {
 
     const parsed = JSON.parse(raw) as ResumeState
     return {
-      screenIndex: Number.isFinite(parsed.screenIndex) ? parsed.screenIndex : 0,
+      screenIndex: Number.isFinite(parsed.screenIndex) ? parsed.screenIndex : INTRO_SCREEN_INDEX,
       cardAnswers: parsed.cardAnswers ?? {},
       finalExamAnswers: parsed.finalExamAnswers ?? {},
       finalExamSubmitted: parsed.finalExamSubmitted ?? false,
@@ -78,7 +79,7 @@ const parseResumeState = (): ResumeState => {
     }
   } catch {
     return {
-      screenIndex: 0,
+      screenIndex: INTRO_SCREEN_INDEX,
       cardAnswers: {},
       finalExamAnswers: {},
       finalExamSubmitted: false,
@@ -175,7 +176,7 @@ function App() {
   const completionScreenIndex = totalLearningScreens + 2
   const totalScreens = totalLearningScreens + 3
 
-  const inLearningFlow = screenIndex < totalLearningScreens
+  const inLearningFlow = screenIndex >= 0 && screenIndex < totalLearningScreens
   const currentCard: CardData | null = inLearningFlow ? learningCards[Math.floor(screenIndex / 2)] : null
   const isKnowledgeScreen = inLearningFlow && screenIndex % 2 === 1
   const isContentScreen = inLearningFlow && !isKnowledgeScreen
@@ -220,7 +221,7 @@ function App() {
           ? finalExamPassed
           : screenIndex < completionScreenIndex
 
-  const canGoPrev = qaDebugMode ? screenIndex > 0 : screenIndex > 0 && !(isKnowledgeScreen && !currentCardCorrect)
+  const canGoPrev = qaDebugMode ? screenIndex > INTRO_SCREEN_INDEX : screenIndex > 0 && !(isKnowledgeScreen && !currentCardCorrect)
   const canCompleteTraining = qaDebugMode ? true : allKnowledgeChecksCompleted && finalExamPassed
 
   const formExplorerRef = useRef<HTMLDivElement | null>(null)
@@ -306,7 +307,7 @@ function App() {
   }
 
   const resetProgress = () => {
-    setScreenIndex(0)
+    setScreenIndex(INTRO_SCREEN_INDEX)
     setCardAnswers({})
     setFinalExamAnswers({})
     setFinalExamSubmitted(false)
@@ -345,49 +346,53 @@ function App() {
     <main className="app-shell bg-page text-primary animate-fade-in-up">
       {darkMode ? <NightSky /> : null}
 
-      <section className="sticky top-0 z-30 rounded-2xl border border-subtle bg-surface p-3 shadow-card backdrop-blur">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-primary">CMS-485 LMS · CMS-aligned / CoP-compliant / audit-ready</p>
-          <div className="flex flex-wrap gap-2">
-            <span className="stats-chip">Knowledge ✅ {knowledgeInputStats.correct} · ❌ {knowledgeInputStats.incorrect}</span>
-            <button type="button" className={`secondary mode-toggle ${qaDebugMode ? 'active' : ''}`} onClick={() => setQaDebugMode((prev) => !prev)}>
-              QA Debug: {qaDebugMode ? 'ON' : 'OFF'}
-            </button>
-            <button type="button" className={`secondary mode-toggle ${darkMode ? 'active' : ''}`} onClick={() => setDarkMode((prev) => !prev)}>
-              {darkMode ? 'Dark' : 'Light'} Mode
-            </button>
-          </div>
-        </div>
+      {screenIndex !== INTRO_SCREEN_INDEX ? (
+        <>
+          <section className="instrument-strip sticky top-0 z-30 rounded-2xl border border-subtle bg-surface p-3 shadow-card backdrop-blur">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-primary">CMS-485 LMS · CMS-aligned / CoP-compliant / audit-ready</p>
+              <div className="flex flex-wrap gap-2">
+                <span className="stats-chip">Knowledge ✅ {knowledgeInputStats.correct} · ❌ {knowledgeInputStats.incorrect}</span>
+                <button type="button" className={`secondary mode-toggle ${qaDebugMode ? 'active' : ''}`} onClick={() => setQaDebugMode((prev) => !prev)}>
+                  QA Debug: {qaDebugMode ? 'ON' : 'OFF'}
+                </button>
+                <button type="button" className={`secondary mode-toggle ${darkMode ? 'active' : ''}`} onClick={() => setDarkMode((prev) => !prev)}>
+                  {darkMode ? 'Dark' : 'Light'} Mode
+                </button>
+              </div>
+            </div>
 
-        <div className="grid gap-2">
-          <div className="progress-track">
-            <motion.div
-              className="progress-fill"
-              animate={{ width: `${((screenIndex + 1) / totalScreens) * 100}%` }}
-              transition={{ type: 'spring', stiffness: 140, damping: 22 }}
-            />
-          </div>
-          <div className="flex flex-wrap gap-1 text-[11px] text-muted">
-            {sectionStartIndices.map((item, idx) => {
-              const screenStart = item.start * 2
-              const active = screenIndex >= screenStart && (idx === sectionStartIndices.length - 1 || screenIndex < sectionStartIndices[idx + 1].start * 2)
-              return (
-                <span key={item.section} className={`section-chip ${active ? 'active' : ''}`}>
-                  {sectionLabels[item.section]}
-                </span>
-              )
-            })}
-          </div>
-        </div>
-      </section>
+            <div className="grid gap-2">
+              <div className="progress-track">
+                <motion.div
+                  className="progress-fill"
+                  animate={{ width: `${((screenIndex + 1) / totalScreens) * 100}%` }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                />
+              </div>
+              <div className="flex flex-wrap gap-1 text-[11px] text-muted">
+                {sectionStartIndices.map((item, idx) => {
+                  const screenStart = item.start * 2
+                  const active = screenIndex >= screenStart && (idx === sectionStartIndices.length - 1 || screenIndex < sectionStartIndices[idx + 1].start * 2)
+                  return (
+                    <span key={item.section} className={`section-chip ${active ? 'active' : ''}`}>
+                      {sectionLabels[item.section]}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          </section>
 
-      <section className="hero-strip mt-3 animate-fade-in-up" aria-label="Training summary">
-        <div>
-          <p className="hero-kicker">Interactive compliance workflow</p>
-          <h2>{totalDuration}+ minute guided flow</h2>
-          <p>Screen {screenIndex + 1} of {totalScreens} · Keyboard: ← → · Focus-safe controls</p>
-        </div>
-      </section>
+          <section className="hero-strip mt-3 animate-fade-in-up" aria-label="Training summary">
+            <div>
+              <p className="hero-kicker">Interactive compliance workflow</p>
+              <h2>{totalDuration}+ minute guided flow</h2>
+              <p>Screen {screenIndex + 1} of {totalScreens} · Keyboard: ← → · Focus-safe controls</p>
+            </div>
+          </section>
+        </>
+      ) : null}
 
       <AnimatePresence mode="wait">
         <motion.section
@@ -400,6 +405,22 @@ function App() {
           role="region"
           aria-live="polite"
         >
+          {screenIndex === INTRO_SCREEN_INDEX ? (
+            <section className="hero-start" aria-label="Course intro">
+              <img className="hero-start-image" src="/branding/cms-485-form.svg" alt="CMS-485 Form Training" />
+              <div className="hero-start-overlay">
+                <p className="hero-start-kicker">Interactive Clinical Simulation</p>
+                <h1 className="hero-start-title">CMS-485 Form Training</h1>
+                <p className="hero-start-subtitle">Empowering Excellence in Clinical Documentation</p>
+                <button type="button" className="hero-start-cta" onClick={() => setScreenIndex(0)}>
+                  Begin Simulation
+                </button>
+              </div>
+            </section>
+          ) : null}
+
+          {screenIndex !== INTRO_SCREEN_INDEX ? (
+            <>
           {currentCard && isContentScreen ? (
             <>
               <div className="card-top-row">
@@ -686,45 +707,53 @@ function App() {
               {completionMessage ? <p className="completion-note">{completionMessage}</p> : null}
             </>
           ) : null}
+            </>
+          ) : null}
 
-          <footer className="card-actions nav-footer sticky bottom-0 rounded-xl border border-subtle bg-surface p-3 backdrop-blur-sm">
-            <button type="button" className="secondary" onClick={() => setScreenIndex((prev) => Math.max(prev - 1, 0))} disabled={!canGoPrev}>
-              Previous
-            </button>
-            <div className="nav-logo-wrap" aria-hidden="true">
-              <img className="nav-logo" src="/branding/careindeed-logo.png" alt="CareIndeed" />
-            </div>
-            <button type="button" className="primary" onClick={() => setScreenIndex((prev) => Math.min(prev + 1, completionScreenIndex))} disabled={!canGoNext || screenIndex === completionScreenIndex}>
-              Next
-            </button>
-          </footer>
+          {screenIndex !== INTRO_SCREEN_INDEX ? (
+            <footer className="card-actions nav-footer sticky bottom-0 rounded-xl border border-subtle bg-surface p-3 backdrop-blur-sm">
+              <button type="button" className="secondary" onClick={() => setScreenIndex((prev) => Math.max(prev - 1, 0))} disabled={!canGoPrev}>
+                Previous
+              </button>
+              <div className="nav-logo-wrap" aria-hidden="true">
+                <img className="nav-logo" src="/branding/careindeed-logo.png" alt="CareIndeed" />
+              </div>
+              <button type="button" className="primary" onClick={() => setScreenIndex((prev) => Math.min(prev + 1, completionScreenIndex))} disabled={!canGoNext || screenIndex === completionScreenIndex}>
+                Next
+              </button>
+            </footer>
+          ) : null}
         </motion.section>
       </AnimatePresence>
 
-      <p className="helper-text">
-        App is public when deployed (no built-in auth gate in this codebase). Debug params: <code>debugLms=1</code>, <code>completionEndpoint</code>, <code>xapiEndpoint</code>, <code>xapiAuth</code>, <code>xapiActorEmail</code>, <code>ltiTargetOrigin</code>.
-      </p>
+      {screenIndex !== INTRO_SCREEN_INDEX ? (
+        <>
+          <p className="helper-text">
+            App is public when deployed (no built-in auth gate in this codebase). Debug params: <code>debugLms=1</code>, <code>completionEndpoint</code>, <code>xapiEndpoint</code>, <code>xapiAuth</code>, <code>xapiActorEmail</code>, <code>ltiTargetOrigin</code>.
+          </p>
 
-      {isDebugLms ? (
-        <section className="debug-panel" aria-label="LMS diagnostics panel">
-          <p className="debug-title">LMS Diagnostics</p>
-          <ul>
-            <li>In iframe: {lmsDiagnostics.inIframe ? 'Yes' : 'No'}</li>
-            <li>SCORM detected: {lmsDiagnostics.scormVersion ?? 'None'}</li>
-            <li>SCORM 2004 API: {lmsDiagnostics.hasScormApi2004 ? 'Found' : 'Not found'}</li>
-            <li>SCORM 1.2 API: {lmsDiagnostics.hasScormApi12 ? 'Found' : 'Not found'}</li>
-            <li>Parent window available: {lmsDiagnostics.hasParentWindow ? 'Yes' : 'No'}</li>
-          </ul>
-          {lastCompletionResult ? (
-            <ul>
-              <li>SCORM sent: {lastCompletionResult.scorm ? 'Success' : 'No/failed'}</li>
-              <li>xAPI sent: {lastCompletionResult.xapi ? 'Success' : 'No/failed'}</li>
-              <li>Webhook sent: {lastCompletionResult.webhook ? 'Success' : 'No/failed'}</li>
-              <li>postMessage sent: {lastCompletionResult.postMessage ? 'Success' : 'No/failed'}</li>
-              <li>Errors: {lastCompletionResult.errors.length ? lastCompletionResult.errors.join(', ') : 'None'}</li>
-            </ul>
+          {isDebugLms ? (
+            <section className="debug-panel" aria-label="LMS diagnostics panel">
+              <p className="debug-title">LMS Diagnostics</p>
+              <ul>
+                <li>In iframe: {lmsDiagnostics.inIframe ? 'Yes' : 'No'}</li>
+                <li>SCORM detected: {lmsDiagnostics.scormVersion ?? 'None'}</li>
+                <li>SCORM 2004 API: {lmsDiagnostics.hasScormApi2004 ? 'Found' : 'Not found'}</li>
+                <li>SCORM 1.2 API: {lmsDiagnostics.hasScormApi12 ? 'Found' : 'Not found'}</li>
+                <li>Parent window available: {lmsDiagnostics.hasParentWindow ? 'Yes' : 'No'}</li>
+              </ul>
+              {lastCompletionResult ? (
+                <ul>
+                  <li>SCORM sent: {lastCompletionResult.scorm ? 'Success' : 'No/failed'}</li>
+                  <li>xAPI sent: {lastCompletionResult.xapi ? 'Success' : 'No/failed'}</li>
+                  <li>Webhook sent: {lastCompletionResult.webhook ? 'Success' : 'No/failed'}</li>
+                  <li>postMessage sent: {lastCompletionResult.postMessage ? 'Success' : 'No/failed'}</li>
+                  <li>Errors: {lastCompletionResult.errors.length ? lastCompletionResult.errors.join(', ') : 'None'}</li>
+                </ul>
+              ) : null}
+            </section>
           ) : null}
-        </section>
+        </>
       ) : null}
     </main>
   )
