@@ -237,21 +237,17 @@ const ChallengeSection = ({
   }, [title])
 
   return (
-    <section className="space-y-6">
-      <RevealSection>
-        <p className="text-xs font-semibold uppercase tracking-wide text-brand-goldDark">{section}</p>
-        <h2 className="text-2xl font-bold text-brand-navy">{title} · Challenge</h2>
-      </RevealSection>
-
-      <RevealSection delayMs={80}>
+    <section className="flex min-h-[640px] items-center justify-center">
+      <RevealSection className="w-full" delayMs={80}>
         <Card className="mx-auto w-full max-w-3xl">
-          <div className="flex min-h-[280px] flex-col items-center justify-center text-center">
-            <h3 className="mb-3 text-xl font-semibold text-brand-navy">Challenge Question</h3>
+          <div className="flex min-h-[360px] w-full flex-col items-center justify-center text-center">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-goldDark">{section}</p>
+            <h3 className="mb-3 text-xl font-semibold text-brand-navy">{title} · Challenge Question</h3>
             <p className="mb-5 max-w-2xl text-sm leading-relaxed text-brand-darkGray">
               Which response best aligns with this card objective?
             </p>
 
-            <div className="w-full max-w-3xl space-y-3">
+            <div className="w-full max-w-2xl space-y-3">
               {challengeOptions.map((option, index) => {
                 const isSelected = selectedChallengeIndex === index
                 const isCorrect = index === 0
