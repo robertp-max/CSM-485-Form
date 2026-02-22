@@ -1,761 +1,580 @@
-import { AnimatePresence, motion } from 'framer-motion'
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import './App.css'
-import { finalExamQuestions, learningCards, sectionLabels, type CardData } from './courseData'
-import { glossaryTerms } from './glossary'
-import GlossaryTerm from './components/GlossaryTerm'
-import NightSky from './components/NightSky'
-import SkeletonBlock from './components/SkeletonBlock'
-import {
-  getCompletionConfigFromQuery,
-  getLmsEnvironmentDiagnostics,
-  sendTrainingCompletion,
-  type CompletionResult,
-} from './lmsCompletion'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactElement } from 'react'
+import { ArrowLeft, ArrowRight, Lock, Volume2 } from 'lucide-react'
+import { CardFlowLayout } from './components/CardFlowLayout'
+import { RevealSection } from './components/RevealSection'
+import { Button } from './components/ui/Button'
+import { Card } from './components/ui/Card'
+import { PlanOfCareFocusPanel } from './components/PlanOfCareFocusPanel'
+import titleMedia from './assets/CI Home Health Logo_White.png'
+import objectiveNarration from './assets/happy excited bay area man 2.wav'
+import { narrateWithGoogleVoice } from './lib/voiceNarration'
+import { TRAINING_CARDS } from './data/trainingCards'
+import { CARD_METADATA } from './data/cardMetadata'
 
-const LargeVisualization = lazy(() => import('./components/LargeVisualization'))
-const AuditorOverlay = lazy(() => import('./components/AuditorOverlay'))
-const InteractiveFormExplorer = lazy(() => import('./components/InteractiveFormExplorer'))
-const FinalExamSection = lazy(() => import('./components/FinalExamSection'))
+const ANIMATION_MS = 320
+const COVER_ZOOM_MS = 180
+const PROGRESS_STORAGE_KEY = 'cms485.course.progress.v1'
 
-type ResumeState = {
-  screenIndex: number
-  cardAnswers: Record<string, string>
-  finalExamAnswers: Record<string, string>
-  finalExamSubmitted: boolean
-  qaDebugMode: boolean
-  knowledgeInputStats: { correct: number; incorrect: number }
-  cardModeById: Record<string, 'learner' | 'auditor'>
+type CardItem = {
+  title: string
+  content: ReactElement | null
 }
 
-type Hotspot = {
-  id: string
-  label: string
-  description: string
-  x: number
-  y: number
-  w: number
-  h: number
+const TitleCard = ({ onView, className }: { onView: () => void; className?: string }) => {
+  return (
+    <div className={`hero-gradient relative flex min-h-[640px] items-center justify-center overflow-hidden rounded-2xl ${className ?? ''}`}>
+      <span className="particle-float left-[15%] top-[18%]" />
+      <span className="particle-float right-[18%] top-[24%]" style={{ animationDelay: '700ms' }} />
+      <span className="particle-float bottom-[24%] right-[30%]" style={{ animationDelay: '1200ms' }} />
+
+      <div className="relative z-10 w-full max-w-3xl px-8 py-14 text-center text-white">
+        <img
+          src={titleMedia}
+          alt="CI Home Health logo"
+          className="mx-auto mb-6 h-16 w-auto object-contain"
+        />
+        <h1 className="text-4xl font-bold leading-tight md:text-6xl">CMS-485 Compliance Training</h1>
+        <div className="mx-auto mt-5 max-w-xl">
+          <div className="hero-divider" />
+        </div>
+        <p className="mx-auto mt-5 max-w-2xl text-sm text-brand-navyLight md:text-base">
+          Card-based clinician education on documentation defensibility, survey readiness, and audit-proof Plan of Care practice.
+        </p>
+        <Button onClick={onView} className="mt-10">
+          Start Learning
+        </Button>
+      </div>
+    </div>
+  )
 }
 
-const RESUME_KEY = 'cms485-course-progress-v3'
-const THEME_KEY = 'cms485-theme'
-const INTRO_SCREEN_INDEX = -1
+const ReportGridCard = ({
+  items,
+  onSelect,
+  className,
+}: {
+  items: CardItem[]
+  onSelect: (index: number) => void
+  className?: string
+}) => {
+  return (
+    <div className={`step-fade-slide flex min-h-[640px] items-center justify-center ${className ?? ''}`}>
+      <div className="w-full max-w-4xl rounded-2xl bg-brand-navyDark px-8 py-10 text-white shadow-xl">
+        <h2 className="mb-8 text-center text-3xl font-bold">Start Learning</h2>
 
-const cms485Hotspots: Hotspot[] = [
-  { id: 'patient-cert', label: 'Patient + Certification', description: 'Identifiers, SOC, cert period, and timeline consistency.', x: 4, y: 6, w: 42, h: 12 },
-  { id: 'diagnosis', label: 'Diagnosis Fields', description: 'Principal/secondary logic and sequencing linkage.', x: 4, y: 21, w: 42, h: 16 },
-  { id: 'orders-frequency', label: 'Orders + Frequency', description: 'Discipline specificity, visit intensity, PRN controls.', x: 4, y: 40, w: 42, h: 18 },
-  { id: 'functional-safety', label: 'Function + Safety', description: 'Functional limits, safety controls, readmission interventions.', x: 52, y: 21, w: 44, h: 18 },
-  { id: 'goals-discharge', label: 'Goals + Discharge', description: 'Measurable outcomes, rehab potential, discharge criteria.', x: 52, y: 42, w: 44, h: 18 },
-  { id: 'meds-treatments', label: 'Meds + Treatments', description: 'Medication/treatment details and skilled monitoring trace.', x: 4, y: 63, w: 42, h: 16 },
-  { id: 'signature-block', label: 'Signature + Attestation', description: 'Practitioner signature/date and billing hard-stop evidence.', x: 52, y: 63, w: 44, h: 16 },
-]
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {items.map((item, index) => (
+            (() => {
+              const isUnlocked = index === 0
+              const displayTitle = index === 0 ? 'Complete Course' : item.title
 
-const parseResumeState = (): ResumeState => {
-  try {
-    const raw = window.localStorage.getItem(RESUME_KEY)
-    if (!raw) {
-      return {
-        screenIndex: INTRO_SCREEN_INDEX,
-        cardAnswers: {},
-        finalExamAnswers: {},
-        finalExamSubmitted: false,
-        qaDebugMode: false,
-        knowledgeInputStats: { correct: 0, incorrect: 0 },
-        cardModeById: {},
-      }
-    }
-
-    const parsed = JSON.parse(raw) as ResumeState
-    return {
-      screenIndex: Number.isFinite(parsed.screenIndex) ? parsed.screenIndex : INTRO_SCREEN_INDEX,
-      cardAnswers: parsed.cardAnswers ?? {},
-      finalExamAnswers: parsed.finalExamAnswers ?? {},
-      finalExamSubmitted: parsed.finalExamSubmitted ?? false,
-      qaDebugMode: parsed.qaDebugMode ?? false,
-      knowledgeInputStats: parsed.knowledgeInputStats ?? { correct: 0, incorrect: 0 },
-      cardModeById: parsed.cardModeById ?? {},
-    }
-  } catch {
-    return {
-      screenIndex: INTRO_SCREEN_INDEX,
-      cardAnswers: {},
-      finalExamAnswers: {},
-      finalExamSubmitted: false,
-      qaDebugMode: false,
-      knowledgeInputStats: { correct: 0, incorrect: 0 },
-      cardModeById: {},
-    }
-  }
+              return (
+            <button
+              key={`${index + 1}-${item.title}`}
+              onClick={() => {
+                if (isUnlocked) {
+                  onSelect(index)
+                }
+              }}
+              disabled={!isUnlocked}
+              className={`group rounded-lg border p-4 text-left transition-all ${
+                isUnlocked
+                  ? 'border-white/20 bg-white/10 hover:-translate-y-1 hover:bg-white/20'
+                  : 'cursor-not-allowed border-white/10 bg-white/5 opacity-65'
+              }`}
+            >
+              <div className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-gold text-sm font-bold text-brand-navyDark transition-transform group-hover:scale-110">
+                {isUnlocked ? index + 1 : <Lock className="h-3.5 w-3.5" />}
+              </div>
+              <div className="text-sm font-semibold leading-snug">{displayTitle}</div>
+            </button>
+              )
+            })()
+          ))}
+        </div>
+      </div>
+    </div>
+  )
 }
 
-const sectionOrder = Array.from(new Set(learningCards.map((card) => card.section)))
+const EndCard = () => {
+  return (
+    <div className="flex min-h-[640px] items-center justify-center">
+      <div className="w-full max-w-3xl rounded-2xl bg-brand-navyDark px-8 py-14 text-center text-white shadow-xl">
+        <img src={titleMedia} alt="CI Home Health logo" className="mx-auto mb-6 h-14 w-auto object-contain" />
+        <p className="mx-auto mt-5 max-w-2xl text-sm text-brand-navyLight md:text-base">
+          You have completed the CMS-485 core training deck. Review any card again as needed before implementation.
+        </p>
+      </div>
+    </div>
+  )
+}
 
-const sectionStartIndices = sectionOrder.map((section) => ({
+const TrainingSection = ({
+  title,
   section,
-  start: learningCards.findIndex((card) => card.section === section),
-}))
+  objective,
+  bullets,
+  auditFocus,
+  narrationScript,
+  pocFocus,
+}: (typeof TRAINING_CARDS)[number] & {
+  narrationScript: string
+  pocFocus?: {
+    boxes: string[]
+    context: string
+  }
+}) => {
+  const objectiveAudioRef = useRef<HTMLAudioElement | null>(null)
+  const [isObjectiveAudioPlaying, setIsObjectiveAudioPlaying] = useState(false)
+  const [objectiveAudioSource, setObjectiveAudioSource] = useState<'none' | 'google' | 'recording' | 'blocked'>('none')
+  const [isPocPanelExpanded, setIsPocPanelExpanded] = useState(false)
 
-const sectionByCardId = new Map(learningCards.map((card) => [card.id, card.section]))
+  const handleObjectiveClick = async () => {
+    setIsObjectiveAudioPlaying(true)
+    setObjectiveAudioSource('none')
 
-function GlossaryText({ text }: { text: string }) {
-  const sortedTerms = glossaryTerms
+    const fallbackAudio = objectiveAudioRef.current
+    let fallbackStarted = false
 
-  const parts: Array<{ text: string; term?: string }> = []
-  let cursor = 0
-  const lower = text.toLowerCase()
+    if (fallbackAudio) {
+      fallbackAudio.muted = false
+      fallbackAudio.volume = 1
+      fallbackAudio.currentTime = 0
+      fallbackStarted = await fallbackAudio
+        .play()
+        .then(() => {
+          setObjectiveAudioSource('recording')
+          return true
+        })
+        .catch(() => false)
+    }
 
-  while (cursor < text.length) {
-    let foundTerm: string | null = null
-    let foundIndex = -1
+    const narrated = await Promise.race<boolean>([
+      narrateWithGoogleVoice(narrationScript),
+      new Promise<boolean>((resolve) => {
+        window.setTimeout(() => resolve(false), 1600)
+      }),
+    ])
 
-    for (const term of sortedTerms) {
-      const index = lower.indexOf(term.toLowerCase(), cursor)
-      if (index !== -1 && (foundIndex === -1 || index < foundIndex)) {
-        foundIndex = index
-        foundTerm = term
+    if (narrated) {
+      if (fallbackStarted && fallbackAudio) {
+        fallbackAudio.pause()
+        fallbackAudio.currentTime = 0
       }
+      setObjectiveAudioSource('google')
+      setIsObjectiveAudioPlaying(false)
+      return
     }
 
-    if (!foundTerm || foundIndex === -1) {
-      parts.push({ text: text.slice(cursor) })
-      break
+    if (fallbackStarted) {
+      return
     }
 
-    if (foundIndex > cursor) {
-      parts.push({ text: text.slice(cursor, foundIndex) })
+    if (!fallbackAudio) {
+      setObjectiveAudioSource('blocked')
+      setIsObjectiveAudioPlaying(false)
+      return
     }
 
-    parts.push({ text: text.slice(foundIndex, foundIndex + foundTerm.length), term: foundTerm })
-    cursor = foundIndex + foundTerm.length
+    fallbackAudio.currentTime = 0
+    fallbackAudio
+      .play()
+      .then(() => {
+        setObjectiveAudioSource('recording')
+        setIsObjectiveAudioPlaying(true)
+      })
+      .catch(() => {
+        setObjectiveAudioSource('blocked')
+        setIsObjectiveAudioPlaying(false)
+      })
   }
 
   return (
-    <>
-      {parts.map((part, index) =>
-        part.term ? (
-          <GlossaryTerm key={`${part.term}-${index}`} term={part.text} />
-        ) : (
-          <span key={`text-${index}`}>{part.text}</span>
-        ),
+    <section className="space-y-6">
+      <RevealSection>
+        <p className="text-xs font-semibold uppercase tracking-wide text-brand-goldDark">{section}</p>
+        <h2 className="text-2xl font-bold text-brand-navy">{title}</h2>
+      </RevealSection>
+
+      <RevealSection delayMs={80}>
+        <Card onClick={handleObjectiveClick} className="cursor-pointer">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="text-lg font-semibold text-brand-navy">Learning Objective</h3>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-brand-goldDark">
+              <Volume2 className={`h-4 w-4 ${isObjectiveAudioPlaying ? 'animate-pulse' : ''}`} />
+              {isObjectiveAudioPlaying
+                ? objectiveAudioSource === 'google'
+                  ? 'Google Voice'
+                  : objectiveAudioSource === 'recording'
+                    ? 'Recording'
+                    : 'Playing'
+                : objectiveAudioSource === 'blocked'
+                  ? 'Audio Blocked'
+                  : 'Click to Play'}
+            </span>
+          </div>
+          <p className="text-sm leading-relaxed text-brand-darkGray">{objective}</p>
+          <audio
+            ref={objectiveAudioRef}
+            src={objectiveNarration}
+            preload="auto"
+            muted={false}
+            onEnded={() => setIsObjectiveAudioPlaying(false)}
+            onPause={() => setIsObjectiveAudioPlaying(false)}
+          />
+        </Card>
+      </RevealSection>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <RevealSection delayMs={120}>
+          <Card>
+            <h3 className="mb-3 text-lg font-semibold text-brand-navy">Key Points</h3>
+            <ul className="list-inside list-disc space-y-2 text-sm leading-relaxed text-brand-darkGray">
+              {bullets.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </Card>
+        </RevealSection>
+
+        <RevealSection delayMs={170}>
+          <Card className="h-full">
+            <h3 className="mb-3 text-lg font-semibold text-brand-navy">Clinical Lens</h3>
+            <p className="text-sm leading-relaxed text-brand-darkGray">
+              {auditFocus ?? 'Translate this concept into documentation language that is clear, patient-specific, and traceable across certification, orders, and visit notes.'}
+            </p>
+          </Card>
+        </RevealSection>
+      </div>
+
+      {pocFocus && (
+        <RevealSection delayMs={220}>
+          <PlanOfCareFocusPanel
+            focus={pocFocus}
+            isExpanded={isPocPanelExpanded}
+            onToggle={() => setIsPocPanelExpanded((previous) => !previous)}
+          />
+        </RevealSection>
       )}
-    </>
+    </section>
+  )
+}
+
+const FlowCards = () => {
+  const metadataByTitle = useMemo(() => {
+    return new Map(CARD_METADATA.map((item) => [item.title, item]))
+  }, [])
+
+  const cards = useMemo(
+    () => [
+      { title: 'Title', content: null },
+      ...TRAINING_CARDS.map((card) => {
+        const metadata = metadataByTitle.get(card.title)
+
+        return {
+          title: card.title,
+          content: (
+            <TrainingSection
+              {...card}
+              narrationScript={metadata?.narrationScript ?? card.objective}
+              pocFocus={metadata?.pocFocus}
+            />
+          ),
+        }
+      }),
+      { title: 'Complete', content: null },
+    ],
+    [metadataByTitle],
+  )
+
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [previousIndex, setPreviousIndex] = useState<number | null>(null)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [direction, setDirection] = useState<'next' | 'prev'>('next')
+  const [showReportGrid, setShowReportGrid] = useState(false)
+  const [isCoverZoomingOut, setIsCoverZoomingOut] = useState(false)
+  const [isQaMode, setIsQaMode] = useState(false)
+  const [viewedCardIndexes, setViewedCardIndexes] = useState<Set<number>>(() => new Set([0]))
+  const [isNextLockedFeedback, setIsNextLockedFeedback] = useState(false)
+  const touchStartXRef = useRef<number | null>(null)
+
+  const currentIsTrainingCard = currentIndex > 0 && currentIndex < cards.length - 1
+  const canAdvanceFromCurrent = isQaMode || !currentIsTrainingCard || viewedCardIndexes.has(currentIndex)
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(PROGRESS_STORAGE_KEY)
+      if (!raw) {
+        return
+      }
+
+      const parsed = JSON.parse(raw) as {
+        currentIndex?: number
+        viewedCardIndexes?: number[]
+      }
+
+      if (typeof parsed.currentIndex === 'number' && parsed.currentIndex >= 0 && parsed.currentIndex < cards.length) {
+        setCurrentIndex(parsed.currentIndex)
+      }
+
+      if (Array.isArray(parsed.viewedCardIndexes)) {
+        const sanitized = parsed.viewedCardIndexes.filter((value) => Number.isInteger(value) && value >= 0 && value < cards.length)
+        if (sanitized.length > 0) {
+          setViewedCardIndexes(new Set(sanitized))
+        }
+      }
+    } catch {
+      window.localStorage.removeItem(PROGRESS_STORAGE_KEY)
+    }
+  }, [cards.length])
+
+  useEffect(() => {
+    const payload = JSON.stringify({
+      currentIndex,
+      viewedCardIndexes: Array.from(viewedCardIndexes),
+    })
+
+    window.localStorage.setItem(PROGRESS_STORAGE_KEY, payload)
+  }, [currentIndex, viewedCardIndexes])
+
+  useEffect(() => {
+    if (!isAnimating) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setPreviousIndex(null)
+      setIsAnimating(false)
+    }, ANIMATION_MS)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [isAnimating])
+
+  const goTo = (nextIndex: number, nextDirection: 'next' | 'prev') => {
+    if (isAnimating || nextIndex < 0 || nextIndex >= cards.length || nextIndex === currentIndex) {
+      return
+    }
+
+    setDirection(nextDirection)
+    setShowReportGrid(false)
+    setPreviousIndex(currentIndex)
+    setCurrentIndex(nextIndex)
+    setIsAnimating(true)
+  }
+
+  const goNext = () => {
+    if (!canAdvanceFromCurrent) {
+      setIsNextLockedFeedback(true)
+      window.setTimeout(() => setIsNextLockedFeedback(false), 360)
+      return
+    }
+
+    if (currentIndex < cards.length - 1) {
+      goTo(currentIndex + 1, 'next')
+    }
+  }
+
+  const goPrev = () => {
+    if (currentIndex > 0) {
+      goTo(currentIndex - 1, 'prev')
+    }
+  }
+
+  const handleReportSelect = (nextIndex: number) => {
+    if (nextIndex === currentIndex) {
+      setShowReportGrid(false)
+      return
+    }
+
+    goTo(nextIndex, nextIndex > currentIndex ? 'next' : 'prev')
+  }
+
+  const handleViewFromCover = () => {
+    if (isCoverZoomingOut || showReportGrid) {
+      return
+    }
+
+    setIsCoverZoomingOut(true)
+    window.setTimeout(() => {
+      setShowReportGrid(true)
+      setIsCoverZoomingOut(false)
+    }, COVER_ZOOM_MS)
+  }
+
+  useEffect(() => {
+    if (!currentIsTrainingCard) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setViewedCardIndexes((previous) => {
+        if (previous.has(currentIndex)) {
+          return previous
+        }
+        const updated = new Set(previous)
+        updated.add(currentIndex)
+        return updated
+      })
+    }, 1100)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [currentIndex, currentIsTrainingCard])
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowRight') {
+        if (currentIndex === 0 && !showReportGrid) {
+          handleViewFromCover()
+          return
+        }
+        goNext()
+      }
+
+      if (event.key === 'ArrowLeft') {
+        goPrev()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [currentIndex, showReportGrid, canAdvanceFromCurrent])
+
+  return (
+    <section
+      className={`mx-auto w-full max-w-5xl rounded-xl ${
+        currentIndex === 0 || currentIndex === cards.length - 1 ? 'bg-transparent p-0 shadow-none' : 'bg-white p-4 shadow-sm md:p-6'
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => setIsQaMode((previous) => !previous)}
+        className="fixed right-4 top-4 z-40 rounded-md border border-brand-navyLight bg-white/95 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-brand-navy shadow-sm backdrop-blur hover:bg-white"
+      >
+        QA: {isQaMode ? 'On' : 'Off'}
+      </button>
+
+      {currentIndex > 0 && currentIndex < cards.length - 1 && (
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div className="text-sm font-semibold text-brand-darkGray">
+            {currentIndex + 1} / {cards.length} · {cards[currentIndex].title}
+          </div>
+
+          <div className="flex items-center gap-1">
+            {cards.map((item, index) => {
+              if (index === 0) {
+                return null
+              }
+              const isActive = index === currentIndex
+              return (
+                <button
+                  key={item.title}
+                  onClick={() => goTo(index, index > currentIndex ? 'next' : 'prev')}
+                  className={`h-2 rounded-full transition-all ${isActive ? 'nav-glow-active w-6 bg-brand-gold' : 'w-2 bg-brand-navyLight hover:w-4'}`}
+                  aria-label={`Go to ${item.title}`}
+                />
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <div
+        className="relative min-h-[640px] overflow-hidden"
+        onTouchStart={(event) => {
+          touchStartXRef.current = event.changedTouches[0].clientX
+        }}
+        onTouchEnd={(event) => {
+          if (touchStartXRef.current === null) {
+            return
+          }
+          const diff = event.changedTouches[0].clientX - touchStartXRef.current
+          if (Math.abs(diff) < 40) {
+            return
+          }
+          if (diff < 0) {
+            goNext()
+          } else {
+            goPrev()
+          }
+          touchStartXRef.current = null
+        }}
+      >
+        {previousIndex !== null && (
+          <div
+            className={`absolute inset-0 swipe-card ${
+              direction === 'next' ? 'swipe-out-left' : 'swipe-out-right'
+            }`}
+          >
+            {cards[previousIndex].content}
+          </div>
+        )}
+
+        <div
+          className={`relative swipe-card ${
+            isAnimating ? (direction === 'next' ? 'swipe-in-right' : 'swipe-in-left') : ''
+          }`}
+        >
+          {currentIndex === 0 && showReportGrid ? (
+            <ReportGridCard items={cards.slice(1)} onSelect={(index) => handleReportSelect(index + 1)} className="zoom-enter" />
+          ) : currentIndex === 0 ? (
+            <TitleCard onView={handleViewFromCover} className={isCoverZoomingOut ? 'zoom-exit' : ''} />
+          ) : currentIndex === cards.length - 1 ? (
+            <EndCard />
+          ) : (
+            cards[currentIndex].content
+          )}
+        </div>
+      </div>
+
+      {currentIndex > 0 && currentIndex < cards.length - 1 && (
+        <div className="mt-6 grid grid-cols-3 items-center">
+          <Button variant="ghost" onClick={goPrev} className="justify-self-start">
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-rotate-12" />
+            Back
+          </Button>
+
+          <div className="justify-self-center">
+            <img
+              src="https://demo.findahomecare.com/wp-content/uploads/2025/10/FIndaHomeCare-Logo.png"
+              alt="FindAHomeCare logo"
+              className="h-[120px] w-auto object-contain"
+            />
+          </div>
+
+          {currentIndex < cards.length - 1 ? (
+            <Button
+              variant="secondary"
+              onClick={goNext}
+              className={`justify-self-end ${!canAdvanceFromCurrent ? 'opacity-95' : ''} ${isNextLockedFeedback ? 'lock-shake' : ''}`}
+            >
+              {!canAdvanceFromCurrent ? (
+                <>
+                  <Lock className="h-4 w-4" />
+                  Next
+                </>
+              ) : (
+                <>
+                  Next
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:rotate-12" />
+                </>
+              )}
+            </Button>
+          ) : (
+            <span className="justify-self-end" />
+          )}
+        </div>
+      )}
+    </section>
   )
 }
 
 function App() {
-  const initial = parseResumeState()
-
-  const [screenIndex, setScreenIndex] = useState(initial.screenIndex)
-  const [cardAnswers, setCardAnswers] = useState<Record<string, string>>(initial.cardAnswers)
-  const [finalExamAnswers, setFinalExamAnswers] = useState<Record<string, string>>(initial.finalExamAnswers)
-  const [finalExamSubmitted, setFinalExamSubmitted] = useState(initial.finalExamSubmitted)
-  const [qaDebugMode, setQaDebugMode] = useState(initial.qaDebugMode)
-  const [darkMode, setDarkMode] = useState(() => window.localStorage.getItem(THEME_KEY) === 'dark')
-  const [knowledgeInputStats, setKnowledgeInputStats] = useState(initial.knowledgeInputStats)
-  const [cardModeById, setCardModeById] = useState(initial.cardModeById)
-  const [completionMessage, setCompletionMessage] = useState('')
-  const [lastCompletionResult, setLastCompletionResult] = useState<CompletionResult | null>(null)
-
-  const [isFormExplorerOpen, setIsFormExplorerOpen] = useState(true)
-  const [activeHotspotId, setActiveHotspotId] = useState<string | null>(null)
-  const [pulseGuideOn, setPulseGuideOn] = useState(false)
-  const [checklistState, setChecklistState] = useState<Record<string, boolean>>({})
-  const [mappingState, setMappingState] = useState({ risk: '', intervention: '', goal: '' })
-  const [templateBuilderByCardId, setTemplateBuilderByCardId] = useState<Record<string, string[]>>({})
-
-  const completionConfig = getCompletionConfigFromQuery()
-  const queryParams = new URLSearchParams(window.location.search)
-  const isDebugLms = queryParams.get('debugLms') === '1'
-  const lmsDiagnostics = getLmsEnvironmentDiagnostics()
-
-  const totalLearningScreens = learningCards.length * 2
-  const examScreenIndex = totalLearningScreens
-  const missedReviewScreenIndex = totalLearningScreens + 1
-  const completionScreenIndex = totalLearningScreens + 2
-  const totalScreens = totalLearningScreens + 3
-
-  const inLearningFlow = screenIndex >= 0 && screenIndex < totalLearningScreens
-  const currentCard: CardData | null = inLearningFlow ? learningCards[Math.floor(screenIndex / 2)] : null
-  const isKnowledgeScreen = inLearningFlow && screenIndex % 2 === 1
-  const isContentScreen = inLearningFlow && !isKnowledgeScreen
-
-  const currentCardMode = currentCard ? cardModeById[currentCard.id] ?? 'learner' : 'learner'
-  const currentCardSelection = currentCard ? cardAnswers[currentCard.id] ?? '' : ''
-  const currentCardCorrect = currentCard ? currentCardSelection === currentCard.knowledgeCheck.correctAnswer : false
-
-  const knowledgeChecksCompleted = Object.keys(cardAnswers).length
-  const allKnowledgeChecksCompleted = knowledgeChecksCompleted === learningCards.length
-
-  const finalExamCorrectCount = finalExamQuestions.filter((question) => finalExamAnswers[question.id] === question.correctAnswer).length
-  const finalExamScore = Math.round((finalExamCorrectCount / finalExamQuestions.length) * 100)
-  const finalExamPassed = finalExamSubmitted && finalExamScore >= 80
-  const finalExamFullyAnswered = Object.keys(finalExamAnswers).length === finalExamQuestions.length
-
-  const missedQuestions = finalExamQuestions.filter((question) => finalExamSubmitted && finalExamAnswers[question.id] !== question.correctAnswer)
-
-  const cardToScreen = useMemo(() => {
-    const map = new Map<string, number>()
-    learningCards.forEach((card, index) => map.set(card.id, index * 2))
-    return map
-  }, [])
-
-  const totalDuration = useMemo(() => learningCards.reduce((sum, card) => sum + card.coreContent.length + 1, 0) + 12, [])
-
-  const relevantHotspots = useMemo(() => {
-    if (!currentCard?.formHotspotIds?.length) {
-      return [] as Hotspot[]
-    }
-
-    return cms485Hotspots.filter((hotspot) => currentCard.formHotspotIds?.includes(hotspot.id))
-  }, [currentCard])
-
-  const canGoNext = qaDebugMode
-    ? screenIndex < completionScreenIndex
-    : isContentScreen
-      ? true
-      : isKnowledgeScreen
-        ? currentCardCorrect
-        : screenIndex === examScreenIndex
-          ? finalExamPassed
-          : screenIndex < completionScreenIndex
-
-  const canGoPrev = qaDebugMode ? screenIndex > INTRO_SCREEN_INDEX : screenIndex > 0 && !(isKnowledgeScreen && !currentCardCorrect)
-  const canCompleteTraining = qaDebugMode ? true : allKnowledgeChecksCompleted && finalExamPassed
-
-  const formExplorerRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    const payload: ResumeState = {
-      screenIndex,
-      cardAnswers,
-      finalExamAnswers,
-      finalExamSubmitted,
-      qaDebugMode,
-      knowledgeInputStats,
-      cardModeById,
-    }
-
-    window.localStorage.setItem(RESUME_KEY, JSON.stringify(payload))
-  }, [screenIndex, cardAnswers, finalExamAnswers, finalExamSubmitted, qaDebugMode, knowledgeInputStats, cardModeById])
-
-  useEffect(() => {
-    document.body.classList.toggle('dark-mode', darkMode)
-    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light')
-    window.localStorage.setItem(THEME_KEY, darkMode ? 'dark' : 'light')
-  }, [darkMode])
-
-  useEffect(() => {
-    if (!relevantHotspots.length) {
-      setActiveHotspotId(null)
-      return
-    }
-
-    setActiveHotspotId(relevantHotspots[0].id)
-  }, [currentCard?.id, relevantHotspots.length])
-
-  useEffect(() => {
-    if (!isFormExplorerOpen || !relevantHotspots.length) {
-      setPulseGuideOn(false)
-      return
-    }
-
-    const timeout = window.setTimeout(() => setPulseGuideOn(true), 8000)
-    return () => window.clearTimeout(timeout)
-  }, [isFormExplorerOpen, currentCard?.id, relevantHotspots.length, activeHotspotId])
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'ArrowRight' && canGoNext && screenIndex < completionScreenIndex) {
-        setScreenIndex((prev) => Math.min(prev + 1, completionScreenIndex))
-      }
-
-      if (event.key === 'ArrowLeft' && canGoPrev) {
-        setScreenIndex((prev) => Math.max(prev - 1, 0))
-      }
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [canGoNext, canGoPrev, screenIndex, completionScreenIndex])
-
-  const completeTraining = async () => {
-    const payload = {
-      event: 'training.completed' as const,
-      module: 'CMS-485 LMS',
-      completedAt: new Date().toISOString(),
-      trainingMinutes: totalDuration,
-      checkpointsCompleted: knowledgeChecksCompleted,
-      challengeScore: finalExamScore,
-      challengePassed: finalExamPassed,
-      personalizedRecapTopics: [...new Set(missedQuestions.map((item) => sectionLabels[sectionByCardId.get(item.cardId) ?? 'orientation']))],
-    }
-
-    try {
-      const result = await sendTrainingCompletion(payload, completionConfig)
-      setLastCompletionResult(result)
-      const anySuccess = result.scorm || result.xapi || result.webhook || result.postMessage
-      setCompletionMessage(
-        anySuccess
-          ? 'Completion recorded. Certificate wording: CMS-aligned / CoP-compliant / audit-ready.'
-          : 'Completion attempted but no LMS channel confirmed success. Verify launch settings.',
-      )
-    } catch {
-      setCompletionMessage('Completion could not be sent. Retry or contact LMS admin.')
-    }
-  }
-
-  const resetProgress = () => {
-    setScreenIndex(INTRO_SCREEN_INDEX)
-    setCardAnswers({})
-    setFinalExamAnswers({})
-    setFinalExamSubmitted(false)
-    setKnowledgeInputStats({ correct: 0, incorrect: 0 })
-    setCompletionMessage('')
-    setLastCompletionResult(null)
-    setChecklistState({})
-    setMappingState({ risk: '', intervention: '', goal: '' })
-    window.localStorage.removeItem(RESUME_KEY)
-  }
-
-  const jumpToCard = (cardId: string) => {
-    const target = cardToScreen.get(cardId)
-    if (typeof target === 'number') {
-      setScreenIndex(target)
-    }
-  }
-
-  const copyText = async (value: string) => {
-    try {
-      await navigator.clipboard.writeText(value)
-    } catch {
-      // noop
-    }
-  }
-
-  const showFormZone = () => {
-    if (!relevantHotspots.length || !formExplorerRef.current) return
-    setIsFormExplorerOpen(true)
-    setActiveHotspotId(relevantHotspots[0].id)
-    setPulseGuideOn(false)
-    formExplorerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
-
   return (
-    <main className="app-shell bg-page text-primary animate-fade-in-up">
-      {darkMode ? <NightSky /> : null}
-
-      {screenIndex !== INTRO_SCREEN_INDEX ? (
-        <>
-          <section className="instrument-strip sticky top-0 z-30 rounded-2xl border border-subtle bg-surface p-3 shadow-card backdrop-blur">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-primary">CMS-485 LMS · CMS-aligned / CoP-compliant / audit-ready</p>
-              <div className="flex flex-wrap gap-2">
-                <span className="stats-chip">Knowledge ✅ {knowledgeInputStats.correct} · ❌ {knowledgeInputStats.incorrect}</span>
-                <button type="button" className={`secondary mode-toggle ${qaDebugMode ? 'active' : ''}`} onClick={() => setQaDebugMode((prev) => !prev)}>
-                  QA Debug: {qaDebugMode ? 'ON' : 'OFF'}
-                </button>
-                <button type="button" className={`secondary mode-toggle ${darkMode ? 'active' : ''}`} onClick={() => setDarkMode((prev) => !prev)}>
-                  {darkMode ? 'Dark' : 'Light'} Mode
-                </button>
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <div className="progress-track">
-                <motion.div
-                  className="progress-fill"
-                  animate={{ width: `${((screenIndex + 1) / totalScreens) * 100}%` }}
-                  transition={{ duration: 0.18, ease: 'easeOut' }}
-                />
-              </div>
-              <div className="flex flex-wrap gap-1 text-[11px] text-muted">
-                {sectionStartIndices.map((item, idx) => {
-                  const screenStart = item.start * 2
-                  const active = screenIndex >= screenStart && (idx === sectionStartIndices.length - 1 || screenIndex < sectionStartIndices[idx + 1].start * 2)
-                  return (
-                    <span key={item.section} className={`section-chip ${active ? 'active' : ''}`}>
-                      {sectionLabels[item.section]}
-                    </span>
-                  )
-                })}
-              </div>
-            </div>
-          </section>
-
-          <section className="hero-strip mt-3 animate-fade-in-up" aria-label="Training summary">
-            <div>
-              <p className="hero-kicker">Interactive compliance workflow</p>
-              <h2>{totalDuration}+ minute guided flow</h2>
-              <p>Screen {screenIndex + 1} of {totalScreens} · Keyboard: ← → · Focus-safe controls</p>
-            </div>
-          </section>
-        </>
-      ) : null}
-
-      <AnimatePresence mode="wait">
-        <motion.section
-          key={screenIndex}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.22 }}
-          className="training-card mt-3 transition-all duration-300 hover:shadow-xl"
-          role="region"
-          aria-live="polite"
-        >
-          {screenIndex === INTRO_SCREEN_INDEX ? (
-            <section className="hero-start" aria-label="Course intro">
-              <img className="hero-start-image" src="/branding/cms-485-form.svg" alt="CMS-485 Form Training" />
-              <div className="hero-start-overlay">
-                <p className="hero-start-kicker">Interactive Clinical Simulation</p>
-                <h1 className="hero-start-title">CMS-485 Form Training</h1>
-                <p className="hero-start-subtitle">Empowering Excellence in Clinical Documentation</p>
-                <button type="button" className="hero-start-cta" onClick={() => setScreenIndex(0)}>
-                  Begin Simulation
-                </button>
-              </div>
-            </section>
-          ) : null}
-
-          {screenIndex !== INTRO_SCREEN_INDEX ? (
-            <>
-          {currentCard && isContentScreen ? (
-            <>
-              <div className="card-top-row">
-                <span className="badge">{sectionLabels[currentCard.section]}</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className={`secondary mode-toggle ${currentCardMode === 'learner' ? 'active' : ''}`}
-                    onClick={() => setCardModeById((prev) => ({ ...prev, [currentCard.id]: 'learner' }))}
-                  >
-                    Learner Mode
-                  </button>
-                  <button
-                    type="button"
-                    className={`secondary mode-toggle ${currentCardMode === 'auditor' ? 'active' : ''}`}
-                    onClick={() => setCardModeById((prev) => ({ ...prev, [currentCard.id]: 'auditor' }))}
-                  >
-                    Auditor Mode
-                  </button>
-                </div>
-              </div>
-
-              <h1>{currentCard.title}</h1>
-
-              <section className="objective-box">
-                <p className="section-label">Learning Objective</p>
-                <p><GlossaryText text={currentCard.objective} /></p>
-              </section>
-
-              <section className="copy-block">
-                <p className="section-label">Core Content</p>
-                <ul>
-                  {currentCard.coreContent.map((item) => (
-                    <li key={item}><GlossaryText text={item} /></li>
-                  ))}
-                </ul>
-              </section>
-
-              <section className="example-box">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="section-label">Practical Example</p>
-                  <div className="flex gap-2">
-                    <button type="button" className="secondary btn-sm" onClick={() => copyText(currentCard.practicalExample)}>Copy compliant text</button>
-                    <button type="button" className="tertiary btn-sm">Listen (stub)</button>
-                  </div>
-                </div>
-                <p><GlossaryText text={currentCard.practicalExample} /></p>
-              </section>
-
-              <section className="red-flag-box">
-                <p className="section-label">Common Mistake / Red Flag</p>
-                <p><GlossaryText text={currentCard.redFlag} /></p>
-              </section>
-
-              {currentCard.deepDive ? (
-                <section className="objective-box">
-                  <p className="section-label">Clinical Deep Dive</p>
-                  <ul>
-                    {currentCard.deepDive.map((item) => (
-                      <li key={item}><GlossaryText text={item} /></li>
-                    ))}
-                  </ul>
-                </section>
-              ) : null}
-
-              <section className="objective-box">
-                <p className="section-label">Visualization / Interaction</p>
-                <Suspense fallback={<SkeletonBlock label="Loading visualization" />}>
-                  <LargeVisualization
-                    card={currentCard}
-                    builtText={templateBuilderByCardId[currentCard.id] ?? []}
-                    onAddChip={(chip) =>
-                      setTemplateBuilderByCardId((prev) => ({
-                        ...prev,
-                        [currentCard.id]: [...(prev[currentCard.id] ?? []), chip],
-                      }))
-                    }
-                    onResetBuilder={() =>
-                      setTemplateBuilderByCardId((prev) => ({
-                        ...prev,
-                        [currentCard.id]: [],
-                      }))
-                    }
-                  />
-                </Suspense>
-              </section>
-
-              {currentCardMode === 'auditor' ? (
-                <Suspense fallback={<SkeletonBlock label="Loading auditor lens" />}>
-                  <AuditorOverlay card={currentCard} />
-                </Suspense>
-              ) : null}
-
-              {currentCard.id === 'plan-required-elements' ? (
-                <section className="objective-box" ref={formExplorerRef}>
-                  <p className="section-label">Required Elements Checklist (Interactive)</p>
-                  <div className="grid gap-2 md:grid-cols-2">
-                    {[
-                      'Diagnoses complete and current',
-                      'Safety + readmission interventions listed',
-                      'Measurable goals with timeframe',
-                      'Education/discharge criteria documented',
-                      'Advance directive status documented',
-                      'Supervisor completeness attestation ready',
-                    ].map((item) => {
-                      const checked = checklistState[item]
-                      return (
-                        <button
-                          key={item}
-                          type="button"
-                          className={`checklist-item ${checked ? 'active' : ''}`}
-                          onClick={() => setChecklistState((prev) => ({ ...prev, [item]: !prev[item] }))}
-                        >
-                          {checked ? '✅' : '⬜'} {item}
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  <p className="section-label mt-3">Risk → Intervention → Measurable Goal mini-sim</p>
-                  <div className="grid gap-2 md:grid-cols-3">
-                    <input className="field-input" placeholder="Risk" value={mappingState.risk} onChange={(e) => setMappingState((prev) => ({ ...prev, risk: e.target.value }))} />
-                    <input className="field-input" placeholder="Intervention" value={mappingState.intervention} onChange={(e) => setMappingState((prev) => ({ ...prev, intervention: e.target.value }))} />
-                    <input className="field-input" placeholder="Measurable Goal" value={mappingState.goal} onChange={(e) => setMappingState((prev) => ({ ...prev, goal: e.target.value }))} />
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-2 mt-3">
-                    <article className="status-card status-success">
-                      <p className="text-xs font-semibold uppercase tracking-wide">Compliant goal example</p>
-                      <p className="text-sm mt-1">Patient will complete bed-to-chair transfer with stand-by assist and no loss of balance for 14 days.</p>
-                    </article>
-                    <article className="status-card status-warning">
-                      <p className="text-xs font-semibold uppercase tracking-wide">Noncompliant goal example</p>
-                      <p className="text-sm mt-1">Improve mobility.</p>
-                    </article>
-                  </div>
-
-                  <div className="mt-3 rounded-lg border border-subtle bg-surface p-3 text-sm text-secondary">
-                    <p className="font-semibold">Supervisor POC completeness attestation</p>
-                    <p className="mt-1">“I attest required POC elements are complete, patient-specific, and traceable to assessment evidence prior to claim progression.”</p>
-                    <button type="button" className="secondary btn-sm mt-2" onClick={() => copyText('I attest required POC elements are complete, patient-specific, and traceable to assessment evidence prior to claim progression.')}>Copy attestation snippet</button>
-                  </div>
-                </section>
-              ) : null}
-
-              {relevantHotspots.length ? (
-                <div ref={formExplorerRef}>
-                  <Suspense fallback={<SkeletonBlock label="Loading form explorer" />}>
-                    <InteractiveFormExplorer
-                      hotspots={relevantHotspots}
-                      activeHotspotId={activeHotspotId}
-                      isOpen={isFormExplorerOpen}
-                      pulseGuideOn={pulseGuideOn}
-                      onToggleOpen={() => setIsFormExplorerOpen((prev) => !prev)}
-                      onShowZone={showFormZone}
-                      onActivateHotspot={(id) => {
-                        setActiveHotspotId(id)
-                        setPulseGuideOn(false)
-                      }}
-                    />
-                  </Suspense>
-                </div>
-              ) : null}
-            </>
-          ) : null}
-
-          {currentCard && isKnowledgeScreen ? (
-            <>
-              <div className="card-top-row">
-                <span className="badge">Knowledge Check</span>
-                <span className="badge ghost">Section gate</span>
-              </div>
-              <h1>{currentCard.title} — Checkpoint</h1>
-              <section className="game-panel">
-                <p className="game-title">Question</p>
-                <p>{currentCard.knowledgeCheck.question}</p>
-                <div className="option-grid">
-                  {currentCard.knowledgeCheck.options.map((option) => {
-                    const selected = currentCardSelection === option
-                    return (
-                      <button
-                        key={option}
-                        type="button"
-                        className={`option-btn ${selected ? 'selected' : ''}`}
-                        onClick={() => {
-                          const correct = option === currentCard.knowledgeCheck.correctAnswer
-                          setKnowledgeInputStats((prev) => ({
-                            correct: prev.correct + (correct ? 1 : 0),
-                            incorrect: prev.incorrect + (correct ? 0 : 1),
-                          }))
-                          setCardAnswers((prev) => ({ ...prev, [currentCard.id]: option }))
-                        }}
-                      >
-                        {option}
-                      </button>
-                    )
-                  })}
-                </div>
-                {currentCardSelection ? (
-                  <p className={`success-note ${currentCardCorrect ? '' : 'warn'}`}>
-                    {currentCardCorrect
-                      ? `Correct. ${currentCard.knowledgeCheck.rationale}`
-                      : qaDebugMode
-                        ? 'Incorrect. QA Debug ON: gate bypass enabled.'
-                        : 'Incorrect. Back/Next locked until correct.'}
-                  </p>
-                ) : null}
-              </section>
-            </>
-          ) : null}
-
-          {screenIndex === examScreenIndex ? (
-            <Suspense fallback={<SkeletonBlock label="Loading final exam" />}>
-              <FinalExamSection
-                finalExamAnswers={finalExamAnswers}
-                qaDebugMode={qaDebugMode}
-                finalExamFullyAnswered={finalExamFullyAnswered}
-                finalExamSubmitted={finalExamSubmitted}
-                finalExamScore={finalExamScore}
-                finalExamPassed={finalExamPassed}
-                missedCount={missedQuestions.length}
-                onSelectAnswer={(questionId, answer) => setFinalExamAnswers((prev) => ({ ...prev, [questionId]: answer }))}
-                onSubmit={() => setFinalExamSubmitted(true)}
-                onReset={() => {
-                  setFinalExamAnswers({})
-                  setFinalExamSubmitted(false)
-                }}
-              />
-            </Suspense>
-          ) : null}
-
-          {screenIndex === missedReviewScreenIndex ? (
-            <>
-              <div className="card-top-row">
-                <span className="badge">Missed Review</span>
-                <span className="badge ghost">Card-linked remediation</span>
-              </div>
-              <h1>Missed Questions Review</h1>
-              <section className="copy-block">
-                {missedQuestions.length ? (
-                  <ul>
-                    {missedQuestions.map((item) => {
-                      const card = learningCards.find((c) => c.id === item.cardId)
-                      return (
-                        <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
-                          <span>{item.question}</span>
-                          {card ? (
-                            <button type="button" className="secondary btn-sm" onClick={() => jumpToCard(card.id)}>
-                              Review: {card.title}
-                            </button>
-                          ) : null}
-                        </li>
-                      )
-                    })}
-                  </ul>
-                ) : (
-                  <p>No missed questions to review.</p>
-                )}
-              </section>
-            </>
-          ) : null}
-
-          {screenIndex === completionScreenIndex ? (
-            <>
-              <div className="card-top-row">
-                <span className="badge">Completion</span>
-                <span className="badge ghost">Attestation</span>
-              </div>
-              <h1>Completion Screen</h1>
-              <section className="copy-block">
-                <ul>
-                  <li>Attestation: I completed this CMS-aligned / CoP-compliant / audit-ready training pathway.</li>
-                  <li>Course checks completed: {knowledgeChecksCompleted}/{learningCards.length}</li>
-                  <li>Final exam score: {finalExamSubmitted ? `${finalExamScore}%` : 'Not submitted'}</li>
-                </ul>
-              </section>
-              <footer className="card-actions">
-                <button type="button" className="secondary" onClick={resetProgress}>Restart Course</button>
-                <button type="button" className="primary" disabled={!canCompleteTraining} onClick={completeTraining}>Complete Training</button>
-              </footer>
-              {!canCompleteTraining && !qaDebugMode ? (
-                <p className="completion-lock-note">Complete all knowledge gates and pass final exam (80%) to unlock completion.</p>
-              ) : null}
-              {completionMessage ? <p className="completion-note">{completionMessage}</p> : null}
-            </>
-          ) : null}
-            </>
-          ) : null}
-
-          {screenIndex !== INTRO_SCREEN_INDEX ? (
-            <footer className="card-actions nav-footer sticky bottom-0 rounded-xl border border-subtle bg-surface p-3 backdrop-blur-sm">
-              <button type="button" className="secondary" onClick={() => setScreenIndex((prev) => Math.max(prev - 1, 0))} disabled={!canGoPrev}>
-                Previous
-              </button>
-              <div className="nav-logo-wrap" aria-hidden="true">
-                <img className="nav-logo" src="/branding/careindeed-logo.png" alt="CareIndeed" />
-              </div>
-              <button type="button" className="primary" onClick={() => setScreenIndex((prev) => Math.min(prev + 1, completionScreenIndex))} disabled={!canGoNext || screenIndex === completionScreenIndex}>
-                Next
-              </button>
-            </footer>
-          ) : null}
-        </motion.section>
-      </AnimatePresence>
-
-      {screenIndex !== INTRO_SCREEN_INDEX ? (
-        <>
-          <p className="helper-text">
-            App is public when deployed (no built-in auth gate in this codebase). Debug params: <code>debugLms=1</code>, <code>completionEndpoint</code>, <code>xapiEndpoint</code>, <code>xapiAuth</code>, <code>xapiActorEmail</code>, <code>ltiTargetOrigin</code>.
-          </p>
-
-          {isDebugLms ? (
-            <section className="debug-panel" aria-label="LMS diagnostics panel">
-              <p className="debug-title">LMS Diagnostics</p>
-              <ul>
-                <li>In iframe: {lmsDiagnostics.inIframe ? 'Yes' : 'No'}</li>
-                <li>SCORM detected: {lmsDiagnostics.scormVersion ?? 'None'}</li>
-                <li>SCORM 2004 API: {lmsDiagnostics.hasScormApi2004 ? 'Found' : 'Not found'}</li>
-                <li>SCORM 1.2 API: {lmsDiagnostics.hasScormApi12 ? 'Found' : 'Not found'}</li>
-                <li>Parent window available: {lmsDiagnostics.hasParentWindow ? 'Yes' : 'No'}</li>
-              </ul>
-              {lastCompletionResult ? (
-                <ul>
-                  <li>SCORM sent: {lastCompletionResult.scorm ? 'Success' : 'No/failed'}</li>
-                  <li>xAPI sent: {lastCompletionResult.xapi ? 'Success' : 'No/failed'}</li>
-                  <li>Webhook sent: {lastCompletionResult.webhook ? 'Success' : 'No/failed'}</li>
-                  <li>postMessage sent: {lastCompletionResult.postMessage ? 'Success' : 'No/failed'}</li>
-                  <li>Errors: {lastCompletionResult.errors.length ? lastCompletionResult.errors.join(', ') : 'None'}</li>
-                </ul>
-              ) : null}
-            </section>
-          ) : null}
-        </>
-      ) : null}
-    </main>
+    <CardFlowLayout>
+      <FlowCards />
+    </CardFlowLayout>
   )
 }
 

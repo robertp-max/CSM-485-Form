@@ -1,10 +1,52 @@
-import { StrictMode } from 'react'
+import { Component, StrictMode } from 'react'
+import type { ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
+type ErrorBoundaryState = {
+  hasError: boolean
+  message: string
+}
+
+class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  state: ErrorBoundaryState = {
+    hasError: false,
+    message: '',
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return {
+      hasError: true,
+      message: error.message,
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24, background: '#1B4F72' }}>
+          <div style={{ maxWidth: 760, width: '100%', background: '#fff', borderRadius: 12, padding: 20 }}>
+            <h1 style={{ margin: 0, fontSize: 20, color: '#1B263B' }}>Screen failed to load</h1>
+            <p style={{ marginTop: 8, color: '#3f4957' }}>
+              A runtime error occurred. Refresh the page; if it persists, share this message.
+            </p>
+            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginTop: 12, background: '#f5f7fa', padding: 12, borderRadius: 8 }}>
+              {this.state.message || 'Unknown runtime error'}
+            </pre>
+          </div>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 )

@@ -1,40 +1,28 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
-  darkMode: ['class', '[data-theme="dark"]'],
-  content: ['./index.html', './src/**/*.{ts,tsx,css}'],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
-        'bg-page': 'var(--bg-page)',
-        'bg-surface': 'var(--bg-surface)',
-        'bg-card': 'var(--bg-card)',
-        'bg-card-muted': 'var(--bg-card-muted)',
-        'text-primary': 'var(--text-primary)',
-        'text-secondary': 'var(--text-secondary)',
-        'text-muted': 'var(--text-muted)',
-        'brand-primary': 'var(--brand-primary)',
-        'brand-secondary': 'var(--brand-secondary)',
-        'status-success-bg': 'var(--status-success-bg)',
-        'status-warning-bg': 'var(--status-warning-bg)',
-        'status-danger-bg': 'var(--status-danger-bg)',
-        'status-success-border': 'var(--status-success-border)',
-        'status-warning-border': 'var(--status-warning-border)',
-        'status-danger-border': 'var(--status-danger-border)',
-        'status-success-text': 'var(--status-success-text)',
-        'status-warning-text': 'var(--status-warning-text)',
-        'status-danger-text': 'var(--status-danger-text)',
+        brand: {
+          navy: '#1B263B',
+          navyDark: '#0f1728',
+          navyLight: '#d8deeb',
+          sky: '#eef2f8',
+          gold: '#C5A059',
+          goldDark: '#8e7340',
+          goldLight: '#e8d7b3',
+          garnet: '#7B241C',
+          cream: '#F5F5F0',
+          charcoal: '#1a1d24',
+          darkGray: '#404754',
+          softGray: '#eceff3',
+          ghost: '#f7f8fb',
+        },
       },
-      borderColor: {
-        subtle: 'var(--border-subtle)',
-        strong: 'var(--border-strong)',
-      },
-      boxShadow: {
-        card: 'var(--shadow-card)',
-        float: 'var(--shadow-float)',
-      },
-      ringColor: {
-        focus: 'var(--ring-focus)',
+      fontFamily: {
+        sans: ['Roboto', 'system-ui', 'sans-serif'],
       },
     },
   },
