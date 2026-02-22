@@ -244,8 +244,8 @@ const ChallengeSection = ({
       </RevealSection>
 
       <RevealSection delayMs={80}>
-        <Card>
-          <div className="flex min-h-[420px] flex-col items-center justify-center text-center">
+        <Card className="mx-auto w-full max-w-3xl">
+          <div className="flex min-h-[280px] flex-col items-center justify-center text-center">
             <h3 className="mb-3 text-xl font-semibold text-brand-navy">Challenge Question</h3>
             <p className="mb-5 max-w-2xl text-sm leading-relaxed text-brand-darkGray">
               Which response best aligns with this card objective?
@@ -488,12 +488,12 @@ const FlowCards = () => {
       </button>
 
       {currentIndex > 0 && currentIndex < cards.length - 1 && (
-        <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="mb-4 space-y-3">
           <div className="text-sm font-semibold text-brand-darkGray">
-            {currentIndex + 1} / {cards.length} · {cards[currentIndex].title}
+            {currentIndex + 1} / {cards.length}
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 overflow-x-auto pb-1">
             {cards.map((item, index) => {
               if (index === 0) {
                 return null
@@ -575,27 +575,23 @@ const FlowCards = () => {
             />
           </div>
 
-          {currentIndex < cards.length - 1 ? (
-            <Button
-              variant="secondary"
-              onClick={goNext}
-              className={`justify-self-end ${!canAdvanceFromCurrent ? 'opacity-95' : ''} ${isNextLockedFeedback ? 'lock-shake' : ''}`}
-            >
-              {!canAdvanceFromCurrent ? (
-                <>
-                  <Lock className="h-4 w-4" />
-                  Next
-                </>
-              ) : (
-                <>
-                  Next
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:rotate-12" />
-                </>
-              )}
-            </Button>
-          ) : (
-            <span className="justify-self-end" />
-          )}
+          <Button
+            variant="secondary"
+            onClick={goNext}
+            className={`justify-self-end ${!canAdvanceFromCurrent ? 'opacity-95' : ''} ${isNextLockedFeedback ? 'lock-shake' : ''}`}
+          >
+            {!canAdvanceFromCurrent ? (
+              <>
+                <Lock className="h-4 w-4" />
+                Next
+              </>
+            ) : (
+              <>
+                Next
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:rotate-12" />
+              </>
+            )}
+          </Button>
         </div>
       )}
     </section>
