@@ -8,7 +8,6 @@ import { Card } from './components/ui/Card'
 import { PlanOfCareFocusPanel } from './components/PlanOfCareFocusPanel'
 import titleMedia from './assets/CI Home Health Logo_White.png'
 import objectiveNarration from './assets/happy excited bay area man 2.wav'
-import { narrateWithGoogleVoice } from './lib/voiceNarration'
 import { TRAINING_CARDS } from './data/trainingCards'
 import { CARD_METADATA } from './data/cardMetadata'
 
@@ -117,10 +116,8 @@ const TrainingSection = ({
   objective,
   bullets,
   auditFocus,
-  narrationScript,
   pocFocus,
 }: (typeof TRAINING_CARDS)[number] & {
-  narrationScript: string
   pocFocus?: {
     boxes: string[]
     context: string
@@ -128,57 +125,23 @@ const TrainingSection = ({
 }) => {
   const objectiveAudioRef = useRef<HTMLAudioElement | null>(null)
   const [isObjectiveAudioPlaying, setIsObjectiveAudioPlaying] = useState(false)
-  const [objectiveAudioSource, setObjectiveAudioSource] = useState<'none' | 'google' | 'recording' | 'blocked'>('none')
+  const [objectiveAudioSource, setObjectiveAudioSource] = useState<'none' | 'recording' | 'blocked'>('none')
   const [isPocPanelExpanded, setIsPocPanelExpanded] = useState(false)
 
-  const handleObjectiveClick = async () => {
+  const handleObjectiveClick = () => {
     setIsObjectiveAudioPlaying(true)
-    setObjectiveAudioSource('none')
 
     const fallbackAudio = objectiveAudioRef.current
-    let fallbackStarted = false
-
-    if (fallbackAudio) {
-      fallbackAudio.muted = false
-      fallbackAudio.volume = 1
-      fallbackAudio.currentTime = 0
-      fallbackStarted = await fallbackAudio
-        .play()
-        .then(() => {
-          setObjectiveAudioSource('recording')
-          return true
-        })
-        .catch(() => false)
-    }
-
-    const narrated = await Promise.race<boolean>([
-      narrateWithGoogleVoice(narrationScript),
-      new Promise<boolean>((resolve) => {
-        window.setTimeout(() => resolve(false), 1600)
-      }),
-    ])
-
-    if (narrated) {
-      if (fallbackStarted && fallbackAudio) {
-        fallbackAudio.pause()
-        fallbackAudio.currentTime = 0
-      }
-      setObjectiveAudioSource('google')
-      setIsObjectiveAudioPlaying(false)
-      return
-    }
-
-    if (fallbackStarted) {
-      return
-    }
-
     if (!fallbackAudio) {
       setObjectiveAudioSource('blocked')
       setIsObjectiveAudioPlaying(false)
       return
     }
 
+    fallbackAudio.pause()
     fallbackAudio.currentTime = 0
+    fallbackAudio.muted = false
+    fallbackAudio.volume = 1
     fallbackAudio
       .play()
       .then(() => {
@@ -205,11 +168,9 @@ const TrainingSection = ({
             <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-brand-goldDark">
               <Volume2 className={`h-4 w-4 ${isObjectiveAudioPlaying ? 'animate-pulse' : ''}`} />
               {isObjectiveAudioPlaying
-                ? objectiveAudioSource === 'google'
-                  ? 'Google Voice'
-                  : objectiveAudioSource === 'recording'
-                    ? 'Recording'
-                    : 'Playing'
+                ? objectiveAudioSource === 'recording'
+                  ? 'Recording'
+                  : 'Playing'
                 : objectiveAudioSource === 'blocked'
                   ? 'Audio Blocked'
                   : 'Click to Play'}
@@ -278,7 +239,6 @@ const FlowCards = () => {
           content: (
             <TrainingSection
               {...card}
-              narrationScript={metadata?.narrationScript ?? card.objective}
               pocFocus={metadata?.pocFocus}
             />
           ),
