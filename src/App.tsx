@@ -7,6 +7,7 @@ import { Button } from './components/ui/Button'
 import { Card } from './components/ui/Card'
 import { PlanOfCareFocusPanel } from './components/PlanOfCareFocusPanel'
 import titleMedia from './assets/CI Home Health Logo_White.png'
+import coverBanner from './assets/CMS-485 LMS Banner.png'
 import objectiveNarration from './assets/happy excited bay area man 2.wav'
 import { TRAINING_CARDS } from './data/trainingCards'
 import { CARD_METADATA } from './data/cardMetadata'
@@ -22,27 +23,19 @@ type CardItem = {
 
 const TitleCard = ({ onView, className }: { onView: () => void; className?: string }) => {
   return (
-    <div className={`hero-gradient relative flex min-h-[640px] items-center justify-center overflow-hidden rounded-2xl ${className ?? ''}`}>
-      <span className="particle-float left-[15%] top-[18%]" />
-      <span className="particle-float right-[18%] top-[24%]" style={{ animationDelay: '700ms' }} />
-      <span className="particle-float bottom-[24%] right-[30%]" style={{ animationDelay: '1200ms' }} />
-
-      <div className="relative z-10 w-full max-w-3xl px-8 py-14 text-center text-white">
+    <div className={`relative overflow-hidden rounded-2xl ${className ?? ''}`}>
+      <div className="relative mx-auto flex min-h-[640px] w-full max-w-5xl items-end justify-center">
         <img
-          src={titleMedia}
-          alt="CI Home Health logo"
-          className="mx-auto mb-6 h-16 w-auto object-contain"
+          src={coverBanner}
+          alt="CMS-485 LMS banner"
+          className="absolute inset-0 h-full w-full object-cover"
         />
-        <h1 className="text-4xl font-bold leading-tight md:text-6xl">CMS-485 Compliance Training</h1>
-        <div className="mx-auto mt-5 max-w-xl">
-          <div className="hero-divider" />
-        </div>
-        <p className="mx-auto mt-5 max-w-2xl text-sm text-brand-navyLight md:text-base">
-          Card-based clinician education on documentation defensibility, survey readiness, and audit-proof Plan of Care practice.
-        </p>
-        <Button onClick={onView} className="mt-10">
+
+        <div className="relative z-10 mb-8">
+          <Button onClick={onView} className="px-8 py-3 text-base">
           Start Learning
-        </Button>
+          </Button>
+        </div>
       </div>
     </div>
   )
