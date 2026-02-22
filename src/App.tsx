@@ -21,6 +21,14 @@ type CardItem = {
   content: ReactElement | null
 }
 
+const getChallengeOptions = (bullets: string[], objective: string) => {
+  const optionA = bullets[0] ?? objective
+  const optionB = bullets[1] ?? 'Use a generic template statement without patient-specific details.'
+  const optionC = bullets[2] ?? 'Delay documentation updates until end-of-episode review.'
+
+  return [optionA, optionB, optionC]
+}
+
 const TitleCard = ({ onView, className }: { onView: () => void; className?: string }) => {
   return (
     <div className={`relative overflow-hidden rounded-2xl ${className ?? ''}`}>
@@ -119,19 +127,6 @@ const TrainingSection = ({
   const [isObjectiveAudioPlaying, setIsObjectiveAudioPlaying] = useState(false)
   const [objectiveAudioSource, setObjectiveAudioSource] = useState<'none' | 'recording' | 'blocked'>('none')
   const [isPocPanelExpanded, setIsPocPanelExpanded] = useState(false)
-  const [selectedChallengeIndex, setSelectedChallengeIndex] = useState<number | null>(null)
-
-  const challengeOptions = useMemo(() => {
-    const optionA = bullets[0] ?? objective
-    const optionB = bullets[1] ?? 'Use a generic template statement without patient-specific details.'
-    const optionC = bullets[2] ?? 'Delay documentation updates until end-of-episode review.'
-
-    return [optionA, optionB, optionC]
-  }, [bullets, objective])
-
-  useEffect(() => {
-    setSelectedChallengeIndex(null)
-  }, [title])
 
   const handleObjectiveClick = () => {
     setIsObjectiveAudioPlaying(true)
@@ -207,44 +202,10 @@ const TrainingSection = ({
 
         <RevealSection delayMs={170}>
           <Card className="h-full">
-            <div className="flex h-full min-h-[220px] flex-col items-center justify-center text-center">
-              <h3 className="mb-3 text-lg font-semibold text-brand-navy">Challenge Question</h3>
-              <p className="mb-4 text-sm leading-relaxed text-brand-darkGray">
-                Which response best aligns with this card objective?
-              </p>
-
-              <div className="w-full space-y-2">
-                {challengeOptions.map((option, index) => {
-                  const isSelected = selectedChallengeIndex === index
-                  const isCorrect = index === 0
-
-                  return (
-                    <button
-                      key={`${title}-challenge-${index}`}
-                      type="button"
-                      onClick={() => setSelectedChallengeIndex(index)}
-                      className={`w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
-                        isSelected
-                          ? isCorrect
-                            ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
-                            : 'border-rose-400 bg-rose-50 text-rose-800'
-                          : 'border-brand-navyLight bg-white text-brand-darkGray hover:bg-brand-sky/30'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  )
-                })}
-              </div>
-
-              {selectedChallengeIndex !== null && (
-                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-brand-navy">
-                  {selectedChallengeIndex === 0
-                    ? 'Correct — this aligns with the card objective.'
-                    : 'Try again — focus on the documentation-defensible action.'}
-                </p>
-              )}
-            </div>
+            <h3 className="mb-3 text-lg font-semibold text-brand-navy">Clinical Lens</h3>
+            <p className="text-sm leading-relaxed text-brand-darkGray">
+              Translate this concept into documentation language that is clear, patient-specific, and traceable across certification, orders, and visit notes.
+            </p>
           </Card>
         </RevealSection>
       </div>
@@ -262,6 +223,72 @@ const TrainingSection = ({
   )
 }
 
+const ChallengeSection = ({
+  title,
+  section,
+  objective,
+  bullets,
+}: (typeof TRAINING_CARDS)[number]) => {
+  const [selectedChallengeIndex, setSelectedChallengeIndex] = useState<number | null>(null)
+  const challengeOptions = useMemo(() => getChallengeOptions(bullets, objective), [bullets, objective])
+
+  useEffect(() => {
+    setSelectedChallengeIndex(null)
+  }, [title])
+
+  return (
+    <section className="space-y-6">
+      <RevealSection>
+        <p className="text-xs font-semibold uppercase tracking-wide text-brand-goldDark">{section}</p>
+        <h2 className="text-2xl font-bold text-brand-navy">{title} · Challenge</h2>
+      </RevealSection>
+
+      <RevealSection delayMs={80}>
+        <Card>
+          <div className="flex min-h-[420px] flex-col items-center justify-center text-center">
+            <h3 className="mb-3 text-xl font-semibold text-brand-navy">Challenge Question</h3>
+            <p className="mb-5 max-w-2xl text-sm leading-relaxed text-brand-darkGray">
+              Which response best aligns with this card objective?
+            </p>
+
+            <div className="w-full max-w-3xl space-y-3">
+              {challengeOptions.map((option, index) => {
+                const isSelected = selectedChallengeIndex === index
+                const isCorrect = index === 0
+
+                return (
+                  <button
+                    key={`${title}-challenge-${index}`}
+                    type="button"
+                    onClick={() => setSelectedChallengeIndex(index)}
+                    className={`w-full rounded-md border px-4 py-3 text-left text-sm transition-colors ${
+                      isSelected
+                        ? isCorrect
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                          : 'border-rose-400 bg-rose-50 text-rose-800'
+                        : 'border-brand-navyLight bg-white text-brand-darkGray hover:bg-brand-sky/30'
+                    }`}
+                  >
+                    {option}
+                  </button>
+                )
+              })}
+            </div>
+
+            {selectedChallengeIndex !== null && (
+              <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-brand-navy">
+                {selectedChallengeIndex === 0
+                  ? 'Correct — this aligns with the card objective.'
+                  : 'Try again — focus on the documentation-defensible action.'}
+              </p>
+            )}
+          </div>
+        </Card>
+      </RevealSection>
+    </section>
+  )
+}
+
 const FlowCards = () => {
   const metadataByTitle = useMemo(() => {
     return new Map(CARD_METADATA.map((item) => [item.title, item]))
@@ -270,18 +297,24 @@ const FlowCards = () => {
   const cards = useMemo(
     () => [
       { title: 'Title', content: null },
-      ...TRAINING_CARDS.map((card) => {
+      ...TRAINING_CARDS.flatMap((card) => {
         const metadata = metadataByTitle.get(card.title)
 
-        return {
-          title: card.title,
-          content: (
-            <TrainingSection
-              {...card}
-              pocFocus={metadata?.pocFocus}
-            />
-          ),
-        }
+        return [
+          {
+            title: card.title,
+            content: (
+              <TrainingSection
+                {...card}
+                pocFocus={metadata?.pocFocus}
+              />
+            ),
+          },
+          {
+            title: `${card.title} · Challenge`,
+            content: <ChallengeSection {...card} />,
+          },
+        ]
       }),
       { title: 'Complete', content: null },
     ],
