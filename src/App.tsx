@@ -17,11 +17,16 @@ const ANIMATION_MS = 320
 const COVER_ZOOM_MS = 180
 const PROGRESS_STORAGE_KEY = 'cms485.course.progress.v1'
 
-type PanelMode = 'main' | 'additional' | 'challenge'
+type PanelMode = 'main' | 'additional' | 'challenge' | 'help'
 
 type ChallengeResult = {
   selectedIndex: number
   isCorrect: boolean
+}
+
+type HelpSection = {
+  title: string
+  body: string[]
 }
 
 type CardItem = {
@@ -129,6 +134,65 @@ const getChallengeOptions = (bullets: string[], objective: string) => {
   return [optionA, optionB, optionC]
 }
 
+const LEARNER_HELP_SECTIONS: HelpSection[] = [
+  {
+    title: 'How This Training Works',
+    body: [
+      'This learning experience is card-based. Each topic includes a learning objective, key points, clinical lens, additional content, and a challenge check.',
+      'Use Next and Back to move through topics. Some controls become available only after required steps are completed.',
+    ],
+  },
+  {
+    title: 'Navigation Basics',
+    body: [
+      'Back returns to the prior state in reverse order: challenge to additional content, additional content to main topic view, then previous topic card.',
+      'Next advances in sequence: main topic view to additional content, additional content to challenge, then next topic card.',
+      'You can also use keyboard arrows: right arrow for next and left arrow for back.',
+    ],
+  },
+  {
+    title: 'Audio and Additional Content',
+    body: [
+      'Select PLAY to open additional subject content and start narration for the current topic.',
+      'Pause, Stop, and Restart are available while audio controls are active.',
+      'If no recording exists for a topic, the interface will indicate that clearly and still allow progression based on current rules.',
+    ],
+  },
+  {
+    title: 'Challenge Rules',
+    body: [
+      'Challenge is available once the topic audio is completed.',
+      'Each card challenge allows one submission attempt per session.',
+      'After submit, the correct option is highlighted in teal and the selected incorrect answer (if any) is highlighted in red, with the correct-answer explanation shown.',
+      'Challenge attempts remain locked for that session and reset only in a new session after completing training.',
+    ],
+  },
+  {
+    title: 'Progress and Session Behavior',
+    body: [
+      'Your in-progress location is retained for continuity.',
+      'Challenge response state is session-based and intended to preserve attempt integrity.',
+      'If your organization enables LMS tracking, completion and score data may also be recorded there.',
+    ],
+  },
+  {
+    title: 'Troubleshooting Quick Guide',
+    body: [
+      'If audio does not play, verify browser media permissions and device output settings.',
+      'If progress appears stale, refresh once and return to the same launch entry point.',
+      'If controls look locked unexpectedly, confirm whether challenge prerequisites were completed for the active topic.',
+    ],
+  },
+  {
+    title: 'Accessibility Support',
+    body: [
+      'This training supports keyboard navigation and visible focus states.',
+      'Status updates (for actions like playback and lock changes) are announced through live text regions.',
+      'If you use reduced motion preferences, transitions should minimize or disable animation effects.',
+    ],
+  },
+]
+
 const TitleCard = ({ onView, className }: { onView: () => void; className?: string }) => {
   return (
     <div className={`relative overflow-hidden rounded-2xl ${className ?? ''}`}>
@@ -231,7 +295,6 @@ const TrainingSection = ({
   isPanelAnimating,
   panelTransitionDirection,
   additionalContent,
-  isChallengeUnlocked,
   manageFocus,
   challengeResult,
   onSubmitChallenge,
@@ -245,7 +308,6 @@ const TrainingSection = ({
   isPanelAnimating: boolean
   panelTransitionDirection: 'next' | 'prev'
   additionalContent: string | null
-  isChallengeUnlocked: boolean
   manageFocus: boolean
   challengeResult: ChallengeResult | null
   onSubmitChallenge: (selectedIndex: number) => void
@@ -255,6 +317,7 @@ const TrainingSection = ({
   const [hasSubmittedChallenge, setHasSubmittedChallenge] = useState(false)
   const additionalPanelRef = useRef<HTMLDivElement | null>(null)
   const challengeFirstOptionRef = useRef<HTMLButtonElement | null>(null)
+  const helpPanelRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (challengeResult) {
@@ -279,6 +342,11 @@ const TrainingSection = ({
 
     if (panelMode === 'challenge') {
       challengeFirstOptionRef.current?.focus()
+      return
+    }
+
+    if (panelMode === 'help') {
+      helpPanelRef.current?.focus()
     }
   }, [manageFocus, panelMode])
 
@@ -313,6 +381,18 @@ const TrainingSection = ({
           const isSelected = selectedChallengeIndex === index
           const isCorrect = index === 0
 
+          const answerStateClass = hasSubmittedChallenge
+            ? isCorrect
+              ? 'border-brand-teal bg-brand-teal/10 text-brand-teal'
+              : isSelected
+                ? 'border-rose-400 bg-rose-50 text-rose-800'
+                : 'border-brand-navyLight bg-white text-brand-darkGray'
+            : isSelected
+              ? isCorrect
+                ? 'border-brand-teal bg-brand-teal/10 text-brand-teal'
+                : 'border-rose-400 bg-rose-50 text-rose-800'
+              : 'border-brand-navyLight bg-white text-brand-darkGray hover:bg-brand-sky/30'
+
           return (
             <button
               key={`${title}-challenge-${index}`}
@@ -327,13 +407,7 @@ const TrainingSection = ({
                 setSelectedChallengeIndex(index)
                 setHasSubmittedChallenge(false)
               }}
-              className={`w-full rounded-md border px-4 py-3 text-left text-sm transition-colors ${
-                isSelected
-                  ? isCorrect
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
-                    : 'border-rose-400 bg-rose-50 text-rose-800'
-                  : 'border-brand-navyLight bg-white text-brand-darkGray hover:bg-brand-sky/30'
-              }`}
+              className={`w-full rounded-md border px-4 py-3 text-left text-sm transition-colors ${answerStateClass}`}
             >
               {option}
             </button>
@@ -363,23 +437,14 @@ const TrainingSection = ({
       {hasSubmittedChallenge && selectedChallengeIndex !== null && (
         <div className="mt-4 space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-brand-navy">
-            {selectedChallengeIndex === 0 ? 'Correct — this aligns with the card objective.' : 'Incorrect — one attempt allowed per session.'}
+            {selectedChallengeIndex === 0 ? 'Correct — this aligns with the card objective.' : 'Incorrect.'}
           </p>
           {selectedChallengeIndex !== 0 && (
             <p className="text-sm leading-relaxed text-brand-darkGray">
               Correct answer: {getChallengeOptions(bullets, objective)[0]}. Why: this option directly supports the learning objective — {objective}
             </p>
           )}
-          <p className="text-xs font-semibold uppercase tracking-wide text-brand-darkGray">
-            Challenge attempts are locked for this card until a new session.
-          </p>
         </div>
-      )}
-
-      {!isChallengeUnlocked && (
-        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-brand-darkGray">
-          Complete audio playback at least once to unlock challenge mode.
-        </p>
       )}
     </Card>
   )
@@ -395,7 +460,33 @@ const TrainingSection = ({
     </div>
   )
 
+  const helpPanel = (
+    <div ref={helpPanelRef} tabIndex={-1}>
+      <Card className="h-full max-h-[460px] overflow-auto">
+        <h3 className="mb-3 text-lg font-semibold text-brand-navy">Learner Help</h3>
+        <div className="space-y-4">
+          {LEARNER_HELP_SECTIONS.map((helpSection) => (
+            <section key={`${title}-${helpSection.title}`}>
+              <h4 className="mb-1 text-sm font-semibold uppercase tracking-wide text-brand-goldDark">{helpSection.title}</h4>
+              <div className="space-y-2">
+                {helpSection.body.map((line) => (
+                  <p key={line} className="text-sm leading-relaxed text-brand-darkGray">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      </Card>
+    </div>
+  )
+
   const renderPanel = (mode: PanelMode) => {
+    if (mode === 'help') {
+      return helpPanel
+    }
+
     if (mode === 'challenge') {
       return challengePanel
     }
@@ -414,12 +505,14 @@ const TrainingSection = ({
         <h2 className="text-2xl font-bold text-brand-navy">{title}</h2>
       </RevealSection>
 
-      <RevealSection delayMs={80}>
-        <Card>
-          <h3 className="mb-3 text-lg font-semibold text-brand-navy">Learning Objective</h3>
-          <p className="text-sm leading-relaxed text-brand-darkGray">{objective}</p>
-        </Card>
-      </RevealSection>
+      {panelMode === 'main' && (
+        <RevealSection delayMs={80}>
+          <Card>
+            <h3 className="mb-3 text-lg font-semibold text-brand-navy">Learning Objective</h3>
+            <p className="text-sm leading-relaxed text-brand-darkGray">{objective}</p>
+          </Card>
+        </RevealSection>
+      )}
 
       <div className="relative min-h-[240px]">
         {isPanelAnimating && previousPanelMode !== null && previousPanelMode !== panelMode && (
@@ -479,11 +572,12 @@ const FlowCards = () => {
   const [direction, setDirection] = useState<'next' | 'prev'>('next')
   const [showReportGrid, setShowReportGrid] = useState(false)
   const [isCoverZoomingOut, setIsCoverZoomingOut] = useState(false)
-  const [isQaMode, setIsQaMode] = useState(false)
   const [viewedCardIndexes, setViewedCardIndexes] = useState<Set<number>>(() => new Set([0]))
   const [isNextLockedFeedback, setIsNextLockedFeedback] = useState(false)
   const [audioModeForTitle, setAudioModeForTitle] = useState<string | null>(null)
   const [challengeModeForTitle, setChallengeModeForTitle] = useState<string | null>(null)
+  const [helpModeForTitle, setHelpModeForTitle] = useState<string | null>(null)
+  const [helpReturnMode, setHelpReturnMode] = useState<'main' | 'additional' | 'challenge'>('main')
   const [audioPlaybackState, setAudioPlaybackState] = useState<'idle' | 'playing' | 'paused'>('idle')
   const [audioCompletedTitles, setAudioCompletedTitles] = useState<Set<string>>(() => new Set())
   const [challengeResultsByTitle, setChallengeResultsByTitle] = useState<Record<string, ChallengeResult>>({})
@@ -496,12 +590,16 @@ const FlowCards = () => {
   const audioElementRef = useRef<HTMLAudioElement | null>(null)
 
   const currentIsTrainingCard = currentIndex > 0 && currentIndex < cards.length - 1
-  const canAdvanceFromCurrent = isQaMode || !currentIsTrainingCard || viewedCardIndexes.has(currentIndex)
+  const canAdvanceFromCurrent = !currentIsTrainingCard || viewedCardIndexes.has(currentIndex)
   const currentCardTitle = cards[currentIndex]?.title ?? ''
   const currentVoiceRecording = currentIsTrainingCard ? VOICE_RECORDING_BY_TITLE.get(currentCardTitle) ?? null : null
-  const isChallengeUnlocked = isQaMode || audioCompletedTitles.has(currentCardTitle)
+  const isChallengeUnlocked = audioCompletedTitles.has(currentCardTitle)
 
   const getPanelModeForTitle = (title: string): PanelMode => {
+    if (helpModeForTitle === title) {
+      return 'help'
+    }
+
     if (challengeModeForTitle === title) {
       return 'challenge'
     }
@@ -551,6 +649,23 @@ const FlowCards = () => {
     setPanelTransitionDirection(directionOverride)
     setIsPanelAnimating(!prefersReducedMotion)
 
+    if (nextMode === 'help') {
+      if (activeMode === 'main' || activeMode === 'additional' || activeMode === 'challenge') {
+        setHelpReturnMode(activeMode)
+      }
+      setHelpModeForTitle(currentCardTitle)
+
+      if (!prefersReducedMotion) {
+        window.setTimeout(() => {
+          setIsPanelAnimating(false)
+          setPreviousPanelMode(null)
+        }, ANIMATION_MS)
+      }
+      return
+    }
+
+    setHelpModeForTitle(null)
+
     if (nextMode === 'main') {
       setAudioModeForTitle(null)
       setChallengeModeForTitle(null)
@@ -568,6 +683,21 @@ const FlowCards = () => {
         setPreviousPanelMode(null)
       }, ANIMATION_MS)
     }
+  }
+
+  const handleHelpToggle = () => {
+    if (!currentIsTrainingCard) {
+      return
+    }
+
+    if (currentPanelMode === 'help') {
+      transitionPanel(helpReturnMode, 'prev')
+      setLiveStatus('Help closed.')
+      return
+    }
+
+    transitionPanel('help', 'prev')
+    setLiveStatus('Help opened.')
   }
 
   const handleAudioPlayClick = () => {
@@ -718,6 +848,11 @@ const FlowCards = () => {
       return
     }
 
+    if (currentPanelMode === 'help') {
+      transitionPanel(helpReturnMode, 'prev')
+      return
+    }
+
     if (currentIsTrainingCard) {
       if (currentPanelMode === 'main') {
         handleAudioPlayClick()
@@ -737,6 +872,11 @@ const FlowCards = () => {
 
   const goPrev = () => {
     if (currentIsTrainingCard) {
+      if (currentPanelMode === 'help') {
+        transitionPanel(helpReturnMode, 'prev')
+        return
+      }
+
       if (currentPanelMode === 'challenge') {
         transitionPanel('additional', 'prev')
         return
@@ -798,6 +938,7 @@ const FlowCards = () => {
     setAudioPlaybackState('idle')
     setAudioModeForTitle(null)
     setChallengeModeForTitle(null)
+    setHelpModeForTitle(null)
     setIsPanelAnimating(false)
     setPreviousPanelMode(null)
   }, [currentIndex])
@@ -826,10 +967,6 @@ const FlowCards = () => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [currentIndex, showReportGrid, canAdvanceFromCurrent])
-
-  useEffect(() => {
-    setLiveStatus(isQaMode ? 'QA mode enabled. Locks are bypassed.' : 'QA mode disabled.')
-  }, [isQaMode])
 
   const getAudioStatusLabel = () => {
     if (audioPlaybackState === 'playing') {
@@ -872,7 +1009,6 @@ const FlowCards = () => {
         isPanelAnimating={isCurrentCard && isPanelAnimating}
         panelTransitionDirection={panelTransitionDirection}
         additionalContent={additionalContentForCard}
-        isChallengeUnlocked={audioCompletedTitles.has(card.title)}
         manageFocus={isCurrentCard}
         challengeResult={challengeResultForCard}
         onSubmitChallenge={(selectedIndex) => {
@@ -894,14 +1030,6 @@ const FlowCards = () => {
         currentIndex === 0 || currentIndex === cards.length - 1 ? 'bg-transparent p-0 shadow-none' : 'bg-white p-4 shadow-sm md:p-6'
       }`}
     >
-      <button
-        type="button"
-        onClick={() => setIsQaMode((previous) => !previous)}
-        className="fixed right-4 top-4 z-40 rounded-md border border-brand-navyLight bg-white/95 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-brand-navy shadow-sm backdrop-blur hover:bg-white"
-      >
-        QA: {isQaMode ? 'On' : 'Off'}
-      </button>
-
       {currentIndex > 0 && currentIndex < cards.length - 1 && (
         <div className="mb-4 space-y-3">
           <div className="flex items-center justify-between gap-3">
@@ -976,10 +1104,15 @@ const FlowCards = () => {
 
       {currentIsTrainingCard && (
         <div className="mt-6 grid grid-cols-3 items-center">
-          <Button variant="ghost" onClick={goPrev} className="justify-self-start">
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-rotate-12" />
-            Back
-          </Button>
+          <div className="justify-self-start flex items-center gap-2">
+            <Button variant="ghost" onClick={goPrev}>
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-rotate-12" />
+              Back
+            </Button>
+            <Button variant="ghost" onClick={handleHelpToggle} className="px-3 py-2 text-xs">
+              {currentPanelMode === 'help' ? 'Close Help Tab' : 'Help'}
+            </Button>
+          </div>
 
           <div className="justify-self-center text-center">
             {currentPanelMode === 'main' ? (
