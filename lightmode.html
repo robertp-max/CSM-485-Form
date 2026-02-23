@@ -1,0 +1,401 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Play, Pause, Square, RotateCcw, ChevronRight, ChevronLeft, 
+  CheckCircle, XCircle, AlertCircle, FileText, Target, ShieldCheck 
+} from 'lucide-react';
+
+const cards = [
+  {
+    title: 'What CMS-485 Is and Why It Matters',
+    section: 'Foundation',
+    objective: 'Define CMS-485 as the Plan of Care format and connect it to payment and survey outcomes.',
+    bullets: [
+      'CMS-485 is a structured Plan of Care representation.',
+      'Defensible documentation supports patient safety and reimbursement.',
+      'Weak POC content increases denial and survey risk.'
+    ],
+    additional: 'At its core, the CMS-485 is the blueprint of care. Auditors expect one coherent story from certification through claim.',
+    challenge: [
+      'Use patient-specific POC language tied to objective findings.',
+      'Use broad template text without specifics.',
+      'Delay updates until episode end.'
+    ]
+  },
+  {
+    title: 'Why Documentation Quality Drives Outcomes',
+    section: 'Foundation',
+    objective: 'Explain the operational impact of complete and traceable POC documentation.',
+    bullets: [
+      'High-quality documentation reduces claim rework.',
+      'Clear rationale improves interdisciplinary handoffs.',
+      'Documentation quality is a compliance and care-quality control.'
+    ],
+    additional: 'Good documentation prevents ADR escalation and supports a smooth handoff between clinicians.',
+    challenge: [
+      'Treat documentation as a core clinical communication asset.',
+      'Only document for billing, not care coordination.',
+      'Skip rationale if interventions are listed.'
+    ]
+  },
+  {
+    title: 'CoPs Authority for the Plan of Care',
+    section: 'Regulatory Authority',
+    objective: 'Tie Plan of Care expectations to Conditions of Participation requirements.',
+    bullets: [
+      'POC must be established and reviewed by authorized practitioner.',
+      'Content must remain patient-specific and clinically linked.',
+      'Requirements must be operationalized in workflow.'
+    ],
+    additional: 'CoPs are not policy-only artifacts; they must be visible in daily chart updates and decisions.',
+    challenge: [
+      'Operationalize CoPs in daily documentation workflow.',
+      'Rely on static policy text with no workflow checks.',
+      'Use copy-forward language for all recerts.'
+    ]
+  },
+  {
+    title: 'Module Review',
+    section: 'Quiz',
+    objective: 'Check your understanding of the first three topics.',
+    bullets: [
+      'Select the best answer based on the foundational concepts covered.', 
+      'Focus on defensible actions and compliance.', 
+      'Review explanations carefully.'
+    ],
+    additional: 'The primary goal is ensuring that all documentation is patient-specific, timely, and traceable to objective findings.',
+    challenge: [
+      'Defensible documentation must be specific, timely, and traceable.',
+      'Any completed template is equally defensible.',
+      'Narrative consistency is optional if coding is correct.'
+    ]
+  },
+  {
+    title: 'Completion',
+    final: true
+  }
+];
+
+export default function App() {
+  const [cardIndex, setCardIndex] = useState(0);
+  const [panelMode, setPanelMode] = useState('main'); // main | additional | challenge
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [statusText, setStatusText] = useState('QA mode bypasses locks');
+
+  const card = cards[cardIndex];
+
+  const handleNext = () => {
+    if (!card.final && panelMode === 'main') {
+      setPanelMode('additional');
+    } else if (!card.final && panelMode === 'additional') {
+      setPanelMode('challenge');
+    } else if (cardIndex < cards.length - 1) {
+      setCardIndex(cardIndex + 1);
+      setPanelMode('main');
+      setSelectedAnswer(null);
+      setIsSubmitted(false);
+      setStatusText('Ready');
+    }
+  };
+
+  const handleBack = () => {
+    if (panelMode === 'challenge') {
+      setPanelMode('additional');
+      setSelectedAnswer(null);
+      setIsSubmitted(false);
+    } else if (panelMode === 'additional') {
+      setPanelMode('main');
+    } else if (cardIndex > 0) {
+      setCardIndex(cardIndex - 1);
+      setPanelMode('main');
+      setSelectedAnswer(null);
+      setIsSubmitted(false);
+    }
+  };
+
+  const submitChallenge = () => {
+    if (selectedAnswer !== null) {
+      setIsSubmitted(true);
+      setStatusText(selectedAnswer === 0 ? 'Correct answer submitted.' : 'Incorrect answer submitted.');
+    }
+  };
+
+  return (
+    <>
+      {/* Font & Keyframe Injection */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Roboto:wght@300;400;500;700&display=swap');
+        .font-heading { font-family: 'Montserrat', sans-serif; }
+        .font-body { font-family: 'Roboto', sans-serif; }
+        
+        @keyframes float-up {
+          0% { opacity: 0; transform: translateY(20px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .animate-float-up {
+          animation: float-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+      `}</style>
+
+      {/* Solid Dark Background */}
+      <div className="min-h-screen flex items-center justify-center p-4 md:p-8 bg-[#1F1C1B] font-body text-[#1F1C1B] selection:bg-[#007970] selection:text-white transition-colors duration-1000">
+        
+        {/* Debug Chip */}
+        <div className="fixed top-6 right-6 px-5 py-2 rounded-full text-xs font-heading font-bold tracking-widest uppercase shadow-[0_8px_30px_rgb(0,0,0,0.5)] z-50 flex items-center gap-2 bg-[#C74601] text-white animate-pulse">
+          <AlertCircle size={14} /> QA: ON (Debug)
+        </div>
+
+        {/* Main Application Container */}
+        <div className="w-full max-w-5xl bg-[#FAFBF8] rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col relative min-h-[750px] border border-[#524048]">
+          
+          {/* Header */}
+          <header className="px-8 py-6 flex items-center justify-between bg-white border-b border-[#E5E4E3] z-10 relative">
+            <img 
+              src="https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_Gray.png" 
+              alt="CareIndeed" 
+              className="h-10 w-auto object-contain transition-transform duration-500 hover:scale-105"
+            />
+            <div className="text-xl font-heading font-bold tracking-widest text-[#1F1C1B] bg-[#F7FEFF] px-4 py-2 rounded-xl border border-[#C4F4F5]">
+              {cardIndex + 1} <span className="text-[#007970]">/ {cards.length}</span>
+            </div>
+          </header>
+
+          {/* Progress Bar */}
+          <div className="w-full bg-[#E5E4E3] h-2 relative overflow-hidden">
+            <div 
+              className="absolute top-0 left-0 h-full bg-[#C74601] transition-all duration-700 ease-out"
+              style={{ width: `${((cardIndex + (panelMode === 'main' ? 0.3 : panelMode === 'additional' ? 0.6 : 1)) / cards.length) * 100}%` }}
+            />
+          </div>
+
+          {/* Dynamic Content Panel */}
+          <main className="flex-1 px-8 py-10 overflow-y-auto relative bg-[#FAFBF8]">
+            
+            {card.final ? (
+              <div className="flex flex-col items-center justify-center h-full text-center animate-float-up">
+                <div className="w-28 h-28 rounded-full flex items-center justify-center mb-8 bg-[#007970] shadow-[0_0_40px_rgba(0,121,112,0.4)] animate-bounce">
+                  <CheckCircle size={56} color="white" />
+                </div>
+                <h1 className="text-5xl font-heading font-extrabold mb-4 text-[#1F1C1B] tracking-tight">
+                  Course Complete
+                </h1>
+                <p className="text-xl max-w-lg text-[#747474] font-light leading-relaxed">
+                  You have successfully completed the Plan of Care Foundation module. Your responses have been firmly recorded.
+                </p>
+              </div>
+            ) : (
+              // Re-mounts on state change to trigger fresh CSS animations
+              <div key={cardIndex + panelMode} className="animate-float-up opacity-0">
+                
+                {/* Common Header */}
+                <div className="mb-10">
+                  <div className="inline-flex items-center gap-2 mb-3 px-3 py-1 bg-[#E5FEFF] rounded-lg border border-[#64F4F5]">
+                    <div className="w-2 h-2 rounded-full bg-[#007970] animate-pulse" />
+                    <span className="text-xs font-heading font-bold uppercase tracking-[0.15em] text-[#007970]">
+                      {card.section}
+                    </span>
+                  </div>
+                  <h1 className="text-4xl md:text-5xl font-heading font-bold leading-tight text-[#1F1C1B]">
+                    {card.title}
+                  </h1>
+                </div>
+
+                {/* PANEL STATES */}
+                {panelMode === 'main' && (
+                  <div className="space-y-6">
+                    {/* Objective */}
+                    <div className="p-8 rounded-2xl text-white shadow-xl flex gap-5 items-start bg-[#004142] relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-[#007970] rounded-full blur-3xl opacity-30 group-hover:opacity-50 transition-opacity duration-700 -mr-20 -mt-20" />
+                      <Target className="shrink-0 mt-1 relative z-10 text-[#64F4F5]" size={32} />
+                      <div className="relative z-10">
+                        <h2 className="text-sm font-heading font-bold uppercase tracking-widest mb-2 text-[#64F4F5]">
+                          Learning Objective
+                        </h2>
+                        <p className="text-xl font-medium leading-relaxed">
+                          {card.objective}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Key Points */}
+                      <div className="p-8 border-2 rounded-2xl bg-white transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-[#007970] group">
+                        <h2 className="text-xl font-heading font-bold mb-6 flex items-center gap-3 text-[#1F1C1B]">
+                          <div className="p-2 bg-[#E5FEFF] rounded-lg group-hover:scale-110 transition-transform">
+                            <FileText size={24} className="text-[#007970]" />
+                          </div>
+                          Key Points
+                        </h2>
+                        <ul className="space-y-4">
+                          {card.bullets.map((b, i) => (
+                            <li key={i} className="flex gap-4 items-start">
+                              <div className="w-2 h-2 rounded-full mt-2.5 shrink-0 bg-[#007970]" />
+                              <span className="text-[#524048] text-lg leading-relaxed">{b}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Clinical Lens */}
+                      <div className="p-8 border-2 rounded-2xl bg-white transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-[#C74601] group">
+                        <h2 className="text-xl font-heading font-bold mb-6 flex items-center gap-3 text-[#1F1C1B]">
+                          <div className="p-2 bg-[#FFEEE5] rounded-lg group-hover:scale-110 transition-transform">
+                            <ShieldCheck size={24} className="text-[#C74601]" />
+                          </div>
+                          Clinical Lens
+                        </h2>
+                        <p className="text-[#524048] text-lg leading-relaxed">
+                          Translate this concept into clear, patient-specific, defensible documentation language that aligns directly with organizational standards.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {panelMode === 'additional' && (
+                  <div className="h-full flex flex-col">
+                    <div className="flex-1 p-10 rounded-2xl border-2 shadow-sm bg-white border-[#E5E4E3] hover:border-[#007970] transition-colors duration-500">
+                      <h2 className="text-2xl font-heading font-bold mb-6 flex items-center gap-3 text-[#1F1C1B]">
+                        <AlertCircle size={28} className="text-[#C74601]" />
+                        Additional Subject Content
+                      </h2>
+                      <p className="text-2xl leading-relaxed font-light text-[#524048]">
+                        {card.additional}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {panelMode === 'challenge' && (
+                  <div className="space-y-8">
+                    <h2 className="text-2xl font-heading font-bold mb-6 text-[#1F1C1B]">
+                      Challenge Question: Which response best aligns with this objective?
+                    </h2>
+                    <div className="space-y-4">
+                      {card.challenge.map((c, i) => {
+                        let btnClasses = "w-full text-left p-6 rounded-2xl border-2 transition-all duration-300 flex items-center justify-between group cursor-pointer ";
+                        
+                        if (isSubmitted) {
+                          if (i === 0) {
+                            btnClasses += "border-[#007970] bg-[#007970] text-white shadow-lg scale-[1.02]";
+                          } else if (selectedAnswer === i) {
+                            btnClasses += "border-[#D70101] bg-[#D70101] text-white shadow-lg";
+                          } else {
+                            btnClasses += "border-[#E5E4E3] bg-white text-[#747474] opacity-50";
+                          }
+                        } else if (selectedAnswer === i) {
+                          btnClasses += "border-[#007970] bg-[#F7FEFF] text-[#007970] shadow-md scale-[1.01]";
+                        } else {
+                          btnClasses += "border-[#D9D6D5] bg-white text-[#524048] hover:border-[#007970] hover:shadow-md hover:-translate-y-1";
+                        }
+
+                        return (
+                          <button
+                            key={i}
+                            disabled={isSubmitted}
+                            onClick={() => setSelectedAnswer(i)}
+                            className={btnClasses}
+                          >
+                            <span className="text-xl font-medium pr-4">{c}</span>
+                            <div className="shrink-0 transition-transform duration-300 group-hover:scale-110">
+                              {isSubmitted && i === 0 && <CheckCircle size={28} color="white" />}
+                              {isSubmitted && selectedAnswer === i && i !== 0 && <XCircle size={28} color="white" />}
+                              {!isSubmitted && selectedAnswer === i && <CheckCircle size={28} className="text-[#007970]" />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Challenge Action Area */}
+                    <div className="pt-8 flex flex-col md:flex-row items-center gap-6 border-t border-[#E5E4E3]">
+                      <button
+                        onClick={submitChallenge}
+                        disabled={selectedAnswer === null || isSubmitted}
+                        className="group px-10 py-4 rounded-xl font-heading font-bold text-lg text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto bg-[#C74601] hover:bg-[#421700] hover:shadow-xl hover:-translate-y-1 flex items-center justify-center gap-2"
+                      >
+                        Submit Response
+                        {!isSubmitted && selectedAnswer !== null && (
+                          <ChevronRight size={20} className="transition-transform group-hover:translate-x-1" />
+                        )}
+                      </button>
+                      
+                      {isSubmitted && (
+                        <div className={`p-4 rounded-xl border-l-4 flex-1 animate-float-up ${selectedAnswer === 0 ? 'bg-[#E5FEFF] border-[#007970]' : 'bg-[#FFF0F0] border-[#D70101]'}`}>
+                          <p className={`text-xl font-heading font-bold ${selectedAnswer === 0 ? 'text-[#007970]' : 'text-[#D70101]'}`}>
+                            {selectedAnswer === 0 ? 'Correct — outstanding job applying the concept.' : 'Try again — focus on specific, defensible actions.'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </main>
+
+          {/* Footer / Media Controls */}
+          <footer className="px-8 py-6 border-t border-[#E5E4E3] bg-white flex items-center justify-between relative z-10">
+            <button 
+              onClick={handleBack}
+              className="group flex items-center gap-2 px-6 py-3 rounded-xl font-heading font-bold transition-all duration-300 border-2 border-[#D9D6D5] text-[#524048] hover:border-[#1F1C1B] hover:text-[#1F1C1B]"
+            >
+              <ChevronLeft size={20} className="transition-transform group-hover:-translate-x-1" /> Back
+            </button>
+
+            {!card.final && (
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-4 bg-[#FAFBF8] p-2 rounded-2xl border border-[#E5E4E3]">
+                  {panelMode === 'main' ? (
+                    <button 
+                      onClick={() => { setPanelMode('additional'); setStatusText('Playing recording (debug sample)'); }}
+                      className="group flex items-center gap-3 px-8 py-3 rounded-xl text-white font-heading font-bold transition-all duration-300 bg-[#007970] hover:bg-[#004142] hover:shadow-[0_8px_20px_rgba(0,121,112,0.4)] hover:-translate-y-1"
+                    >
+                      <div className="p-1 bg-white/20 rounded-full group-hover:scale-110 transition-transform">
+                        <Play size={16} fill="currentColor" />
+                      </div>
+                      Play Audio
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => setStatusText('Paused')} className="p-3 rounded-xl bg-white border border-[#D9D6D5] shadow-sm hover:border-[#007970] hover:text-[#007970] text-[#747474] transition-all hover:-translate-y-1" title="Pause">
+                        <Pause size={20} fill="currentColor" />
+                      </button>
+                      <button onClick={() => setStatusText('Stopped')} className="p-3 rounded-xl bg-white border border-[#D9D6D5] shadow-sm hover:border-[#D70101] hover:text-[#D70101] text-[#747474] transition-all hover:-translate-y-1" title="Stop">
+                        <Square size={20} fill="currentColor" />
+                      </button>
+                      <button onClick={() => setStatusText('Restarted')} className="p-3 rounded-xl bg-white border border-[#D9D6D5] shadow-sm hover:border-[#007970] hover:text-[#007970] text-[#747474] transition-all hover:-translate-y-1" title="Restart">
+                        <RotateCcw size={20} />
+                      </button>
+                      <div className="w-px h-8 bg-[#D9D6D5] mx-1"></div>
+                      <button 
+                        onClick={() => setPanelMode('challenge')}
+                        className="group flex items-center gap-2 px-6 py-3 rounded-xl font-heading font-bold transition-all duration-300 border-2 border-[#007970] text-[#007970] hover:bg-[#007970] hover:text-white"
+                      >
+                        Challenge Mode
+                        <Target size={18} className="transition-transform group-hover:rotate-90" />
+                      </button>
+                    </>
+                  )}
+                </div>
+                <span className="text-[10px] font-heading font-bold uppercase tracking-[0.2em] text-[#747474]">
+                  {statusText}
+                </span>
+              </div>
+            )}
+
+            <button 
+              onClick={handleNext}
+              className="group flex items-center gap-2 px-8 py-3 rounded-xl font-heading font-bold text-white transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1 bg-[#C74601] hover:bg-[#421700]"
+            >
+              {card.final ? 'Finish' : 'Next'} 
+              <ChevronRight size={20} className="transition-transform group-hover:translate-x-1" />
+            </button>
+          </footer>
+        </div>
+      </div>
+    </>
+  );
+}

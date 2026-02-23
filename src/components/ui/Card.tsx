@@ -38,9 +38,9 @@ export const Card = ({ children, className, title, onClick }: CardProps) => {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
-      className={twMerge('interactive-card rounded-lg border border-brand-navyLight bg-white p-6 shadow-sm', className)}
+      className={twMerge('interactive-card relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:shadow-xl hover:shadow-brand-navyDark/50', className)}
     >
-      {title && <h3 className="mb-4 text-lg font-semibold text-brand-navy">{title}</h3>}
+      {title && <h3 className="mb-4 text-lg font-semibold text-white">{title}</h3>}
       {children}
     </div>
   )

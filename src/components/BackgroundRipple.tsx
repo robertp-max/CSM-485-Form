@@ -7,7 +7,7 @@ type Ripple = {
   amplitudeScale: number
 }
 
-export const BackgroundRipple = () => {
+export const BackgroundRipple = ({ isDarkMode }: { isDarkMode: boolean }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const ripplesRef = useRef<Ripple[]>([])
 
@@ -22,9 +22,9 @@ export const BackgroundRipple = () => {
       return
     }
 
-    const config = {
-      baseColor: { r: 197, g: 160, b: 89 },
-      highlightColor: { r: 232, g: 212, b: 166 },
+    const config = isDarkMode ? {
+      baseColor: { r: 0, g: 121, b: 112 }, // Brand Teal
+      highlightColor: { r: 199, g: 70, b: 1 }, // Brand Orange
       dotRadius: 1.5,
       gridSpacing: 15,
       waveSpeed: 0.16,
@@ -32,7 +32,18 @@ export const BackgroundRipple = () => {
       waveAmplitude: 20,
       rippleLifespan: 6000,
       maxRipples: 12,
-      background: '#1B4F72',
+      background: '#09090b', // Dark background
+    } : {
+      baseColor: { r: 0, g: 121, b: 112 },
+      highlightColor: { r: 199, g: 70, b: 1 },
+      dotRadius: 1.5,
+      gridSpacing: 15,
+      waveSpeed: 0.16,
+      waveFrequency: 0.015,
+      waveAmplitude: 20,
+      rippleLifespan: 6000,
+      maxRipples: 12,
+      background: '#FAFBF8',
     }
 
     const addRipple = (x: number, y: number, amplitudeScale = 1) => {
@@ -193,7 +204,7 @@ export const BackgroundRipple = () => {
       timeoutIds.forEach((id) => clearTimeout(id))
       cancelAnimationFrame(frameId)
     }
-  }, [])
+  }, [isDarkMode])
 
-  return <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-0" />
+  return <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-0 bg-transparent" />
 }

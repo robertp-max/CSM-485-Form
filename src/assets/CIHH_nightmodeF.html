@@ -1,0 +1,413 @@
+import React, { useState } from 'react';
+import { 
+  Play, Pause, Square, RotateCcw, ChevronRight, ChevronLeft, 
+  CheckCircle, XCircle, AlertCircle, FileText, Target, ShieldCheck, Zap
+} from 'lucide-react';
+
+const cards = [
+  {
+    title: 'What CMS-485 Is and Why It Matters',
+    section: 'Foundation',
+    objective: 'Define CMS-485 as the Plan of Care format and connect it to payment and survey outcomes.',
+    bullets: [
+      'CMS-485 is a structured Plan of Care representation.',
+      'Defensible documentation supports patient safety and reimbursement.',
+      'Weak POC content increases denial and survey risk.'
+    ],
+    additional: 'At its core, the CMS-485 is the blueprint of care. Auditors expect one coherent story from certification through claim.',
+    challenge: [
+      'Use patient-specific POC language tied to objective findings.',
+      'Use broad template text without specifics.',
+      'Delay updates until episode end.'
+    ]
+  },
+  {
+    title: 'Why Documentation Quality Drives Outcomes',
+    section: 'Foundation',
+    objective: 'Explain the operational impact of complete and traceable POC documentation.',
+    bullets: [
+      'High-quality documentation reduces claim rework.',
+      'Clear rationale improves interdisciplinary handoffs.',
+      'Documentation quality is a compliance and care-quality control.'
+    ],
+    additional: 'Good documentation prevents ADR escalation and supports a smooth handoff between clinicians.',
+    challenge: [
+      'Treat documentation as a core clinical communication asset.',
+      'Only document for billing, not care coordination.',
+      'Skip rationale if interventions are listed.'
+    ]
+  },
+  {
+    title: 'CoPs Authority for the Plan of Care',
+    section: 'Regulatory Authority',
+    objective: 'Tie Plan of Care expectations to Conditions of Participation requirements.',
+    bullets: [
+      'POC must be established and reviewed by authorized practitioner.',
+      'Content must remain patient-specific and clinically linked.',
+      'Requirements must be operationalized in workflow.'
+    ],
+    additional: 'CoPs are not policy-only artifacts; they must be visible in daily chart updates and decisions.',
+    challenge: [
+      'Operationalize CoPs in daily documentation workflow.',
+      'Rely on static policy text with no workflow checks.',
+      'Use copy-forward language for all recerts.'
+    ]
+  },
+  {
+    title: 'Module Review',
+    section: 'Quiz',
+    objective: 'Check your understanding of the first three topics.',
+    bullets: [
+      'Select the best answer based on the foundational concepts covered.', 
+      'Focus on defensible actions and compliance.', 
+      'Review explanations carefully.'
+    ],
+    additional: 'The primary goal is ensuring that all documentation is patient-specific, timely, and traceable to objective findings.',
+    challenge: [
+      'Defensible documentation must be specific, timely, and traceable.',
+      'Any completed template is equally defensible.',
+      'Narrative consistency is optional if coding is correct.'
+    ]
+  },
+  {
+    title: 'Completion',
+    final: true
+  }
+];
+
+export default function App() {
+  const [cardIndex, setCardIndex] = useState(0);
+  const [panelMode, setPanelMode] = useState('main'); // main | additional | challenge
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [statusText, setStatusText] = useState('QA mode bypasses locks');
+
+  const card = cards[cardIndex];
+
+  const handleNext = () => {
+    if (!card.final && panelMode === 'main') {
+      setPanelMode('additional');
+    } else if (!card.final && panelMode === 'additional') {
+      setPanelMode('challenge');
+    } else if (cardIndex < cards.length - 1) {
+      setCardIndex(cardIndex + 1);
+      setPanelMode('main');
+      setSelectedAnswer(null);
+      setIsSubmitted(false);
+      setStatusText('Ready');
+    }
+  };
+
+  const handleBack = () => {
+    if (panelMode === 'challenge') {
+      setPanelMode('additional');
+      setSelectedAnswer(null);
+      setIsSubmitted(false);
+    } else if (panelMode === 'additional') {
+      setPanelMode('main');
+    } else if (cardIndex > 0) {
+      setCardIndex(cardIndex - 1);
+      setPanelMode('main');
+      setSelectedAnswer(null);
+      setIsSubmitted(false);
+    }
+  };
+
+  const submitChallenge = () => {
+    if (selectedAnswer !== null) {
+      setIsSubmitted(true);
+      setStatusText(selectedAnswer === 0 ? 'Correct answer submitted.' : 'Incorrect answer submitted.');
+    }
+  };
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=Roboto:wght@300;400;500&display=swap');
+        .font-heading { font-family: 'Montserrat', sans-serif; }
+        .font-body { font-family: 'Roboto', sans-serif; }
+        
+        /* Noise overlay for that raw modern texture */
+        .bg-noise {
+          position: relative;
+        }
+        .bg-noise::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+          pointer-events: none;
+          z-index: 10;
+        }
+
+        @keyframes glitch-slide {
+          0% { opacity: 0; transform: translateY(30px) scale(0.98); filter: blur(4px); }
+          100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+        .animate-glitch {
+          animation: glitch-slide 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
+
+      {/* Deep Dark Space Background - Locked to Screen Height */}
+      <div className="h-screen w-full flex items-center justify-center p-4 md:p-8 bg-[#09090b] font-body text-white selection:bg-[#64F4F5] selection:text-black bg-noise overflow-hidden">
+        
+        {/* Neon Debug Chip */}
+        <div className="fixed top-6 right-6 px-4 py-2 text-[10px] font-heading font-medium tracking-[0.2em] uppercase z-50 flex items-center gap-2 text-[#64F4F5] border border-[#64F4F5]/50 bg-black/50 backdrop-blur-md animate-pulse shadow-[0_0_15px_rgba(100,244,245,0.3)] rounded">
+          <Zap size={14} className="animate-bounce" /> QA: ON
+        </div>
+
+        {/* Main Application Container - Fixed Height */}
+        <div className="w-full max-w-5xl h-full max-h-[850px] bg-[#121214]/90 backdrop-blur-xl border border-white/10 shadow-[0_0_80px_-20px_rgba(199,70,1,0.3)] overflow-hidden flex flex-col relative z-20 rounded-xl">
+          
+          {/* Header - Transparent & Edgy */}
+          <header className="px-8 py-5 flex items-center justify-between border-b border-white/5 relative z-10 shrink-0">
+            {/* White Logo variant for dark mode */}
+            <img 
+              src="https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png" 
+              alt="CareIndeed" 
+              className="h-8 w-auto object-contain transition-transform duration-500 hover:scale-105 opacity-90 hover:opacity-100"
+            />
+            <div className="text-xl font-heading font-medium tracking-widest text-white/50 bg-black/50 px-5 py-1.5 border border-white/10 backdrop-blur-sm shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] rounded">
+              {cardIndex + 1} <span className="text-[#C74601]">/ {cards.length}</span>
+            </div>
+          </header>
+
+          {/* Glowing Gradient Progress Bar */}
+          <div className="w-full bg-white/5 h-1 relative overflow-hidden shrink-0">
+            <div 
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#007970] via-[#64F4F5] to-[#C74601] transition-all duration-700 ease-out shadow-[0_0_15px_#C74601]"
+              style={{ width: `${((cardIndex + (panelMode === 'main' ? 0.3 : panelMode === 'additional' ? 0.6 : 1)) / cards.length) * 100}%` }}
+            />
+          </div>
+
+          {/* Dynamic Content Panel - Centered, No Scroll */}
+          <main className="flex-1 px-8 py-4 flex flex-col justify-center relative z-10 overflow-hidden">
+            
+            {/* Abstract Background Glow */}
+            <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-[#007970]/15 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] bg-[#C74601]/10 rounded-full blur-[100px] pointer-events-none" />
+
+            {card.final ? (
+              <div className="flex flex-col items-center justify-center h-full text-center animate-glitch relative z-10">
+                <div className="w-24 h-24 rounded-none rotate-45 flex items-center justify-center mb-10 bg-[#007970]/20 border border-[#64F4F5] shadow-[0_0_50px_rgba(100,244,245,0.2)]">
+                  <div className="-rotate-45">
+                    <CheckCircle size={48} className="text-[#64F4F5]" />
+                  </div>
+                </div>
+                <h1 className="text-4xl md:text-6xl font-heading font-medium mb-6 text-white tracking-tight drop-shadow-2xl">
+                  Course <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#64F4F5] to-[#007970]">Complete</span>
+                </h1>
+                <p className="text-lg max-w-lg text-white/60 font-light leading-relaxed border-l-2 border-[#C74601] pl-6 text-left">
+                  You have successfully completed the Plan of Care Foundation module. Your responses are encrypted and securely logged.
+                </p>
+              </div>
+            ) : (
+              <div key={cardIndex + panelMode} className="animate-glitch opacity-0 relative z-10 w-full max-w-4xl mx-auto">
+                
+                {/* Common Header */}
+                <div className="mb-8">
+                  <div className="inline-flex items-center gap-3 mb-4">
+                    <div className="w-8 h-px bg-[#C74601]" />
+                    <span className="text-xs font-heading font-medium uppercase tracking-[0.15em] text-[#C74601]">
+                      {card.section}
+                    </span>
+                  </div>
+                  <h1 className="text-3xl md:text-5xl font-heading font-medium leading-tight text-white drop-shadow-lg">
+                    {card.title}
+                  </h1>
+                </div>
+
+                {/* PANEL STATES */}
+                {panelMode === 'main' && (
+                  <div className="space-y-4">
+                    {/* Objective Glass Card */}
+                    <div className="p-5 md:p-6 border border-white/10 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group hover:border-[#64F4F5]/50 transition-colors duration-500 rounded-lg">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-[#64F4F5] shadow-[0_0_20px_#64F4F5]" />
+                      <div className="flex gap-4 items-start relative z-10">
+                        <Target className="shrink-0 mt-1 text-[#64F4F5]" size={28} strokeWidth={1.5} />
+                        <div>
+                          <h2 className="text-xs font-heading font-medium uppercase tracking-[0.15em] mb-2 text-white/50">
+                            Learning Objective
+                          </h2>
+                          <p className="text-xl font-light leading-snug text-white/90">
+                            {card.objective}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Key Points - Dark Brutalist */}
+                      <div className="p-5 md:p-6 border border-white/10 bg-[#0F0F11] hover:bg-[#151518] transition-all duration-300 group flex flex-col justify-center rounded-lg">
+                        <h2 className="text-base font-heading font-medium uppercase tracking-widest mb-4 flex items-center gap-2 text-white/80">
+                          <FileText size={18} className="text-[#007970]" /> Key Points
+                        </h2>
+                        <ul className="space-y-3">
+                          {card.bullets.map((b, i) => (
+                            <li key={i} className="flex gap-3 items-start group/item">
+                              <span className="text-[#007970] font-heading font-medium text-xs mt-1 transition-transform group-hover/item:translate-x-1">0{i+1}</span>
+                              <span className="text-white/70 text-sm md:text-base font-light leading-relaxed">{b}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Clinical Lens - Orange Neon Focus */}
+                      <div className="p-5 md:p-6 border border-white/10 bg-[#0F0F11] hover:border-[#C74601]/50 transition-all duration-300 group shadow-[inset_0_0_0_0_rgba(199,70,1,0)] hover:shadow-[inset_0_0_50px_0_rgba(199,70,1,0.05)] flex flex-col justify-center rounded-lg">
+                        <h2 className="text-base font-heading font-medium uppercase tracking-widest mb-4 flex items-center gap-2 text-white/80">
+                          <ShieldCheck size={18} className="text-[#C74601]" /> Clinical Lens
+                        </h2>
+                        <p className="text-white/70 text-sm md:text-base font-light leading-relaxed">
+                          Translate this concept into clear, patient-specific, defensible documentation language that aligns directly with organizational standards.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {panelMode === 'additional' && (
+                  <div className="flex flex-col justify-center py-4">
+                    <div className="p-8 lg:p-12 border border-white/10 bg-gradient-to-br from-white/5 to-transparent backdrop-blur-sm relative group rounded-lg">
+                      <div className="absolute top-0 right-0 w-24 h-24 border-t border-r border-[#007970] opacity-50 m-4 transition-all duration-500 group-hover:scale-110 group-hover:opacity-100" />
+                      <div className="absolute bottom-0 left-0 w-24 h-24 border-b border-l border-[#C74601] opacity-50 m-4 transition-all duration-500 group-hover:scale-110 group-hover:opacity-100" />
+                      
+                      <h2 className="text-xs font-heading font-medium uppercase tracking-[0.15em] mb-6 flex items-center gap-2 text-[#64F4F5]">
+                        <AlertCircle size={18} /> Expanded Context
+                      </h2>
+                      <p className="text-2xl md:text-3xl leading-snug font-light text-white/90">
+                        {card.additional}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {panelMode === 'challenge' && (
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-heading font-medium mb-6 text-white tracking-tight border-l-4 border-[#C74601] pl-4">
+                      Identify the optimal approach.
+                    </h2>
+                    <div className="space-y-3">
+                      {card.challenge.map((c, i) => {
+                        let btnClasses = "w-full text-left p-4 md:p-5 border transition-all duration-300 flex items-center justify-between group cursor-pointer font-light text-sm md:text-base rounded-lg ";
+                        
+                        if (isSubmitted) {
+                          if (i === 0) {
+                            btnClasses += "border-[#007970] bg-[#007970]/20 text-white shadow-[0_0_30px_rgba(0,121,112,0.3)] scale-[1.02]";
+                          } else if (selectedAnswer === i) {
+                            btnClasses += "border-[#D70101] bg-[#D70101]/20 text-white shadow-[0_0_30px_rgba(215,1,1,0.3)]";
+                          } else {
+                            btnClasses += "border-white/5 bg-transparent text-white/30";
+                          }
+                        } else if (selectedAnswer === i) {
+                          btnClasses += "border-[#64F4F5] bg-[#64F4F5]/10 text-[#64F4F5] shadow-[0_0_20px_rgba(100,244,245,0.2)]";
+                        } else {
+                          btnClasses += "border-white/10 bg-black/20 text-white/60 hover:border-white/50 hover:text-white hover:bg-white/5";
+                        }
+
+                        return (
+                          <button
+                            key={i}
+                            disabled={isSubmitted}
+                            onClick={() => setSelectedAnswer(i)}
+                            className={btnClasses}
+                          >
+                            <span className="pr-4 leading-relaxed">{c}</span>
+                            <div className="shrink-0 transition-transform duration-300 group-hover:scale-110">
+                              {isSubmitted && i === 0 && <CheckCircle size={20} className="text-[#64F4F5]" />}
+                              {isSubmitted && selectedAnswer === i && i !== 0 && <XCircle size={20} className="text-[#D70101]" />}
+                              {!isSubmitted && selectedAnswer === i && <Target size={20} className="text-[#64F4F5]" />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Challenge Action Area */}
+                    <div className="pt-4 flex flex-col md:flex-row items-center gap-4">
+                      <button
+                        onClick={submitChallenge}
+                        disabled={selectedAnswer === null || isSubmitted}
+                        className="group px-8 py-3 font-heading font-medium text-xs uppercase tracking-[0.15em] text-white transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed w-full md:w-auto bg-[#C74601] hover:bg-[#E56E2E] hover:shadow-[0_0_30px_rgba(199,70,1,0.6)] flex items-center justify-center gap-2 rounded"
+                      >
+                        Execute
+                        {!isSubmitted && selectedAnswer !== null && (
+                          <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
+                        )}
+                      </button>
+                      
+                      {isSubmitted && (
+                        <div className={`p-4 flex-1 animate-glitch border rounded-lg ${selectedAnswer === 0 ? 'bg-[#007970]/10 border-[#007970]/50 text-[#64F4F5]' : 'bg-[#D70101]/10 border-[#D70101]/50 text-[#FF8A8A]'}`}>
+                          <p className="text-xs font-heading font-medium uppercase tracking-[0.1em]">
+                            {selectedAnswer === 0 ? 'Validation Success: Concept applied correctly.' : 'Validation Error: Focus on defensible actions.'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </main>
+
+          {/* Footer / Media Controls - Glassy and Raw */}
+          <footer className="px-8 py-4 border-t border-white/5 bg-[#0A0A0C]/80 backdrop-blur-xl flex items-center justify-between gap-4 relative z-10 shrink-0">
+            <button 
+              onClick={handleBack}
+              className="group flex items-center gap-2 px-4 py-3 font-heading font-medium text-xs uppercase tracking-widest transition-all duration-300 text-white/50 hover:text-white rounded"
+            >
+              <ChevronLeft size={16} className="transition-transform group-hover:-translate-x-1" /> Return
+            </button>
+
+            {!card.final && (
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-1 p-1 border border-white/10 bg-black/50 rounded-lg">
+                  {panelMode === 'main' ? (
+                    <button 
+                      onClick={() => { setPanelMode('additional'); setStatusText('System: Playing Audio Protocol'); }}
+                      className="group flex items-center gap-2 px-6 py-2 text-[#64F4F5] font-heading font-medium text-xs uppercase tracking-widest transition-all duration-300 hover:bg-[#64F4F5] hover:text-black rounded"
+                    >
+                      <Play size={12} fill="currentColor" className="transition-transform group-hover:scale-110" />
+                      Initialize Audio
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => setStatusText('System: Audio Paused')} className="p-2.5 text-white/50 hover:text-white hover:bg-white/10 transition-colors rounded" title="Pause">
+                        <Pause size={14} fill="currentColor" />
+                      </button>
+                      <button onClick={() => setStatusText('System: Audio Terminated')} className="p-2.5 text-white/50 hover:text-[#D70101] hover:bg-[#D70101]/10 transition-colors rounded" title="Stop">
+                        <Square size={14} fill="currentColor" />
+                      </button>
+                      <button onClick={() => setStatusText('System: Audio Restarted')} className="p-2.5 text-white/50 hover:text-[#64F4F5] hover:bg-[#64F4F5]/10 transition-colors rounded" title="Restart">
+                        <RotateCcw size={14} />
+                      </button>
+                      <div className="w-px h-6 bg-white/10 mx-1"></div>
+                      <button 
+                        onClick={() => setPanelMode('challenge')}
+                        className="group flex items-center gap-2 px-4 py-2 font-heading font-medium text-xs uppercase tracking-widest transition-all duration-300 text-[#007970] hover:text-[#64F4F5] rounded"
+                      >
+                        Enter Challenge
+                        <Target size={12} className="transition-transform group-hover:rotate-90" />
+                      </button>
+                    </>
+                  )}
+                </div>
+                <span className="text-[9px] font-heading font-medium uppercase tracking-[0.2em] text-[#64F4F5]/50 animate-pulse">
+                  {statusText}
+                </span>
+              </div>
+            )}
+
+            <button 
+              onClick={handleNext}
+              className="group flex items-center gap-2 px-6 py-3 rounded font-heading font-medium text-xs uppercase tracking-[0.15em] text-black transition-all duration-300 shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(100,244,245,0.4)] bg-white hover:bg-[#64F4F5]"
+            >
+              {card.final ? 'Complete' : 'Advance'} 
+              <ChevronRight size={14} className="transition-transform group-hover:translate-x-1" />
+            </button>
+          </footer>
+        </div>
+      </div>
+    </>
+  );
+}

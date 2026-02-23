@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react'
 import { BackgroundRipple } from './BackgroundRipple'
 
-export const CardFlowLayout = ({ children }: { children: ReactNode }) => {
+export const CardFlowLayout = ({ children, isDarkMode }: { children: ReactNode; isDarkMode: boolean }) => {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#1B4F72] font-sans text-brand-charcoal">
-      <BackgroundRipple />
+    <div className={`relative h-screen w-screen overflow-hidden font-sans transition-colors duration-300 ${isDarkMode ? 'bg-[#09090b] text-[#F3F4F6]' : 'bg-[#FAFBF8] text-[#1F1C1B]'}`}>
+      <BackgroundRipple isDarkMode={isDarkMode} />
 
-      <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center p-4 md:p-8">
-        <div className="w-full">{children}</div>
+      <main className="relative z-10 flex h-full w-full items-center justify-center p-0">
+        <div className="flex h-full w-full items-center justify-center">{children}</div>
       </main>
     </div>
   )
