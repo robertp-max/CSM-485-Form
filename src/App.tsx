@@ -670,7 +670,7 @@ const TrainingSection = ({
 
   const helpPanel = (
     <div ref={helpPanelRef} tabIndex={-1} className="h-full">
-      <Card className="h-full overflow-y-auto pr-1">
+      <Card className="help-scroll-panel h-full overflow-y-scroll pr-1">
         <h3 className="mb-6 text-2xl font-bold text-[#C74601] flex items-center gap-2">
           <HelpCircle className="h-5 w-5" />
           Learner Help Guide
@@ -1570,12 +1570,14 @@ const FlowCards = ({
                 onClick={goNext}
                 className={`group transition-all ${
                   isDarkMode
-                    ? 'rounded border border-white bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:bg-[#64F4F5] hover:shadow-[0_0_20px_rgba(100,244,245,0.4)]'
-                    : 'rounded-xl border-2 border-[#004142] bg-[#007970] text-white hover:bg-[#006059] hover:shadow-[4px_4px_0_#004142] hover:-translate-y-1 hover:-translate-x-1'
+                    ? 'next-button-glow rounded border border-white bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:bg-[#64F4F5] hover:shadow-[0_0_20px_rgba(100,244,245,0.4)]'
+                    : 'next-button-glow rounded-xl border-2 border-[#004142] bg-[#007970] text-white hover:bg-[#006059] hover:shadow-[4px_4px_0_#004142] hover:-translate-y-1 hover:-translate-x-1'
                 } ${isNextLockedFeedback ? 'animate-shake' : ''}`}
               >
                 <span className="hidden sm:inline font-bold uppercase tracking-widest text-xs">Next</span>
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <span className={`next-button-arrow-wrap inline-flex h-6 w-6 items-center justify-center rounded-full ${isDarkMode ? 'bg-black/10' : 'bg-white/20'}`}>
+                  <ArrowRight className="next-button-arrow h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </span>
               </Button>
             </div>
           <audio

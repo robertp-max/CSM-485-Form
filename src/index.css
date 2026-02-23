@@ -184,6 +184,78 @@ h1, h2, h3, h4, h5, h6 {
   animation: lockShake 360ms ease;
 }
 
+.help-scroll-panel {
+  scrollbar-width: thin;
+  scrollbar-color: #007970 transparent;
+  scrollbar-gutter: stable;
+}
+
+.help-scroll-panel::-webkit-scrollbar {
+  width: 10px;
+}
+
+.help-scroll-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.help-scroll-panel::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #64F4F5 0%, #007970 100%);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.help-scroll-panel::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #8AFAFB 0%, #009b91 100%);
+  background-clip: padding-box;
+}
+
+.next-button-glow {
+  position: relative;
+  isolation: isolate;
+}
+
+.next-button-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 0 0 rgba(100, 244, 245, 0);
+  transition: box-shadow 220ms ease;
+}
+
+.next-button-glow:hover::after {
+  box-shadow: 0 0 22px rgba(100, 244, 245, 0.45), 0 0 36px rgba(199, 70, 1, 0.2);
+}
+
+.next-button-arrow-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.next-button-arrow-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -60%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 70%);
+  transform: translateX(-120%);
+  transition: transform 300ms ease;
+}
+
+.next-button-glow:hover .next-button-arrow-wrap::before {
+  transform: translateX(95%);
+}
+
+.next-button-arrow {
+  filter: drop-shadow(0 0 0 rgba(100, 244, 245, 0));
+  transition: filter 220ms ease, transform 220ms ease;
+}
+
+.next-button-glow:hover .next-button-arrow {
+  filter: drop-shadow(0 0 8px rgba(100, 244, 245, 0.8));
+}
+
 @keyframes swipeInRight {
   from {
     transform: translateX(24px);
