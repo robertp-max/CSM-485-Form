@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
-import { ArrowLeft, ArrowRight, Lock, Volume2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Lock, Pause, Play, RotateCcw, Square } from 'lucide-react'
 import { CardFlowLayout } from './components/CardFlowLayout'
 import { RevealSection } from './components/RevealSection'
 import { Button } from './components/ui/Button'
 import { Card } from './components/ui/Card'
 import { PlanOfCareFocusPanel } from './components/PlanOfCareFocusPanel'
 import titleMedia from './assets/CI Home Health Logo_White.png'
+import headerLogoGray from './assets/CI Home Health Logo_Gray.png'
 import coverBanner from './assets/CMS-485 LMS Banner.png'
-import objectiveNarration from './assets/happy excited bay area man 2.wav'
+import additionalContentRaw from './assets/Additional Content.txt?raw'
 import { TRAINING_CARDS } from './data/trainingCards'
 import { CARD_METADATA } from './data/cardMetadata'
 
@@ -16,9 +17,103 @@ const ANIMATION_MS = 320
 const COVER_ZOOM_MS = 180
 const PROGRESS_STORAGE_KEY = 'cms485.course.progress.v1'
 
+type PanelMode = 'main' | 'additional' | 'challenge'
+
 type CardItem = {
   title: string
   content: ReactElement | null
+}
+
+const normalizeText = (value: string) => {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+const parseAdditionalContentByTitle = (rawContent: string) => {
+  const contentMap = new Map<string, string>()
+  const sections = rawContent
+    .split(/\n(?=\d+\.\s)/)
+    .map((section) => section.trim())
+    .filter(Boolean)
+
+  sections.forEach((section) => {
+    const headingMatch = section.match(/^\d+\.\s+([^\n]+)/)
+    const bodyMatch = section.match(/"([\s\S]*)"/)
+
+    if (!headingMatch || !bodyMatch) {
+      return
+    }
+
+    const rawHeading = headingMatch[1].trim()
+    const headingWithoutCategory = rawHeading.replace(/\s+\([^)]+\)\s*$/, '').trim()
+    const body = bodyMatch[1].replace(/\s*\n\s*/g, ' ').trim()
+
+    contentMap.set(normalizeText(rawHeading), body)
+    contentMap.set(normalizeText(headingWithoutCategory), body)
+  })
+
+  return contentMap
+}
+
+const getRecordingStemFromPath = (filePath: string) => {
+  const segments = filePath.split('/')
+  const fileName = segments[segments.length - 1] ?? filePath
+
+  return decodeURIComponent(fileName)
+    .replace(/\.wav$/i, '')
+    .replace(/\s+\(\d+\)\s*$/, '')
+    .trim()
+}
+
+const ADDITIONAL_CONTENT_BY_TITLE = parseAdditionalContentByTitle(additionalContentRaw)
+
+const VOICE_RECORDINGS = import.meta.glob('./assets/Voice Recordings/*.wav', {
+  eager: true,
+  import: 'default',
+}) as Record<string, string>
+
+const VOICE_RECORDING_BY_TITLE = (() => {
+  const mapping = new Map<string, string>()
+  const normalizedTitleEntries = TRAINING_CARDS.map((card) => ({
+    title: card.title,
+    normalized: normalizeText(card.title),
+  }))
+
+  Object.entries(VOICE_RECORDINGS).forEach(([filePath, audioUrl]) => {
+    const normalizedStem = normalizeText(getRecordingStemFromPath(filePath))
+
+    const bestTitleMatch = normalizedTitleEntries
+      .filter(({ normalized }) => normalizedStem.includes(normalized) || normalized.includes(normalizedStem))
+      .sort((left, right) => right.normalized.length - left.normalized.length)[0]
+
+    if (!bestTitleMatch || mapping.has(bestTitleMatch.title)) {
+      return
+    }
+
+    mapping.set(bestTitleMatch.title, audioUrl)
+  })
+
+  return mapping
+})()
+
+const getAdditionalContentForTitle = (title: string) => {
+  const normalizedTitle = normalizeText(title)
+  const directMatch = ADDITIONAL_CONTENT_BY_TITLE.get(normalizedTitle)
+
+  if (directMatch) {
+    return directMatch
+  }
+
+  for (const [normalizedHeading, content] of ADDITIONAL_CONTENT_BY_TITLE) {
+    if (normalizedHeading.includes(normalizedTitle) || normalizedTitle.includes(normalizedHeading)) {
+      return content
+    }
+  }
+
+  return null
 }
 
 const getChallengeOptions = (bullets: string[], objective: string) => {
@@ -40,9 +135,18 @@ const TitleCard = ({ onView, className }: { onView: () => void; className?: stri
         />
 
         <div className="relative z-10 mb-8">
-          <Button onClick={onView} className="px-8 py-3 text-base">
-          Start Learning
-          </Button>
+          <p id="start-learning-desc" className="sr-only">
+            Opens the module selection screen.
+          </p>
+          <button
+            type="button"
+            onClick={onView}
+            aria-label="Start Learning"
+            aria-describedby="start-learning-desc"
+            className="rounded-md border border-brand-goldDark bg-brand-gold px-8 py-3 text-base font-semibold uppercase tracking-wide text-brand-navyDark shadow-[0_8px_16px_rgba(27,38,59,0.2)] transition-colors hover:bg-brand-goldLight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navyDark"
+          >
+            Start Learning
+          </button>
         </div>
       </div>
     </div>
@@ -61,13 +165,13 @@ const ReportGridCard = ({
   return (
     <div className={`step-fade-slide flex min-h-[640px] items-center justify-center ${className ?? ''}`}>
       <div className="w-full max-w-4xl rounded-2xl bg-brand-navyDark px-8 py-10 text-white shadow-xl">
-        <h2 className="mb-8 text-center text-3xl font-bold">Start Learning</h2>
+        <h2 className="mb-8 text-center text-3xl font-bold">Continue where you left off</h2>
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {items.map((item, index) => (
             (() => {
               const isUnlocked = index === 0
-              const displayTitle = index === 0 ? 'Complete Course' : item.title
+              const displayTitle = index === 0 ? 'What CMS-485 Is and Why It Matters' : item.title
 
               return (
             <button
@@ -117,41 +221,136 @@ const TrainingSection = ({
   objective,
   bullets,
   pocFocus,
+  panelMode,
+  previousPanelMode,
+  isPanelAnimating,
+  panelTransitionDirection,
+  additionalContent,
+  isChallengeUnlocked,
+  manageFocus,
 }: (typeof TRAINING_CARDS)[number] & {
   pocFocus?: {
     boxes: string[]
     context: string
   }
+  panelMode: PanelMode
+  previousPanelMode: PanelMode | null
+  isPanelAnimating: boolean
+  panelTransitionDirection: 'next' | 'prev'
+  additionalContent: string | null
+  isChallengeUnlocked: boolean
+  manageFocus: boolean
 }) => {
-  const objectiveAudioRef = useRef<HTMLAudioElement | null>(null)
-  const [isObjectiveAudioPlaying, setIsObjectiveAudioPlaying] = useState(false)
-  const [objectiveAudioSource, setObjectiveAudioSource] = useState<'none' | 'recording' | 'blocked'>('none')
   const [isPocPanelExpanded, setIsPocPanelExpanded] = useState(false)
+  const [selectedChallengeIndex, setSelectedChallengeIndex] = useState<number | null>(null)
+  const additionalPanelRef = useRef<HTMLDivElement | null>(null)
+  const challengeFirstOptionRef = useRef<HTMLButtonElement | null>(null)
 
-  const handleObjectiveClick = () => {
-    setIsObjectiveAudioPlaying(true)
+  useEffect(() => {
+    setSelectedChallengeIndex(null)
+  }, [title, panelMode])
 
-    const fallbackAudio = objectiveAudioRef.current
-    if (!fallbackAudio) {
-      setObjectiveAudioSource('blocked')
-      setIsObjectiveAudioPlaying(false)
+  useEffect(() => {
+    if (!manageFocus) {
       return
     }
 
-    fallbackAudio.pause()
-    fallbackAudio.currentTime = 0
-    fallbackAudio.muted = false
-    fallbackAudio.volume = 1
-    fallbackAudio
-      .play()
-      .then(() => {
-        setObjectiveAudioSource('recording')
-        setIsObjectiveAudioPlaying(true)
-      })
-      .catch(() => {
-        setObjectiveAudioSource('blocked')
-        setIsObjectiveAudioPlaying(false)
-      })
+    if (panelMode === 'additional') {
+      additionalPanelRef.current?.focus()
+      return
+    }
+
+    if (panelMode === 'challenge') {
+      challengeFirstOptionRef.current?.focus()
+    }
+  }, [manageFocus, panelMode])
+
+  const defaultInsightPanels = (
+    <div className="grid gap-4 md:grid-cols-2">
+      <Card>
+        <h3 className="mb-3 text-lg font-semibold text-brand-navy">Key Points</h3>
+        <ul className="list-inside list-disc space-y-2 text-sm leading-relaxed text-brand-darkGray">
+          {bullets.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </Card>
+
+      <Card className="h-full">
+        <h3 className="mb-3 text-lg font-semibold text-brand-navy">Clinical Lens</h3>
+        <p className="text-sm leading-relaxed text-brand-darkGray">
+          Translate this concept into documentation language that is clear, patient-specific, and traceable across certification, orders, and visit notes.
+        </p>
+      </Card>
+    </div>
+  )
+
+  const challengePanel = (
+    <Card className="h-full">
+      <p className="text-xs font-semibold uppercase tracking-wide text-brand-goldDark">{section}</p>
+      <h3 className="mb-3 text-xl font-semibold text-brand-navy">{title} · Challenge Question</h3>
+      <p className="mb-5 max-w-2xl text-sm leading-relaxed text-brand-darkGray">Which response best aligns with this card objective?</p>
+
+      <div className="w-full max-w-2xl space-y-3">
+        {getChallengeOptions(bullets, objective).map((option, index) => {
+          const isSelected = selectedChallengeIndex === index
+          const isCorrect = index === 0
+
+          return (
+            <button
+              key={`${title}-challenge-${index}`}
+              type="button"
+              ref={index === 0 ? challengeFirstOptionRef : undefined}
+              onClick={() => setSelectedChallengeIndex(index)}
+              className={`w-full rounded-md border px-4 py-3 text-left text-sm transition-colors ${
+                isSelected
+                  ? isCorrect
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                    : 'border-rose-400 bg-rose-50 text-rose-800'
+                  : 'border-brand-navyLight bg-white text-brand-darkGray hover:bg-brand-sky/30'
+              }`}
+            >
+              {option}
+            </button>
+          )
+        })}
+      </div>
+
+      {selectedChallengeIndex !== null && (
+        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-brand-navy">
+          {selectedChallengeIndex === 0 ? 'Correct — this aligns with the card objective.' : 'Try again — focus on the documentation-defensible action.'}
+        </p>
+      )}
+
+      {!isChallengeUnlocked && (
+        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-brand-darkGray">
+          Complete audio playback at least once to unlock challenge mode.
+        </p>
+      )}
+    </Card>
+  )
+
+  const additionalPanel = (
+    <div ref={additionalPanelRef} tabIndex={-1}>
+      <Card className="h-full">
+        <h3 className="mb-3 text-lg font-semibold text-brand-navy">Additional Subject Content</h3>
+        <p className="text-sm leading-relaxed text-brand-darkGray">
+          {additionalContent ?? 'Additional narrated content is not available yet for this card.'}
+        </p>
+      </Card>
+    </div>
+  )
+
+  const renderPanel = (mode: PanelMode) => {
+    if (mode === 'challenge') {
+      return challengePanel
+    }
+
+    if (mode === 'additional') {
+      return additionalPanel
+    }
+
+    return defaultInsightPanels
   }
 
   return (
@@ -162,52 +361,30 @@ const TrainingSection = ({
       </RevealSection>
 
       <RevealSection delayMs={80}>
-        <Card onClick={handleObjectiveClick} className="cursor-pointer">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="text-lg font-semibold text-brand-navy">Learning Objective</h3>
-            <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-brand-goldDark">
-              <Volume2 className={`h-4 w-4 ${isObjectiveAudioPlaying ? 'animate-pulse' : ''}`} />
-              {isObjectiveAudioPlaying
-                ? objectiveAudioSource === 'recording'
-                  ? 'Recording'
-                  : 'Playing'
-                : objectiveAudioSource === 'blocked'
-                  ? 'Audio Blocked'
-                  : 'Click to Play'}
-            </span>
-          </div>
+        <Card>
+          <h3 className="mb-3 text-lg font-semibold text-brand-navy">Learning Objective</h3>
           <p className="text-sm leading-relaxed text-brand-darkGray">{objective}</p>
-          <audio
-            ref={objectiveAudioRef}
-            src={objectiveNarration}
-            preload="auto"
-            muted={false}
-            onEnded={() => setIsObjectiveAudioPlaying(false)}
-            onPause={() => setIsObjectiveAudioPlaying(false)}
-          />
         </Card>
       </RevealSection>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <RevealSection delayMs={120}>
-          <Card>
-            <h3 className="mb-3 text-lg font-semibold text-brand-navy">Key Points</h3>
-            <ul className="list-inside list-disc space-y-2 text-sm leading-relaxed text-brand-darkGray">
-              {bullets.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </Card>
-        </RevealSection>
+      <div className="relative min-h-[240px]">
+        {isPanelAnimating && previousPanelMode !== null && previousPanelMode !== panelMode && (
+          <div className={`absolute inset-0 swipe-card ${panelTransitionDirection === 'next' ? 'swipe-out-left' : 'swipe-out-right'}`}>
+            {renderPanel(previousPanelMode)}
+          </div>
+        )}
 
-        <RevealSection delayMs={170}>
-          <Card className="h-full">
-            <h3 className="mb-3 text-lg font-semibold text-brand-navy">Clinical Lens</h3>
-            <p className="text-sm leading-relaxed text-brand-darkGray">
-              Translate this concept into documentation language that is clear, patient-specific, and traceable across certification, orders, and visit notes.
-            </p>
-          </Card>
-        </RevealSection>
+        <div
+          className={`swipe-card ${
+            isPanelAnimating && previousPanelMode !== null && previousPanelMode !== panelMode
+              ? panelTransitionDirection === 'next'
+                ? 'swipe-in-right'
+                : 'swipe-in-left'
+              : ''
+          }`}
+        >
+          {renderPanel(panelMode)}
+        </div>
       </div>
 
       {pocFocus && (
@@ -223,68 +400,6 @@ const TrainingSection = ({
   )
 }
 
-const ChallengeSection = ({
-  title,
-  section,
-  objective,
-  bullets,
-}: (typeof TRAINING_CARDS)[number]) => {
-  const [selectedChallengeIndex, setSelectedChallengeIndex] = useState<number | null>(null)
-  const challengeOptions = useMemo(() => getChallengeOptions(bullets, objective), [bullets, objective])
-
-  useEffect(() => {
-    setSelectedChallengeIndex(null)
-  }, [title])
-
-  return (
-    <section className="flex min-h-[640px] items-center justify-center">
-      <RevealSection className="w-full" delayMs={80}>
-        <Card className="mx-auto w-full max-w-3xl">
-          <div className="flex min-h-[360px] w-full flex-col items-center justify-center text-center">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-goldDark">{section}</p>
-            <h3 className="mb-3 text-xl font-semibold text-brand-navy">{title} · Challenge Question</h3>
-            <p className="mb-5 max-w-2xl text-sm leading-relaxed text-brand-darkGray">
-              Which response best aligns with this card objective?
-            </p>
-
-            <div className="w-full max-w-2xl space-y-3">
-              {challengeOptions.map((option, index) => {
-                const isSelected = selectedChallengeIndex === index
-                const isCorrect = index === 0
-
-                return (
-                  <button
-                    key={`${title}-challenge-${index}`}
-                    type="button"
-                    onClick={() => setSelectedChallengeIndex(index)}
-                    className={`w-full rounded-md border px-4 py-3 text-left text-sm transition-colors ${
-                      isSelected
-                        ? isCorrect
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
-                          : 'border-rose-400 bg-rose-50 text-rose-800'
-                        : 'border-brand-navyLight bg-white text-brand-darkGray hover:bg-brand-sky/30'
-                    }`}
-                  >
-                    {option}
-                  </button>
-                )
-              })}
-            </div>
-
-            {selectedChallengeIndex !== null && (
-              <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-brand-navy">
-                {selectedChallengeIndex === 0
-                  ? 'Correct — this aligns with the card objective.'
-                  : 'Try again — focus on the documentation-defensible action.'}
-              </p>
-            )}
-          </div>
-        </Card>
-      </RevealSection>
-    </section>
-  )
-}
-
 const FlowCards = () => {
   const metadataByTitle = useMemo(() => {
     return new Map(CARD_METADATA.map((item) => [item.title, item]))
@@ -293,24 +408,11 @@ const FlowCards = () => {
   const cards = useMemo(
     () => [
       { title: 'Title', content: null },
-      ...TRAINING_CARDS.flatMap((card) => {
-        const metadata = metadataByTitle.get(card.title)
-
-        return [
-          {
-            title: card.title,
-            content: (
-              <TrainingSection
-                {...card}
-                pocFocus={metadata?.pocFocus}
-              />
-            ),
-          },
-          {
-            title: `${card.title} · Challenge`,
-            content: <ChallengeSection {...card} />,
-          },
-        ]
+      ...TRAINING_CARDS.map((card) => {
+        return {
+          title: card.title,
+          content: null,
+        }
       }),
       { title: 'Complete', content: null },
     ],
@@ -326,10 +428,172 @@ const FlowCards = () => {
   const [isQaMode, setIsQaMode] = useState(false)
   const [viewedCardIndexes, setViewedCardIndexes] = useState<Set<number>>(() => new Set([0]))
   const [isNextLockedFeedback, setIsNextLockedFeedback] = useState(false)
+  const [audioModeForTitle, setAudioModeForTitle] = useState<string | null>(null)
+  const [challengeModeForTitle, setChallengeModeForTitle] = useState<string | null>(null)
+  const [audioPlaybackState, setAudioPlaybackState] = useState<'idle' | 'playing' | 'paused'>('idle')
+  const [audioCompletedTitles, setAudioCompletedTitles] = useState<Set<string>>(() => new Set())
+  const [isPanelAnimating, setIsPanelAnimating] = useState(false)
+  const [panelTransitionDirection, setPanelTransitionDirection] = useState<'next' | 'prev'>('next')
+  const [previousPanelMode, setPreviousPanelMode] = useState<PanelMode | null>(null)
+  const [liveStatus, setLiveStatus] = useState('')
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const touchStartXRef = useRef<number | null>(null)
+  const audioElementRef = useRef<HTMLAudioElement | null>(null)
 
   const currentIsTrainingCard = currentIndex > 0 && currentIndex < cards.length - 1
   const canAdvanceFromCurrent = isQaMode || !currentIsTrainingCard || viewedCardIndexes.has(currentIndex)
+  const currentCardTitle = cards[currentIndex]?.title ?? ''
+  const currentVoiceRecording = currentIsTrainingCard ? VOICE_RECORDING_BY_TITLE.get(currentCardTitle) ?? null : null
+  const isChallengeUnlocked = audioCompletedTitles.has(currentCardTitle)
+
+  const getPanelModeForTitle = (title: string): PanelMode => {
+    if (challengeModeForTitle === title) {
+      return 'challenge'
+    }
+
+    if (audioModeForTitle === title) {
+      return 'additional'
+    }
+
+    return 'main'
+  }
+
+  const currentPanelMode = currentIsTrainingCard ? getPanelModeForTitle(currentCardTitle) : 'main'
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const applyPreference = () => setPrefersReducedMotion(media.matches)
+    applyPreference()
+    media.addEventListener('change', applyPreference)
+    return () => media.removeEventListener('change', applyPreference)
+  }, [])
+
+  const clearDelayedPlayback = () => {
+    return
+  }
+
+  const stopCurrentAudioPlayback = () => {
+    const audio = audioElementRef.current
+    if (!audio) {
+      return
+    }
+
+    audio.pause()
+    audio.currentTime = 0
+  }
+
+  const transitionPanel = (nextMode: PanelMode, directionOverride: 'next' | 'prev') => {
+    if (!currentIsTrainingCard) {
+      return
+    }
+
+    const activeMode = getPanelModeForTitle(currentCardTitle)
+    if (activeMode === nextMode) {
+      return
+    }
+
+    setPreviousPanelMode(activeMode)
+    setPanelTransitionDirection(directionOverride)
+    setIsPanelAnimating(!prefersReducedMotion)
+
+    if (nextMode === 'main') {
+      setAudioModeForTitle(null)
+      setChallengeModeForTitle(null)
+    } else if (nextMode === 'additional') {
+      setAudioModeForTitle(currentCardTitle)
+      setChallengeModeForTitle(null)
+    } else {
+      setAudioModeForTitle(currentCardTitle)
+      setChallengeModeForTitle(currentCardTitle)
+    }
+
+    if (!prefersReducedMotion) {
+      window.setTimeout(() => {
+        setIsPanelAnimating(false)
+        setPreviousPanelMode(null)
+      }, ANIMATION_MS)
+    }
+  }
+
+  const handleAudioPlayClick = () => {
+    if (!currentIsTrainingCard) {
+      return
+    }
+
+    transitionPanel('additional', 'next')
+    stopCurrentAudioPlayback()
+
+    const audio = audioElementRef.current
+    if (!audio || !currentVoiceRecording) {
+      setAudioPlaybackState('idle')
+      setLiveStatus('No recording is available for this card.')
+      return
+    }
+
+    audio.currentTime = 0
+    audio
+      .play()
+      .then(() => {
+        setAudioPlaybackState('playing')
+        setLiveStatus('Playing recording.')
+      })
+      .catch(() => {
+        setAudioPlaybackState('idle')
+        setLiveStatus('Playback could not be started.')
+      })
+  }
+
+  const handleAudioPauseClick = () => {
+    const audio = audioElementRef.current
+    if (!audio) {
+      return
+    }
+
+    audio.pause()
+    setAudioPlaybackState('paused')
+    setLiveStatus('Playback paused.')
+  }
+
+  const handleAudioStopClick = () => {
+    clearDelayedPlayback()
+    stopCurrentAudioPlayback()
+    setAudioPlaybackState('idle')
+    setLiveStatus('Playback stopped.')
+  }
+
+  const handleAudioRestartClick = () => {
+    clearDelayedPlayback()
+
+    const audio = audioElementRef.current
+    if (!audio || !currentVoiceRecording) {
+      setAudioPlaybackState('idle')
+      return
+    }
+
+    audio.pause()
+    audio.currentTime = 0
+    audio
+      .play()
+      .then(() => {
+        setAudioPlaybackState('playing')
+        setLiveStatus('Playback restarted.')
+      })
+      .catch(() => {
+        setAudioPlaybackState('idle')
+      })
+  }
+
+  const handleChallengeClick = () => {
+    if (!isChallengeUnlocked) {
+      setIsNextLockedFeedback(true)
+      setLiveStatus('Challenge is locked until audio playback is completed once.')
+      window.setTimeout(() => setIsNextLockedFeedback(false), 360)
+      return
+    }
+
+    transitionPanel('challenge', 'next')
+    setLiveStatus('Challenge unlocked.')
+  }
 
   useEffect(() => {
     try {
@@ -399,12 +663,36 @@ const FlowCards = () => {
       return
     }
 
+    if (currentIsTrainingCard) {
+      if (currentPanelMode === 'main') {
+        handleAudioPlayClick()
+        return
+      }
+
+      if (currentPanelMode === 'additional') {
+        handleChallengeClick()
+        return
+      }
+    }
+
     if (currentIndex < cards.length - 1) {
       goTo(currentIndex + 1, 'next')
     }
   }
 
   const goPrev = () => {
+    if (currentIsTrainingCard) {
+      if (currentPanelMode === 'challenge') {
+        transitionPanel('additional', 'prev')
+        return
+      }
+
+      if (currentPanelMode === 'additional') {
+        transitionPanel('main', 'prev')
+        return
+      }
+    }
+
     if (currentIndex > 0) {
       goTo(currentIndex - 1, 'prev')
     }
@@ -451,6 +739,21 @@ const FlowCards = () => {
   }, [currentIndex, currentIsTrainingCard])
 
   useEffect(() => {
+    stopCurrentAudioPlayback()
+    setAudioPlaybackState('idle')
+    setAudioModeForTitle(null)
+    setChallengeModeForTitle(null)
+    setIsPanelAnimating(false)
+    setPreviousPanelMode(null)
+  }, [currentIndex])
+
+  useEffect(() => {
+    return () => {
+      stopCurrentAudioPlayback()
+    }
+  }, [])
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'ArrowRight') {
         if (currentIndex === 0 && !showReportGrid) {
@@ -469,6 +772,52 @@ const FlowCards = () => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [currentIndex, showReportGrid, canAdvanceFromCurrent])
 
+  const getAudioStatusLabel = () => {
+    if (audioPlaybackState === 'playing') {
+      return 'Playing recording'
+    }
+
+    if (audioPlaybackState === 'paused') {
+      return 'Playback paused'
+    }
+
+    return currentVoiceRecording ? ' ' : 'No recording for this card'
+  }
+
+  const renderCardContent = (index: number) => {
+    if (index === 0) {
+      if (showReportGrid) {
+        return <ReportGridCard items={cards.slice(1)} onSelect={(itemIndex) => handleReportSelect(itemIndex + 1)} className="zoom-enter" />
+      }
+
+      return <TitleCard onView={handleViewFromCover} className={isCoverZoomingOut ? 'zoom-exit' : ''} />
+    }
+
+    if (index === cards.length - 1) {
+      return <EndCard />
+    }
+
+    const card = TRAINING_CARDS[index - 1]
+    const metadata = metadataByTitle.get(card.title)
+    const isCurrentCard = index === currentIndex
+    const panelModeForCard = getPanelModeForTitle(card.title)
+    const additionalContentForCard = getAdditionalContentForTitle(card.title)
+
+    return (
+      <TrainingSection
+        {...card}
+        pocFocus={metadata?.pocFocus}
+        panelMode={panelModeForCard}
+        previousPanelMode={isCurrentCard ? previousPanelMode : null}
+        isPanelAnimating={isCurrentCard && isPanelAnimating}
+        panelTransitionDirection={panelTransitionDirection}
+        additionalContent={additionalContentForCard}
+        isChallengeUnlocked={audioCompletedTitles.has(card.title)}
+        manageFocus={isCurrentCard}
+      />
+    )
+  }
+
   return (
     <section
       className={`mx-auto w-full max-w-5xl rounded-xl ${
@@ -485,8 +834,15 @@ const FlowCards = () => {
 
       {currentIndex > 0 && currentIndex < cards.length - 1 && (
         <div className="mb-4 space-y-3">
-          <div className="text-sm font-semibold text-brand-darkGray">
-            {currentIndex + 1} / {cards.length}
+          <div className="flex items-center gap-3">
+            <img
+              src={headerLogoGray}
+              alt="CI Home Health logo"
+              className="h-8 w-auto object-contain"
+            />
+            <div className="text-base font-bold tracking-wide text-brand-navy">
+              {currentIndex + 1} / {cards.length}
+            </div>
           </div>
 
           <div className="flex items-center gap-1 overflow-x-auto pb-1">
@@ -535,7 +891,7 @@ const FlowCards = () => {
               direction === 'next' ? 'swipe-out-left' : 'swipe-out-right'
             }`}
           >
-            {cards[previousIndex].content}
+            {renderCardContent(previousIndex)}
           </div>
         )}
 
@@ -544,49 +900,79 @@ const FlowCards = () => {
             isAnimating ? (direction === 'next' ? 'swipe-in-right' : 'swipe-in-left') : ''
           }`}
         >
-          {currentIndex === 0 && showReportGrid ? (
-            <ReportGridCard items={cards.slice(1)} onSelect={(index) => handleReportSelect(index + 1)} className="zoom-enter" />
-          ) : currentIndex === 0 ? (
-            <TitleCard onView={handleViewFromCover} className={isCoverZoomingOut ? 'zoom-exit' : ''} />
-          ) : currentIndex === cards.length - 1 ? (
-            <EndCard />
-          ) : (
-            cards[currentIndex].content
-          )}
+          {renderCardContent(currentIndex)}
         </div>
       </div>
 
-      {currentIndex > 0 && currentIndex < cards.length - 1 && (
+      {currentIsTrainingCard && (
         <div className="mt-6 grid grid-cols-3 items-center">
           <Button variant="ghost" onClick={goPrev} className="justify-self-start">
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-rotate-12" />
             Back
           </Button>
 
-          <div className="justify-self-center">
-            <img
-              src="https://demo.findahomecare.com/wp-content/uploads/2025/10/FIndaHomeCare-Logo.png"
-              alt="FindAHomeCare logo"
-              className="h-[120px] w-auto object-contain"
+          <div className="justify-self-center text-center">
+            {currentPanelMode === 'main' ? (
+              <Button variant="ghost" onClick={handleAudioPlayClick} className="px-4 py-2 text-xs" disabled={!currentIsTrainingCard}>
+                <Play className="h-4 w-4" />
+                PLAY
+              </Button>
+            ) : (
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button variant="ghost" onClick={handleAudioPauseClick} className="px-3 py-2 text-xs">
+                  <Pause className="h-4 w-4" />
+                  Pause
+                </Button>
+                <Button variant="ghost" onClick={handleAudioStopClick} className="px-3 py-2 text-xs">
+                  <Square className="h-4 w-4" />
+                  Stop
+                </Button>
+                <Button variant="ghost" onClick={handleAudioRestartClick} className="px-3 py-2 text-xs">
+                  <RotateCcw className="h-4 w-4" />
+                  Restart
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={handleChallengeClick}
+                  className={`px-3 py-2 text-xs ${!isChallengeUnlocked ? 'opacity-95' : ''} ${isNextLockedFeedback ? 'lock-shake' : ''}`}
+                  aria-disabled={!isChallengeUnlocked}
+                >
+                  {!isChallengeUnlocked && <Lock className="h-4 w-4" />}
+                  Challenge
+                </Button>
+              </div>
+            )}
+
+            {currentIsTrainingCard && (
+              <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-brand-darkGray" aria-live="polite">
+                {liveStatus || getAudioStatusLabel()}
+              </p>
+            )}
+
+            <audio
+              ref={audioElementRef}
+              src={currentVoiceRecording ?? undefined}
+              preload="auto"
+              onEnded={() => {
+                setAudioPlaybackState('idle')
+                setAudioCompletedTitles((previous) => {
+                  const updated = new Set(previous)
+                  updated.add(currentCardTitle)
+                  return updated
+                })
+                setLiveStatus('Challenge unlocked.')
+              }}
+              onPause={() => {
+                if (audioPlaybackState === 'playing') {
+                  setAudioPlaybackState('paused')
+                }
+              }}
             />
           </div>
 
-          <Button
-            variant="secondary"
-            onClick={goNext}
-            className={`justify-self-end ${!canAdvanceFromCurrent ? 'opacity-95' : ''} ${isNextLockedFeedback ? 'lock-shake' : ''}`}
-          >
-            {!canAdvanceFromCurrent ? (
-              <>
-                <Lock className="h-4 w-4" />
-                Next
-              </>
-            ) : (
-              <>
-                Next
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:rotate-12" />
-              </>
-            )}
+          <Button variant="ghost" onClick={goNext} className={`justify-self-end ${isNextLockedFeedback ? 'lock-shake' : ''}`}>
+            Next
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:rotate-12" />
           </Button>
         </div>
       )}

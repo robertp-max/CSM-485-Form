@@ -68,7 +68,7 @@ export const Button = ({
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
       className={twMerge(
-        'premium-btn group inline-flex items-center justify-center gap-2 rounded-md px-5 py-2.5 text-sm font-semibold uppercase tracking-wide',
+        'premium-btn group inline-flex items-center justify-center gap-2 rounded-md px-5 py-2.5 text-sm font-semibold uppercase tracking-wide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-goldDark focus-visible:ring-offset-2 focus-visible:ring-offset-white',
         variantClasses[variant],
         className,
       )}

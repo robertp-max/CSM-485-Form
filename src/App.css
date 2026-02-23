@@ -301,3 +301,16 @@
     opacity: 0;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe-in-right,
+  .swipe-out-left,
+  .swipe-in-left,
+  .swipe-out-right,
+  .step-fade-slide,
+  .zoom-enter,
+  .zoom-exit {
+    animation: none !important;
+    transition: none !important;
+  }
+}
