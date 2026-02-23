@@ -19,6 +19,11 @@ const PROGRESS_STORAGE_KEY = 'cms485.course.progress.v1'
 
 type PanelMode = 'main' | 'additional' | 'challenge'
 
+type ChallengeResult = {
+  selectedIndex: number
+  isCorrect: boolean
+}
+
 type CardItem = {
   title: string
   content: ReactElement | null
@@ -143,7 +148,7 @@ const TitleCard = ({ onView, className }: { onView: () => void; className?: stri
             onClick={onView}
             aria-label="Start Learning"
             aria-describedby="start-learning-desc"
-            className="rounded-md border border-brand-goldDark bg-brand-gold px-8 py-3 text-base font-semibold uppercase tracking-wide text-brand-navyDark shadow-[0_8px_16px_rgba(27,38,59,0.2)] transition-colors hover:bg-brand-goldLight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navyDark"
+            className="rounded-md border border-brand-navyDark bg-brand-navyDark px-8 py-3 text-base font-semibold uppercase tracking-wide text-white shadow-[0_8px_16px_rgba(27,38,59,0.35)] transition-colors hover:bg-brand-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navyDark"
           >
             Start Learning
           </button>
@@ -228,6 +233,8 @@ const TrainingSection = ({
   additionalContent,
   isChallengeUnlocked,
   manageFocus,
+  challengeResult,
+  onSubmitChallenge,
 }: (typeof TRAINING_CARDS)[number] & {
   pocFocus?: {
     boxes: string[]
@@ -240,15 +247,25 @@ const TrainingSection = ({
   additionalContent: string | null
   isChallengeUnlocked: boolean
   manageFocus: boolean
+  challengeResult: ChallengeResult | null
+  onSubmitChallenge: (selectedIndex: number) => void
 }) => {
   const [isPocPanelExpanded, setIsPocPanelExpanded] = useState(false)
   const [selectedChallengeIndex, setSelectedChallengeIndex] = useState<number | null>(null)
+  const [hasSubmittedChallenge, setHasSubmittedChallenge] = useState(false)
   const additionalPanelRef = useRef<HTMLDivElement | null>(null)
   const challengeFirstOptionRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
+    if (challengeResult) {
+      setSelectedChallengeIndex(challengeResult.selectedIndex)
+      setHasSubmittedChallenge(true)
+      return
+    }
+
     setSelectedChallengeIndex(null)
-  }, [title, panelMode])
+    setHasSubmittedChallenge(false)
+  }, [title, panelMode, challengeResult])
 
   useEffect(() => {
     if (!manageFocus) {
@@ -301,7 +318,15 @@ const TrainingSection = ({
               key={`${title}-challenge-${index}`}
               type="button"
               ref={index === 0 ? challengeFirstOptionRef : undefined}
-              onClick={() => setSelectedChallengeIndex(index)}
+              disabled={hasSubmittedChallenge}
+              aria-disabled={hasSubmittedChallenge}
+              onClick={() => {
+                if (hasSubmittedChallenge) {
+                  return
+                }
+                setSelectedChallengeIndex(index)
+                setHasSubmittedChallenge(false)
+              }}
               className={`w-full rounded-md border px-4 py-3 text-left text-sm transition-colors ${
                 isSelected
                   ? isCorrect
@@ -316,10 +341,39 @@ const TrainingSection = ({
         })}
       </div>
 
-      {selectedChallengeIndex !== null && (
-        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-brand-navy">
-          {selectedChallengeIndex === 0 ? 'Correct — this aligns with the card objective.' : 'Try again — focus on the documentation-defensible action.'}
-        </p>
+      <div className="mt-4">
+        <Button
+          variant="ghost"
+          onClick={() => {
+            if (selectedChallengeIndex === null || hasSubmittedChallenge) {
+              return
+            }
+
+            setHasSubmittedChallenge(true)
+            onSubmitChallenge(selectedChallengeIndex)
+          }}
+          disabled={selectedChallengeIndex === null || hasSubmittedChallenge}
+          aria-disabled={selectedChallengeIndex === null || hasSubmittedChallenge}
+          className="px-4 py-2 text-xs"
+        >
+          {hasSubmittedChallenge ? 'Submitted' : 'Submit'}
+        </Button>
+      </div>
+
+      {hasSubmittedChallenge && selectedChallengeIndex !== null && (
+        <div className="mt-4 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-navy">
+            {selectedChallengeIndex === 0 ? 'Correct — this aligns with the card objective.' : 'Incorrect — one attempt allowed per session.'}
+          </p>
+          {selectedChallengeIndex !== 0 && (
+            <p className="text-sm leading-relaxed text-brand-darkGray">
+              Correct answer: {getChallengeOptions(bullets, objective)[0]}. Why: this option directly supports the learning objective — {objective}
+            </p>
+          )}
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-darkGray">
+            Challenge attempts are locked for this card until a new session.
+          </p>
+        </div>
       )}
 
       {!isChallengeUnlocked && (
@@ -432,6 +486,7 @@ const FlowCards = () => {
   const [challengeModeForTitle, setChallengeModeForTitle] = useState<string | null>(null)
   const [audioPlaybackState, setAudioPlaybackState] = useState<'idle' | 'playing' | 'paused'>('idle')
   const [audioCompletedTitles, setAudioCompletedTitles] = useState<Set<string>>(() => new Set())
+  const [challengeResultsByTitle, setChallengeResultsByTitle] = useState<Record<string, ChallengeResult>>({})
   const [isPanelAnimating, setIsPanelAnimating] = useState(false)
   const [panelTransitionDirection, setPanelTransitionDirection] = useState<'next' | 'prev'>('next')
   const [previousPanelMode, setPreviousPanelMode] = useState<PanelMode | null>(null)
@@ -444,7 +499,7 @@ const FlowCards = () => {
   const canAdvanceFromCurrent = isQaMode || !currentIsTrainingCard || viewedCardIndexes.has(currentIndex)
   const currentCardTitle = cards[currentIndex]?.title ?? ''
   const currentVoiceRecording = currentIsTrainingCard ? VOICE_RECORDING_BY_TITLE.get(currentCardTitle) ?? null : null
-  const isChallengeUnlocked = audioCompletedTitles.has(currentCardTitle)
+  const isChallengeUnlocked = isQaMode || audioCompletedTitles.has(currentCardTitle)
 
   const getPanelModeForTitle = (title: string): PanelMode => {
     if (challengeModeForTitle === title) {
@@ -772,6 +827,10 @@ const FlowCards = () => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [currentIndex, showReportGrid, canAdvanceFromCurrent])
 
+  useEffect(() => {
+    setLiveStatus(isQaMode ? 'QA mode enabled. Locks are bypassed.' : 'QA mode disabled.')
+  }, [isQaMode])
+
   const getAudioStatusLabel = () => {
     if (audioPlaybackState === 'playing') {
       return 'Playing recording'
@@ -802,6 +861,7 @@ const FlowCards = () => {
     const isCurrentCard = index === currentIndex
     const panelModeForCard = getPanelModeForTitle(card.title)
     const additionalContentForCard = getAdditionalContentForTitle(card.title)
+    const challengeResultForCard = challengeResultsByTitle[card.title] ?? null
 
     return (
       <TrainingSection
@@ -814,6 +874,16 @@ const FlowCards = () => {
         additionalContent={additionalContentForCard}
         isChallengeUnlocked={audioCompletedTitles.has(card.title)}
         manageFocus={isCurrentCard}
+        challengeResult={challengeResultForCard}
+        onSubmitChallenge={(selectedIndex) => {
+          setChallengeResultsByTitle((previous) => ({
+            ...previous,
+            [card.title]: {
+              selectedIndex,
+              isCorrect: selectedIndex === 0,
+            },
+          }))
+        }}
       />
     )
   }
@@ -834,15 +904,15 @@ const FlowCards = () => {
 
       {currentIndex > 0 && currentIndex < cards.length - 1 && (
         <div className="mb-4 space-y-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-base font-bold tracking-wide text-brand-navy">
+              {currentIndex + 1} / {cards.length}
+            </div>
             <img
               src={headerLogoGray}
               alt="CI Home Health logo"
               className="h-8 w-auto object-contain"
             />
-            <div className="text-base font-bold tracking-wide text-brand-navy">
-              {currentIndex + 1} / {cards.length}
-            </div>
           </div>
 
           <div className="flex items-center gap-1 overflow-x-auto pb-1">
