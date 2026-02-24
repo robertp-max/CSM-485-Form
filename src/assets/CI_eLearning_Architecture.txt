@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCORM App Architecture Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Custom scrollbar for content areas */
+        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Animation classes */
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Chart Container Utilities */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 300px;
+        }
+
+        /* Flow Diagram Connector Styles */
+        .connector-line {
+            position: absolute;
+            background-color: #cbd5e1;
+            z-index: 0;
+            transition: background-color 0.3s;
+        }
+        .connector-active { background-color: #3b82f6; }
+
+        /* Packet Animation */
+        .data-packet {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            display: none;
+            z-index: 20;
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+        }
+
+        /* Nav active state */
+        .nav-item.active {
+            background-color: #e0e7ff;
+            color: #4338ca;
+            border-right: 4px solid #4338ca;
+        }
+    </style>
+    <!-- Chosen Palette: Slate (structure) + Indigo (primary) + Emerald (success/data) + Rose (alert) -->
+    <!-- Application Structure Plan: 
+         1. Sidebar Navigation: persistent access to key architectural views.
+         2. Executive Dashboard (Home): High-level summary, key stats, and the "Big Question" interactive.
+         3. System Diagram View: A purely HTML/CSS constructed block diagram showing the relationship between Learner, App, API, and LMS.
+         4. Runtime Sequences: An interactive timeline stepper showing the lifecycle of data (Launch -> Track -> Grade).
+         5. Deployment Strategy: A comparative view for Vercel vs Moodle modes.
+         6. Reference/Glossary: Searchable data tables.
+         Rationale: Stakeholders need the "What" (Dashboard), Developers need the "How" (Sequences), and Ops need the "Where" (Deployment).
+    -->
+    <!-- Visualization & Content Choices:
+         1. System Context: Interactive HTML Block Diagram. Goal: Show data flow. Interaction: "Simulate Save" button animates a packet.
+         2. Data Responsibility Chart: Chart.js Doughnut. Goal: Visually split UI state (App) vs Grading Data (LMS).
+         3. Sequence Timeline: Vertical HTML Stepper. Goal: Replace text-heavy sequence diagrams. Interaction: Clicking steps reveals technical API calls.
+         4. Deployment Comparison: Side-by-side cards. Goal: Clear tradeoff analysis.
+         CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex overflow-hidden">
+
+    <!-- Sidebar Navigation -->
+    <nav class="w-64 bg-white border-r border-slate-200 flex-shrink-0 flex flex-col h-full z-20 shadow-sm">
+        <div class="p-6 border-b border-slate-100">
+            <h1 class="text-xl font-bold text-slate-800 tracking-tight">SCORM Arch <span class="text-indigo-600">Doc</span></h1>
+            <p class="text-xs text-slate-500 mt-1">CMS-485 Training App</p>
+        </div>
+        <div class="flex-1 overflow-y-auto py-4">
+            <ul class="space-y-1">
+                <li><button onclick="navTo('dashboard')" class="nav-item active w-full text-left px-6 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Executive Summary</button></li>
+                <li><button onclick="navTo('system-map')" class="nav-item w-full text-left px-6 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">System Architecture</button></li>
+                <li><button onclick="navTo('runtime')" class="nav-item w-full text-left px-6 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Runtime & Data Flow</button></li>
+                <li><button onclick="navTo('deployment')" class="nav-item w-full text-left px-6 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Deployment & Ops</button></li>
+                <li><button onclick="navTo('reference')" class="nav-item w-full text-left px-6 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Glossary & Risks</button></li>
+            </ul>
+        </div>
+        <div class="p-4 border-t border-slate-100 bg-slate-50">
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span class="text-xs font-medium text-slate-500">System Status: Stable</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+        
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center z-10">
+            <div>
+                <h2 id="page-title" class="text-2xl font-bold text-slate-800">Executive Summary</h2>
+                <p id="page-desc" class="text-sm text-slate-500 mt-1">High-level overview for stakeholders and business leads.</p>
+            </div>
+            <div class="flex gap-2">
+                <span class="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full border border-indigo-100">React + Vite</span>
+                <span class="px-3 py-1 bg-orange-50 text-orange-700 text-xs font-bold rounded-full border border-orange-100">SCORM 1.2</span>
+                <span class="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-100">Moodle LMS</span>
+            </div>
+        </header>
+
+        <!-- Content Container -->
+        <div id="content-area" class="flex-1 overflow-y-auto custom-scroll bg-slate-50 p-8 relative">
+            
+            <!-- SECTION: DASHBOARD (EXECUTIVE SUMMARY) -->
+            <section id="dashboard" class="space-y-8 fade-in">
+                <!-- Intro Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-2">
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">What is this system?</h3>
+                        <p class="text-slate-600 leading-relaxed">
+                            The <strong class="text-indigo-700">CMS-485 Training App</strong> is a modern, interactive web application packaged as an eLearning module. Unlike traditional slides, it offers a rich user experience (React SPA) while seamlessly integrating with Moodle for tracking.
+                        </p>
+                        <div class="mt-4 flex gap-4">
+                            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100 flex-1">
+                                <div class="text-xs text-slate-400 uppercase font-semibold">Frontend</div>
+                                <div class="font-bold text-slate-700">Single Page App</div>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100 flex-1">
+                                <div class="text-xs text-slate-400 uppercase font-semibold">Backend</div>
+                                <div class="font-bold text-slate-700">Moodle (SCORM)</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-indigo-600 p-6 rounded-xl shadow-md text-white flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold mb-1">Architecture Goal</h3>
+                            <p class="text-indigo-100 text-sm opacity-90">Maximize learner engagement with modern UI while minimizing backend maintenance costs by using existing LMS infrastructure.</p>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-indigo-500">
+                            <span class="text-xs font-mono uppercase opacity-75">Design Pattern</span>
+                            <div class="font-bold">Stateless Client</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- The Big Question: Is Moodle the Database? -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-slate-800">Critical Concept: "Is Moodle the Database?"</h3>
+                        <span class="text-xs bg-white border border-slate-200 px-2 py-1 rounded text-slate-500">Interactive Concept</span>
+                    </div>
+                    <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <p class="text-slate-600 mb-4">
+                                <strong class="text-rose-600">No,</strong> the App does not have a SQL database. <br>
+                                <strong class="text-emerald-600">Yes,</strong> Moodle acts as the permanent storage.
+                            </p>
+                            <p class="text-sm text-slate-500 mb-6">
+                                The React application manages the interface and logic. When a user completes a task, the app "hands off" the data to Moodle via the SCORM Bridge. Moodle then writes it to its internal tables.
+                            </p>
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-800">
+                                <strong>Implication:</strong> If the internet connection drops during the "hand off", the data is lost. The app has no server-side backup.
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-center justify-center">
+                             <!-- Data Responsibility Chart -->
+                            <div class="chart-container">
+                                <canvas id="responsibilityChart"></canvas>
+                            </div>
+                            <p class="text-xs text-center text-slate-400 mt-2">Data Storage Responsibility Split</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: SYSTEM MAP (ARCHITECTURE) -->
+            <section id="system-map" class="hidden space-y-8 fade-in">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <p class="mb-6 text-slate-600 max-w-3xl">
+                        This diagram illustrates the separation of concerns. The **Learner's Browser** runs the code. The **SCORM Adapter** bridges the gap. **Moodle** stores the results.
+                    </p>
+
+                    <!-- Interactive Block Diagram -->
+                    <div class="relative bg-slate-50 p-8 rounded-xl border border-slate-200 overflow-hidden select-none" style="min-height: 400px;">
+                        
+                        <!-- Packet Element for Animation -->
+                        <div id="packet" class="data-packet"></div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10 h-full">
+                            
+                            <!-- BLOCK 1: REACT APP -->
+                            <div class="flex flex-col h-full">
+                                <div class="bg-white border-2 border-indigo-200 rounded-lg p-4 shadow-sm flex-1 flex flex-col justify-between relative hover:border-indigo-400 transition-colors group">
+                                    <div class="absolute -top-3 left-4 bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-1 rounded">BROWSER CLIENT</div>
+                                    <div class="text-center mt-2">
+                                        <div class="text-4xl mb-2">⚛️</div>
+                                        <h4 class="font-bold text-slate-800">React SPA</h4>
+                                        <p class="text-xs text-slate-500 mt-1">Vite Bundle + Tailwind</p>
+                                    </div>
+                                    <div class="space-y-2 mt-4">
+                                        <div class="bg-slate-100 p-2 rounded text-xs text-slate-600 border border-slate-200">UI Logic (State)</div>
+                                        <div class="bg-slate-100 p-2 rounded text-xs text-slate-600 border border-slate-200">Scoring Engine</div>
+                                        <div class="bg-slate-100 p-2 rounded text-xs text-slate-600 border border-slate-200">Content Cards</div>
+                                    </div>
+                                    <!-- Port -->
+                                    <div id="port-app" class="absolute top-1/2 -right-4 w-4 h-4 bg-indigo-400 rounded-full border-2 border-white"></div>
+                                </div>
+                            </div>
+
+                            <!-- BLOCK 2: SCORM BRIDGE -->
+                            <div class="flex flex-col justify-center items-center relative">
+                                <!-- Connector Line -->
+                                <div class="absolute w-full h-1 bg-slate-300 top-1/2 left-0 -z-10"></div>
+                                
+                                <div class="bg-white border-2 border-slate-300 border-dashed rounded-lg p-4 shadow-sm w-full max-w-[200px] relative z-10">
+                                    <div class="text-center">
+                                        <div class="text-2xl mb-1">🔌</div>
+                                        <h4 class="font-bold text-slate-700 text-sm">SCORM Bridge</h4>
+                                        <p class="text-xs text-slate-500 mt-1">window.API</p>
+                                    </div>
+                                    <div class="mt-3 space-y-1">
+                                        <div id="bridge-status" class="text-[10px] font-mono bg-slate-800 text-green-400 p-2 rounded text-center">Idle</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- BLOCK 3: MOODLE LMS -->
+                            <div class="flex flex-col h-full">
+                                <div class="bg-white border-2 border-emerald-200 rounded-lg p-4 shadow-sm flex-1 flex flex-col justify-between relative hover:border-emerald-400 transition-colors">
+                                    <div class="absolute -top-3 right-4 bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-1 rounded">SERVER</div>
+                                    <!-- Port -->
+                                    <div id="port-lms" class="absolute top-1/2 -left-4 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white"></div>
+
+                                    <div class="text-center mt-2">
+                                        <div class="text-4xl mb-2">🏛️</div>
+                                        <h4 class="font-bold text-slate-800">Moodle LMS</h4>
+                                        <p class="text-xs text-slate-500 mt-1">System of Record</p>
+                                    </div>
+                                    <div class="space-y-2 mt-4">
+                                        <div class="bg-emerald-50 p-2 rounded text-xs text-emerald-700 border border-emerald-100 font-mono">cmi.core.score.raw</div>
+                                        <div class="bg-emerald-50 p-2 rounded text-xs text-emerald-700 border border-emerald-100 font-mono">cmi.suspend_data</div>
+                                        <div class="bg-emerald-50 p-2 rounded text-xs text-emerald-700 border border-emerald-100 font-mono">cmi.completion_status</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Controls -->
+                        <div class="absolute bottom-4 left-0 right-0 flex justify-center z-20">
+                            <button onclick="runDataSimulation()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-full font-bold shadow-lg transition-transform transform active:scale-95 flex items-center gap-2">
+                                <span>▶ Simulate "Save Score"</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h4 class="font-bold text-slate-800 mb-2">Tech Stack Details</h4>
+                        <ul class="space-y-3">
+                            <li class="flex items-center justify-between p-2 bg-slate-50 rounded">
+                                <span class="text-sm font-medium">Framework</span>
+                                <span class="text-xs bg-white border px-2 py-1 rounded font-mono">React + TypeScript</span>
+                            </li>
+                            <li class="flex items-center justify-between p-2 bg-slate-50 rounded">
+                                <span class="text-sm font-medium">Bundler</span>
+                                <span class="text-xs bg-white border px-2 py-1 rounded font-mono">Vite</span>
+                            </li>
+                            <li class="flex items-center justify-between p-2 bg-slate-50 rounded">
+                                <span class="text-sm font-medium">Styles</span>
+                                <span class="text-xs bg-white border px-2 py-1 rounded font-mono">Tailwind CSS</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h4 class="font-bold text-slate-800 mb-2">SCORM Capabilities</h4>
+                        <ul class="space-y-3">
+                            <li class="flex items-center justify-between p-2 bg-slate-50 rounded">
+                                <span class="text-sm font-medium">Version</span>
+                                <span class="text-xs bg-white border px-2 py-1 rounded font-mono">1.2 (Fallback) / 2004</span>
+                            </li>
+                            <li class="flex items-center justify-between p-2 bg-slate-50 rounded">
+                                <span class="text-sm font-medium">Tracking</span>
+                                <span class="text-xs bg-white border px-2 py-1 rounded font-mono">Completion, Score, Time</span>
+                            </li>
+                            <li class="flex items-center justify-between p-2 bg-slate-50 rounded">
+                                <span class="text-sm font-medium">State</span>
+                                <span class="text-xs bg-white border px-2 py-1 rounded font-mono">Suspend Data (JSON)</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: RUNTIME (TIMELINE) -->
+            <section id="runtime" class="hidden space-y-8 fade-in">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-800 mb-6">Runtime Sequence: The Life of a Session</h3>
+                    <p class="text-sm text-slate-500 mb-6">Click on any step to see the underlying Technical details.</p>
+
+                    <div class="relative pl-8 border-l-2 border-indigo-100 space-y-8">
+                        
+                        <!-- Step 1 -->
+                        <div class="group relative cursor-pointer" onclick="toggleStepDetails('step1')">
+                            <div class="absolute -left-[41px] bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm z-10">1</div>
+                            <div class="bg-white hover:bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm transition-all">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold text-slate-800">Initialization (Launch)</h4>
+                                    <span class="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded uppercase font-bold">Start</span>
+                                </div>
+                                <p class="text-sm text-slate-600 mt-2">Moodle loads the package. The app wakes up and shakes hands with the LMS.</p>
+                                
+                                <div id="step1" class="hidden mt-4 pt-4 border-t border-slate-100 bg-slate-900 text-green-400 p-4 rounded font-mono text-xs overflow-x-auto">
+                                    // Pseudo-code<br>
+                                    API = findAPI(window);<br>
+                                    if (API) {<br>
+                                    &nbsp;&nbsp;API.LMSInitialize("");<br>
+                                    &nbsp;&nbsp;let status = API.LMSGetValue("cmi.core.lesson_status");<br>
+                                    &nbsp;&nbsp;let bookmark = API.LMSGetValue("cmi.suspend_data");<br>
+                                    &nbsp;&nbsp;restoreState(bookmark);<br>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="group relative cursor-pointer" onclick="toggleStepDetails('step2')">
+                            <div class="absolute -left-[41px] bg-white border-2 border-indigo-600 text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm z-10">2</div>
+                            <div class="bg-white hover:bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm transition-all">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold text-slate-800">Tracking Progress</h4>
+                                    <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded uppercase font-bold">Loop</span>
+                                </div>
+                                <p class="text-sm text-slate-600 mt-2">As learner navigates (Next/Back), the app saves their location locally and pushes bookmarks to the server.</p>
+                                
+                                <div id="step2" class="hidden mt-4 pt-4 border-t border-slate-100 bg-slate-900 text-green-400 p-4 rounded font-mono text-xs overflow-x-auto">
+                                    // On Navigation Event<br>
+                                    const state = { topic: 2, card: 5, answers: [...] };<br>
+                                    API.LMSSetValue("cmi.suspend_data", JSON.stringify(state));<br>
+                                    API.LMSCommit(""); // Critical: Ensures data hits the server DB
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="group relative cursor-pointer" onclick="toggleStepDetails('step3')">
+                            <div class="absolute -left-[41px] bg-white border-2 border-indigo-600 text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm z-10">3</div>
+                            <div class="bg-white hover:bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm transition-all">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold text-slate-800">Scoring & Challenges</h4>
+                                    <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded uppercase font-bold">Action</span>
+                                </div>
+                                <p class="text-sm text-slate-600 mt-2">User submits a challenge. App calculates pass/fail instantly. Immediate feedback shown.</p>
+                                
+                                <div id="step3" class="hidden mt-4 pt-4 border-t border-slate-100 bg-slate-900 text-green-400 p-4 rounded font-mono text-xs overflow-x-auto">
+                                    // User submits Answer<br>
+                                    const isCorrect = (userAnswer === correctKey);<br>
+                                    const score = calculateTotalScore();<br>
+                                    API.LMSSetValue("cmi.core.score.raw", score);<br>
+                                    // Feedback rendered by React, not LMS
+                                </div>
+                            </div>
+                        </div>
+
+                         <!-- Step 4 -->
+                         <div class="group relative cursor-pointer" onclick="toggleStepDetails('step4')">
+                            <div class="absolute -left-[41px] bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm z-10">4</div>
+                            <div class="bg-white hover:bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm transition-all">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold text-slate-800">Completion</h4>
+                                    <span class="text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded uppercase font-bold">End</span>
+                                </div>
+                                <p class="text-sm text-slate-600 mt-2">Criteria met. App sets status to "Passed" or "Completed" and closes the connection.</p>
+                                
+                                <div id="step4" class="hidden mt-4 pt-4 border-t border-slate-100 bg-slate-900 text-green-400 p-4 rounded font-mono text-xs overflow-x-auto">
+                                    API.LMSSetValue("cmi.core.lesson_status", "passed");<br>
+                                    API.LMSFinish("");<br>
+                                    // Moodle Gradebook is now updated
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+             <!-- SECTION: DEPLOYMENT -->
+             <section id="deployment" class="hidden space-y-8 fade-in">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4">Deployment Modes</h3>
+                    <p class="text-slate-600 mb-8">The codebase supports two distinct output targets. Choose the right one for your objective.</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        
+                        <!-- Card 1 -->
+                        <div class="border-2 border-slate-200 rounded-xl p-6 hover:border-indigo-400 transition-colors">
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="text-2xl">🌍</span>
+                                <h4 class="font-bold text-lg">Mode A: Web / Vercel</h4>
+                            </div>
+                            <div class="bg-blue-50 text-blue-800 text-xs font-bold px-2 py-1 rounded inline-block mb-4">Development & QA</div>
+                            <ul class="space-y-2 text-sm text-slate-600 mb-6">
+                                <li>✅ Fast iterations (Git push to deploy)</li>
+                                <li>✅ Easiest for UI/UX review</li>
+                                <li>❌ No Persistence (Data resets on reload)</li>
+                                <li>❌ No Authentication</li>
+                            </ul>
+                            <div class="text-xs text-slate-400 mt-auto">Artifact: URL</div>
+                        </div>
+
+                        <!-- Card 2 -->
+                        <div class="border-2 border-emerald-200 rounded-xl p-6 bg-emerald-50/30 hover:border-emerald-500 transition-colors">
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="text-2xl">📦</span>
+                                <h4 class="font-bold text-lg">Mode B: Moodle / SCORM</h4>
+                            </div>
+                            <div class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-1 rounded inline-block mb-4">Production</div>
+                            <ul class="space-y-2 text-sm text-slate-600 mb-6">
+                                <li>✅ Full Tracking & Grading</li>
+                                <li>✅ Single Sign-On (via Moodle)</li>
+                                <li>❌ Harder to debug (Zip -> Upload cycle)</li>
+                                <li>❌ Subject to Browser Autoplay policies</li>
+                            </ul>
+                            <div class="text-xs text-slate-400 mt-auto">Artifact: ZIP File (dist folder)</div>
+                        </div>
+
+                    </div>
+                    
+                    <div class="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                        <strong>⚠️ Deployment Note:</strong> When building for SCORM, ensure Vite <code>base</code> is set to <code>'./'</code>. Absolute paths will break in Moodle's deep directory structure.
+                    </div>
+                </div>
+            </section>
+
+             <!-- SECTION: REFERENCE (GLOSSARY) -->
+             <section id="reference" class="hidden space-y-8 fade-in">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Glossary -->
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-slate-800">Glossary of Terms</h3>
+                            <input type="text" id="glossary-search" placeholder="Search terms..." class="text-sm border border-slate-300 rounded px-3 py-1 focus:outline-none focus:border-indigo-500">
+                        </div>
+                        
+                        <div class="overflow-hidden rounded-lg border border-slate-200">
+                            <table class="w-full text-sm text-left text-slate-600">
+                                <thead class="text-xs text-slate-700 uppercase bg-slate-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3">Term</th>
+                                        <th scope="col" class="px-6 py-3">Definition</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="glossary-body" class="divide-y divide-slate-100">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Risks -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4">Risks & Constraints</h3>
+                        <div class="space-y-4">
+                            <div class="p-3 bg-rose-50 border-l-4 border-rose-500 rounded-r">
+                                <h5 class="font-bold text-rose-700 text-xs uppercase mb-1">Network Reliability</h5>
+                                <p class="text-xs text-rose-900">If internet drops during "Submit", data is lost. No offline mode.</p>
+                            </div>
+                            <div class="p-3 bg-amber-50 border-l-4 border-amber-500 rounded-r">
+                                <h5 class="font-bold text-amber-700 text-xs uppercase mb-1">Autoplay Audio</h5>
+                                <p class="text-xs text-amber-900">Browsers may block audio. Use "Click to Start" patterns.</p>
+                            </div>
+                            <div class="p-3 bg-slate-50 border-l-4 border-slate-500 rounded-r">
+                                <h5 class="font-bold text-slate-700 text-xs uppercase mb-1">Iframe Sandbox</h5>
+                                <p class="text-xs text-slate-900">App runs in restricted context. Avoid popups/alerts.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // --- DATA & STATE ---
+        const glossaryData = [
+            { term: "LMS", def: "Learning Management System (Moodle). The platform hosting the course." },
+            { term: "SCORM", def: "Sharable Content Object Reference Model. The standard API for tracking." },
+            { term: "SCO", def: "Sharable Content Object. This specific React App when packaged." },
+            { term: "cmi.suspend_data", def: "A SCORM field used to store 'bookmark' data (JSON string)." },
+            { term: "LMSCommit", def: "The command that forces Moodle to save data to the database immediately." },
+            { term: "SPA", def: "Single Page Application. The frontend architecture used here." },
+            { term: "Manifest", def: "imsmanifest.xml. The file telling Moodle how to launch the app." }
+        ];
+
+        // --- NAVIGATION ---
+        function navTo(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('section').forEach(el => {
+                el.classList.add('hidden');
+            });
+            
+            // Show target
+            const target = document.getElementById(sectionId);
+            target.classList.remove('hidden');
+            
+            // Trigger chart render if needed
+            if (sectionId === 'dashboard' && !Chart.getChart("responsibilityChart")) {
+                initResponsibilityChart();
+            }
+
+            // Update Header
+            const titles = {
+                'dashboard': ['Executive Summary', 'High-level overview for stakeholders and business leads.'],
+                'system-map': ['System Architecture', 'Detailed component and data flow map.'],
+                'runtime': ['Runtime & Data Flow', 'Step-by-step lifecycle of a user session.'],
+                'deployment': ['Deployment & Ops', 'Environments, build artifacts, and tradeoffs.'],
+                'reference': ['Glossary & Risks', 'Terminology and operational constraints.']
+            };
+            document.getElementById('page-title').innerText = titles[sectionId][0];
+            document.getElementById('page-desc').innerText = titles[sectionId][1];
+
+            // Update Nav State
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+
+        // --- CHART INITIALIZATION ---
+        function initResponsibilityChart() {
+            const ctx = document.getElementById('responsibilityChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['React App (Transient UI State)', 'Moodle DB (Permanent Records)'],
+                    datasets: [{
+                        data: [70, 30], // Conceptual split
+                        backgroundColor: ['#e2e8f0', '#10b981'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ": " + (context.label.includes('React') ? "UI, Nav, Inputs" : "Score, Status, Bookmark");
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // --- GLOSSARY LOGIC ---
+        function renderGlossary(filterText = '') {
+            const tbody = document.getElementById('glossary-body');
+            tbody.innerHTML = '';
+            
+            glossaryData.filter(item => 
+                item.term.toLowerCase().includes(filterText.toLowerCase()) || 
+                item.def.toLowerCase().includes(filterText.toLowerCase())
+            ).forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "bg-white border-b border-slate-100 hover:bg-slate-50";
+                tr.innerHTML = `
+                    <th scope="row" class="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">${item.term}</th>
+                    <td class="px-6 py-4">${item.def}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('glossary-search').addEventListener('input', (e) => {
+            renderGlossary(e.target.value);
+        });
+
+        // --- TIMELINE INTERACTION ---
+        function toggleStepDetails(id) {
+            const el = document.getElementById(id);
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+                el.classList.add('slide-up');
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+
+        // --- DIAGRAM SIMULATION ---
+        function runDataSimulation() {
+            const packet = document.getElementById('packet');
+            const portApp = document.getElementById('port-app');
+            const portLMS = document.getElementById('port-lms');
+            const bridgeStatus = document.getElementById('bridge-status');
+
+            // 1. Start at App
+            packet.style.display = 'block';
+            packet.style.top = (portApp.getBoundingClientRect().top - packet.parentElement.getBoundingClientRect().top + 8) + 'px';
+            packet.style.left = (portApp.getBoundingClientRect().left - packet.parentElement.getBoundingClientRect().left + 8) + 'px';
+            
+            bridgeStatus.innerText = "LMSSetValue()...";
+            bridgeStatus.className = "text-[10px] font-mono bg-slate-800 text-yellow-400 p-2 rounded text-center";
+
+            // 2. Move to Bridge
+            setTimeout(() => {
+                packet.style.transition = "all 1s ease-in-out";
+                packet.style.left = "50%";
+                bridgeStatus.innerText = "LMSCommit()...";
+            }, 100);
+
+            // 3. Move to LMS
+            setTimeout(() => {
+                packet.style.left = (portLMS.getBoundingClientRect().left - packet.parentElement.getBoundingClientRect().left - 8) + 'px';
+                bridgeStatus.innerText = "Data Saved (200 OK)";
+                bridgeStatus.className = "text-[10px] font-mono bg-slate-800 text-emerald-400 p-2 rounded text-center";
+            }, 1100);
+
+            // 4. Reset
+            setTimeout(() => {
+                packet.style.display = 'none';
+                bridgeStatus.innerText = "Idle";
+                bridgeStatus.className = "text-[10px] font-mono bg-slate-800 text-green-400 p-2 rounded text-center";
+                packet.style.transition = "none";
+            }, 2500);
+        }
+
+        // --- INITIALIZATION ---
+        window.addEventListener('DOMContentLoaded', () => {
+            initResponsibilityChart();
+            renderGlossary();
+        });
+
+    </script>
+</body>
+</html>
