@@ -8,8 +8,6 @@ import {
   Pause,
   Play,
   RotateCcw,
-  Volume2,
-  VolumeX,
   Square,
   AlertCircle,
   CheckCircle,
@@ -28,7 +26,7 @@ import { PlanOfCareFocusPanel } from './components/PlanOfCareFocusPanel'
 import titleMedia from './assets/CI Home Health Logo_White.png'
 import headerLogoGray from './assets/CI Home Health Logo_Gray.png'
 import coverBanner from './assets/CMS-485 LMS Banner.png'
-import introVideo from './assets/CMS-485 eLearner.mp4'
+import introVideo from './assets/CMS-485 Form (jake).mp4'
 import additionalContentRaw from './assets/Additional Content.txt?raw'
 import { TRAINING_CARDS } from './data/trainingCards'
 import { CARD_METADATA } from './data/cardMetadata'
@@ -423,44 +421,13 @@ const IntroVideoCard = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [isMuted, setIsMuted] = useState(true) // Start muted – browsers block unmuted autoplay
-
-  // Keep the DOM .muted property in sync imperatively (avoids React attribute quirk)
   useEffect(() => {
-    const video = videoRef.current
-    if (video) {
-      video.muted = isMuted
-      video.volume = 1
-    }
-  }, [isMuted])
-
-  // Autoplay after 1.5 s – always starts muted to satisfy browser policy
-  useEffect(() => {
-    const timerId = window.setTimeout(() => {
-      const video = videoRef.current
-      if (!video) return
-
-      video.muted = true
-      video.volume = 1
-      setIsMuted(true)
-
-      video
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch(() => setIsPlaying(false))
-    }, 1500)
-
-    return () => window.clearTimeout(timerId)
-  }, [])
-
-  const toggleMute = () => {
     const video = videoRef.current
     if (!video) return
-    const next = !isMuted
-    video.muted = next
+    video.muted = false
+    video.defaultMuted = false
     video.volume = 1
-    setIsMuted(next)
-  }
+  }, [])
 
   return (
     <div className={`relative h-full w-full overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#121214]' : 'bg-white'}`}>
@@ -470,25 +437,18 @@ const IntroVideoCard = ({
         src={introVideo}
         preload="auto"
         playsInline
-        onPlay={() => setIsPlaying(true)}
+        onPlay={() => {
+          const video = videoRef.current
+          if (video) {
+            video.muted = false
+            video.defaultMuted = false
+            video.volume = 1
+          }
+          setIsPlaying(true)
+        }}
         onPause={() => setIsPlaying(false)}
         onEnded={onComplete}
       />
-
-      {/* "Tap for sound" overlay — shown when playing but muted */}
-      {isPlaying && isMuted && (
-        <button
-          type="button"
-          onClick={toggleMute}
-          className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 transition-opacity hover:bg-black/40"
-          aria-label="Tap for sound"
-        >
-          <div className="flex items-center gap-2 rounded-full bg-black/60 px-6 py-3 text-white shadow-lg backdrop-blur-sm">
-            <VolumeX className="h-6 w-6" />
-            <span className="text-base font-semibold">Tap for Sound</span>
-          </div>
-        </button>
-      )}
 
       <div className={`absolute inset-0 z-10 pointer-events-none ${isDarkMode ? 'bg-black/20' : 'bg-white/10'}`} />
 
@@ -500,8 +460,8 @@ const IntroVideoCard = ({
               const video = videoRef.current
               if (!video) return
               video.muted = false
+              video.defaultMuted = false
               video.volume = 1
-              setIsMuted(false)
               video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false))
             }}
             className="px-4 py-2"
@@ -525,17 +485,8 @@ const IntroVideoCard = ({
           </Button>
         )}
 
-        <Button
-          variant="secondary"
-          onClick={toggleMute}
-          className="px-4 py-2"
-          aria-label={isMuted ? 'Unmute' : 'Mute'}
-        >
-          {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-        </Button>
-
         <span className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>
-          {isPlaying ? (isMuted ? 'Playing · Muted' : 'Playing') : 'Paused'}
+          {isPlaying ? 'Playing' : 'Paused'}
         </span>
       </div>
     </div>
@@ -720,6 +671,27 @@ const TrainingSection = ({
   const challengeFirstOptionRef = useRef<HTMLButtonElement | null>(null)
   const helpPanelRef = useRef<HTMLDivElement | null>(null)
   const challengeData = useMemo(() => getChallengeData(title, bullets, objective), [title, bullets, objective])
+  const additionalContentTypography = useMemo(() => {
+    const length = (additionalContent ?? '').length
+
+    if (length > 2200) {
+      return { fontSize: '1.02rem', lineHeight: 1.48 }
+    }
+    if (length > 1800) {
+      return { fontSize: '1.1rem', lineHeight: 1.52 }
+    }
+    if (length > 1400) {
+      return { fontSize: '1.18rem', lineHeight: 1.54 }
+    }
+    if (length > 1000) {
+      return { fontSize: '1.28rem', lineHeight: 1.56 }
+    }
+    if (length > 700) {
+      return { fontSize: '1.4rem', lineHeight: 1.58 }
+    }
+
+    return { fontSize: '1.6rem', lineHeight: 1.6 }
+  }, [additionalContent])
 
   useEffect(() => {
     if (challengeResult) {
@@ -756,7 +728,7 @@ const TrainingSection = ({
     <div className="grid gap-3 md:grid-cols-2">
       <Card className={`h-full transition-all duration-300 flex flex-col justify-center ${
         isDarkMode 
-          ? 'p-4 border border-white/10 bg-[#0F0F11] hover:bg-[#151518] rounded-lg' 
+          ? 'p-5 md:p-6 border border-white/10 bg-[#0F0F11] hover:bg-[#151518] rounded-lg' 
           : 'p-4 bg-white border-2 border-[#E5E4E3] hover:border-[#007970] rounded-xl hover:shadow-[4px_4px_0_#007970] hover:-translate-y-0.5 hover:-translate-x-0.5'
       }`}>
         <h3 className={`mb-2 flex items-center gap-2 text-sm font-medium uppercase tracking-widest ${
@@ -783,7 +755,7 @@ const TrainingSection = ({
 
       <Card className={`h-full transition-all duration-300 flex flex-col justify-center ${
         isDarkMode 
-          ? 'p-4 border border-white/10 bg-[#0F0F11] hover:border-[#C74601]/50 rounded-lg shadow-[inset_0_0_0_0_rgba(199,70,1,0)] hover:shadow-[inset_0_0_50px_0_rgba(199,70,1,0.05)]' 
+          ? 'p-5 md:p-6 border border-white/10 bg-[#0F0F11] hover:border-[#C74601]/50 rounded-lg shadow-[inset_0_0_0_0_rgba(199,70,1,0)] hover:shadow-[inset_0_0_50px_0_rgba(199,70,1,0.05)]' 
           : 'p-4 bg-white border-2 border-[#E5E4E3] hover:border-[#C74601] rounded-xl hover:shadow-[4px_4px_0_#C74601] hover:-translate-y-0.5 hover:-translate-x-0.5'
       }`}>
         <h3 className={`mb-2 flex items-center gap-2 text-sm font-medium uppercase tracking-widest ${
@@ -806,10 +778,10 @@ const TrainingSection = ({
   )
 
   const challengePanel = (
-    <Card className={`h-full transition-colors ${
+    <div className={`h-full transition-colors ${
       isDarkMode 
-        ? 'bg-transparent border-none shadow-none' 
-        : 'bg-white border-none shadow-none'
+        ? 'bg-transparent' 
+        : 'bg-white'
     }`}>
       <p className={`mb-4 text-lg font-medium leading-relaxed tracking-tight ${isDarkMode ? 'text-white border-l-4 border-[#C74601] pl-4' : 'text-[#1F1C1B] font-semibold flex items-center gap-3'}`}>
         {!isDarkMode && <Target className="text-[#C74601] h-5 w-5 shrink-0" />}
@@ -824,17 +796,17 @@ const TrainingSection = ({
           const isCorrect = index === challengeData.correctIndex
 
           let stateStyles = isDarkMode
-            ? 'border-white/10 bg-black/20 text-white/60 hover:border-white/50 hover:bg-white/5 hover:text-white'
+            ? 'border-white/10 bg-black/15 text-white/70 hover:border-white/20 hover:bg-black/20 hover:text-white'
             : 'border-2 border-[#E5E4E3] bg-white text-[#524048] hover:border-[#007970] hover:shadow-[6px_6px_0_#007970] hover:-translate-y-1 hover:-translate-x-1 hover:text-[#1F1C1B]'
           
           if (hasSubmittedChallenge) {
             if (isCorrect) {
               stateStyles = isDarkMode
-                ? 'border-[#007970] bg-[#007970]/20 text-white shadow-[0_0_30px_rgba(0,121,112,0.3)] scale-[1.02]'
+                ? 'border-[#007970] bg-[#007970]/25 text-white'
                 : 'border-2 border-[#007970] bg-[#007970] text-white shadow-[6px_6px_0_#004142] scale-[1.01]'
             } else if (isSelected) {
               stateStyles = isDarkMode
-                ? 'border-[#D70101] bg-[#D70101]/20 text-white shadow-[0_0_30px_rgba(215,1,1,0.3)]'
+                ? 'border-[#D70101] bg-[#D70101]/25 text-white'
                 : 'border-2 border-[#D70101] bg-[#D70101] text-white shadow-[6px_6px_0_#7a0000]'
             } else {
               stateStyles = isDarkMode
@@ -843,7 +815,7 @@ const TrainingSection = ({
             }
           } else if (isSelected) {
             stateStyles = isDarkMode
-              ? 'border-[#64F4F5] bg-[#64F4F5]/10 text-[#64F4F5] shadow-[0_0_20px_rgba(100,244,245,0.2)]'
+              ? 'border-[#64F4F5] bg-[#64F4F5]/8 text-[#64F4F5]'
               : 'border-2 border-[#007970] bg-[#E5FEFF] text-[#007970] shadow-[6px_6px_0_#007970] -translate-y-1 -translate-x-1 font-medium'
           }
 
@@ -856,9 +828,10 @@ const TrainingSection = ({
               onClick={() => {
                 if (hasSubmittedChallenge) return
                 setSelectedChallengeIndex(index)
-                setHasSubmittedChallenge(false)
+                setHasSubmittedChallenge(true)
+                onSubmitChallenge(index)
               }}
-              className={`w-full text-left rounded-lg border p-3 md:p-4 transition-all duration-300 flex items-center justify-between group cursor-pointer text-xs md:text-sm ${stateStyles}`}
+              className={`w-full text-left rounded-md border p-3 md:p-4 transition-all duration-300 flex items-center justify-between group cursor-pointer text-xs md:text-sm ${stateStyles}`}
             >
               <span className="pr-4 leading-relaxed">{option}</span>
               <div className="shrink-0 transition-transform duration-300 group-hover:scale-110">
@@ -872,24 +845,6 @@ const TrainingSection = ({
         })}
         </div>
 
-        <div className={`mt-3 flex items-center justify-end border-t pt-3 ${isDarkMode ? 'border-white/10' : 'border-[#E5E4E3]'}`}>
-          <Button
-            variant="primary"
-            onClick={() => {
-              if (selectedChallengeIndex === null || hasSubmittedChallenge) return
-              setHasSubmittedChallenge(true)
-              onSubmitChallenge(selectedChallengeIndex)
-            }}
-            disabled={selectedChallengeIndex === null}
-            className={`px-6 py-2 font-bold uppercase tracking-wide text-sm transition-all ${
-              isDarkMode
-                ? 'bg-[#C74601] border border-[#C74601] text-white hover:bg-[#E56E2E] hover:shadow-[0_0_30px_rgba(199,70,1,0.6)] shadow-none rounded'
-                : 'bg-[#C74601] border-2 border-[#421700] text-white hover:bg-[#E56E2E] hover:shadow-[6px_6px_0_#421700] hover:-translate-y-1 hover:-translate-x-1 shadow-none rounded-xl'
-            }`}
-          >
-            Submit
-          </Button>
-        </div>
         </>
       )}
 
@@ -924,19 +879,19 @@ const TrainingSection = ({
           </div>
         </div>
       )}
-    </Card>
+    </div>
   )
 
   const showExplorerOnly = Boolean(pocFocus && isPocPanelExpanded)
 
   const additionalPanel = (
-    <div ref={additionalPanelRef} tabIndex={-1} className="h-full overflow-y-auto">
-      <div className="flex flex-col gap-3">
+    <div ref={additionalPanelRef} tabIndex={-1} className="h-full min-h-0">
+      <div className="flex h-full min-h-0 flex-col gap-3">
         {!showExplorerOnly && (
           <Card className={`transition-all duration-300 group ${
             isDarkMode 
-              ? 'p-4 lg:p-5 border border-white/10 bg-gradient-to-br from-white/5 to-transparent backdrop-blur-sm rounded-lg relative' 
-              : 'p-4 lg:p-5 bg-white border-2 border-[#D9D6D5] shadow-[6px_6px_0_#D9D6D5] rounded-xl hover:shadow-[6px_6px_0_#007970] hover:border-[#007970] relative'
+              ? 'flex-1 min-h-0 p-4 lg:p-5 border border-white/10 bg-gradient-to-br from-white/5 to-transparent backdrop-blur-sm rounded-lg relative overflow-hidden' 
+              : 'flex-1 min-h-0 p-4 lg:p-5 bg-white border-2 border-[#D9D6D5] shadow-[6px_6px_0_#D9D6D5] rounded-xl hover:shadow-[6px_6px_0_#007970] hover:border-[#007970] relative overflow-hidden'
           }`}>
             {isDarkMode ? (
               <>
@@ -949,11 +904,14 @@ const TrainingSection = ({
                 <div className="absolute bottom-0 left-0 w-16 h-16 border-b-4 border-l-4 border-[#C74601] opacity-20 rounded-bl-xl transition-all duration-500 group-hover:opacity-100" />
               </>
             )}
-            <h3 className={`mb-3 text-[10px] font-medium uppercase tracking-[0.15em] flex items-center gap-2 ${isDarkMode ? 'text-[#64F4F5]' : 'text-[#C74601] font-bold'}`}>
+            <h3 className={`mb-6 shrink-0 text-xs font-medium uppercase tracking-[0.15em] flex items-center gap-2 ${isDarkMode ? 'text-[#64F4F5]' : 'text-[#C74601] font-bold'}`}>
                 <AlertCircle className="h-4 w-4" />
                 Expanded Context
             </h3>
-            <p className={`text-sm leading-relaxed ${isDarkMode ? 'font-light text-white/90' : 'font-light text-[#1F1C1B]'}`}>
+            <p
+              className={`hide-scrollbar min-h-0 flex-1 overflow-y-auto pr-1 ${isDarkMode ? 'font-light text-white/90' : 'font-light text-[#1F1C1B]'}`}
+              style={additionalContentTypography}
+            >
               {additionalContent ?? 'No additional content available for this section.'}
             </p>
           </Card>
@@ -1004,8 +962,8 @@ const TrainingSection = ({
   }
 
   return (
-    <section className={`flex h-full flex-col justify-start overflow-hidden px-6 py-3 transition-colors duration-300 ${isDarkMode ? 'bg-transparent' : 'bg-white'}`}>
-      <div className="mb-4 shrink-0">
+    <section className={`flex h-full flex-col justify-start overflow-hidden px-10 py-6 transition-colors duration-300 ${isDarkMode ? 'bg-transparent' : 'bg-white'}`}>
+      <div className="mb-5 shrink-0">
         <RevealSection>
           <div className="mb-4">
             {isDarkMode ? (
@@ -1020,7 +978,7 @@ const TrainingSection = ({
               </div>
             )}
           </div>
-          <h2 className={`mb-2 font-montserrat text-2xl font-medium leading-tight md:text-3xl transition-colors ${isDarkMode ? 'text-white drop-shadow-lg' : 'text-[#1F1C1B] font-semibold'}`}>
+          <h2 className={`mb-3 font-montserrat text-4xl font-medium leading-tight md:text-5xl transition-colors ${isDarkMode ? 'text-white drop-shadow-lg tracking-tight' : 'text-[#1F1C1B] font-semibold'}`}>
             {title}
           </h2>
         </RevealSection>
@@ -1028,13 +986,13 @@ const TrainingSection = ({
         {panelMode === 'main' && (
           <RevealSection delayMs={100}>
             {isDarkMode ? (
-              <div className="mb-3 p-3 md:p-4 border border-white/10 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group hover:border-[#64F4F5]/50 transition-colors duration-500 rounded-lg">
+              <div className="mb-4 p-5 md:p-6 border border-white/10 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group hover:border-[#64F4F5]/50 transition-colors duration-500 rounded-lg">
                 <div className="absolute top-0 left-0 w-1 h-full bg-[#64F4F5] shadow-[0_0_20px_#64F4F5]" />
-                <div className="flex gap-3 items-start relative z-10">
-                  <Target className="shrink-0 mt-0.5 text-[#64F4F5] h-5 w-5" strokeWidth={1.5} />
+                <div className="flex gap-4 items-start relative z-10">
+                  <Target className="shrink-0 mt-1 text-[#64F4F5] h-7 w-7" strokeWidth={1.5} />
                   <div>
-                    <h3 className="text-[10px] font-medium uppercase tracking-[0.15em] mb-1 text-white/50">Learning Objective</h3>
-                    <p className="text-sm font-light leading-snug text-white/90">{objective}</p>
+                    <h3 className="text-xs font-medium uppercase tracking-[0.15em] mb-2 text-white/50">Learning Objective</h3>
+                    <p className="text-xl font-light leading-snug text-white/90">{objective}</p>
                   </div>
                 </div>
               </div>
@@ -1106,7 +1064,7 @@ const FinalTestCard = ({
 
   if (isCoverPage) {
     return (
-      <section className={`flex h-full flex-col overflow-hidden px-6 py-4 transition-colors duration-300 ${isDarkMode ? 'bg-transparent' : 'bg-white'}`}>
+      <section className={`flex h-full flex-col overflow-hidden px-10 py-6 transition-colors duration-300 ${isDarkMode ? 'bg-transparent' : 'bg-white'}`}>
         <div className="mb-4 shrink-0">
           <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${
             isDarkMode ? 'border-white/10 bg-white/5 text-[#64F4F5]' : 'border-[#C74601]/20 bg-[#FFEEE5] text-[#C74601]'
@@ -1120,17 +1078,17 @@ const FinalTestCard = ({
         </div>
 
         <div className="grid flex-1 min-h-0 gap-3 md:grid-cols-2">
-          <Card className={`h-full p-4 ${isDarkMode ? 'bg-[#0F0F11] border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl'}`}>
+          <div className={`h-full p-4 ${isDarkMode ? 'bg-transparent border-none rounded-none' : 'bg-white border-none rounded-none'}`}>
             <h3 className={`mb-2 text-sm font-semibold uppercase tracking-[0.12em] ${isDarkMode ? 'text-[#64F4F5]' : 'text-[#007970]'}`}>Objective</h3>
             <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>{FINAL_TEST_OBJECTIVE}</p>
-          </Card>
+          </div>
 
-          <Card className={`h-full p-4 ${isDarkMode ? 'bg-[#0F0F11] border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl'}`}>
+          <div className={`h-full p-4 ${isDarkMode ? 'bg-transparent border-none rounded-none' : 'bg-white border-none rounded-none'}`}>
             <h3 className={`mb-2 text-sm font-semibold uppercase tracking-[0.12em] ${isDarkMode ? 'text-[#64F4F5]' : 'text-[#007970]'}`}>Clinical Lens</h3>
             <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>{FINAL_TEST_CLINICAL_LENS}</p>
-          </Card>
+          </div>
 
-          <Card className={`h-full p-4 md:col-span-2 ${isDarkMode ? 'bg-[#0F0F11] border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl'}`}>
+          <div className={`h-full p-4 md:col-span-2 ${isDarkMode ? 'bg-transparent border-none rounded-none' : 'bg-white border-none rounded-none'}`}>
             <h3 className={`mb-2 text-sm font-semibold uppercase tracking-[0.12em] ${isDarkMode ? 'text-[#64F4F5]' : 'text-[#007970]'}`}>Key Points</h3>
             <ul className="space-y-2">
               {FINAL_TEST_KEY_POINTS.map((point, index) => (
@@ -1141,9 +1099,9 @@ const FinalTestCard = ({
               ))}
             </ul>
             <p className={`mt-3 text-xs uppercase tracking-[0.12em] ${isDarkMode ? 'text-gray-500' : 'text-[#747474]'}`}>
-              Use Next to begin Question 1 of {totalQuestions}
+              Use Advance to begin Question 1 of {totalQuestions}
             </p>
-          </Card>
+          </div>
         </div>
       </section>
     )
@@ -1152,7 +1110,7 @@ const FinalTestCard = ({
   if (activeQuestion && activeQuestion !== null) {
     const selectedIndex = answers[activeQuestion.id]
     return (
-      <section className={`flex h-full flex-col overflow-hidden px-6 py-4 transition-colors duration-300 ${isDarkMode ? 'bg-transparent' : 'bg-white'}`}>
+      <section className={`flex h-full flex-col overflow-hidden px-10 py-6 transition-colors duration-300 ${isDarkMode ? 'bg-transparent' : 'bg-white'}`}>
         <div className="mb-4 shrink-0 flex items-center justify-between gap-4">
           <h2 className={`font-montserrat text-xl md:text-2xl font-semibold ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>
             Final Test · Question {pageIndex} of {totalQuestions}
@@ -1162,7 +1120,7 @@ const FinalTestCard = ({
           </div>
         </div>
 
-        <Card className={`h-full min-h-0 p-4 md:p-5 flex flex-col ${isDarkMode ? 'bg-[#0F0F11] border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl'}`}>
+        <div className={`h-full min-h-0 p-4 md:p-5 flex flex-col ${isDarkMode ? 'bg-transparent border-none rounded-none' : 'bg-white border-none rounded-none'}`}>
           <p className={`text-lg leading-snug mb-4 ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>{activeQuestion.prompt}</p>
 
           <div className="grid gap-2">
@@ -1176,10 +1134,10 @@ const FinalTestCard = ({
                   className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm transition-all ${
                     isSelected
                       ? (isDarkMode
-                        ? 'border-[#64F4F5] bg-[#64F4F5]/10 text-[#64F4F5]'
+                        ? 'border-[#64F4F5] bg-[#64F4F5]/8 text-[#64F4F5]'
                         : 'border-[#007970] bg-[#E5FEFF] text-[#007970]')
                       : (isDarkMode
-                        ? 'border-white/10 bg-white/[0.02] text-white/80 hover:border-white/30'
+                        ? 'border-white/10 bg-transparent text-white/80 hover:border-white/20'
                         : 'border-[#E5E4E3] bg-white text-[#524048] hover:border-[#007970]')
                   }`}
                 >
@@ -1191,16 +1149,16 @@ const FinalTestCard = ({
           </div>
 
           <div className={`mt-auto pt-3 text-xs uppercase tracking-[0.12em] ${isDarkMode ? 'text-gray-500' : 'text-[#747474]'}`}>
-            {selectedIndex === undefined ? 'Select an answer, then use Next.' : 'Answer selected. Use Next to continue.'}
+            {selectedIndex === undefined ? 'Select an answer, then use Advance.' : 'Answer selected. Use Advance to continue.'}
           </div>
-        </Card>
+        </div>
       </section>
     )
   }
 
   if (isResultPage) {
     return (
-      <section className={`flex h-full flex-col overflow-hidden px-6 py-4 transition-colors duration-300 ${isDarkMode ? 'bg-transparent' : 'bg-white'}`}>
+      <section className={`flex h-full flex-col overflow-hidden px-10 py-6 transition-colors duration-300 ${isDarkMode ? 'bg-transparent' : 'bg-white'}`}>
         <div className="mb-4 shrink-0">
           <h2 className={`font-montserrat text-2xl md:text-3xl font-semibold ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>
             Final Test Results
@@ -1208,15 +1166,15 @@ const FinalTestCard = ({
         </div>
 
         <div className="grid flex-1 min-h-0 gap-3 md:grid-cols-2">
-          <Card className={`h-full p-4 ${isDarkMode ? 'bg-[#0F0F11] border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl'}`}>
+          <div className={`h-full p-4 ${isDarkMode ? 'bg-transparent border-none rounded-none' : 'bg-white border-none rounded-none'}`}>
             <p className={`text-xs uppercase tracking-[0.12em] mb-2 ${isDarkMode ? 'text-gray-400' : 'text-[#747474]'}`}>Score</p>
             <p className={`text-4xl font-bold ${passed ? 'text-[#007970]' : 'text-[#C74601]'}`}>{scorePercent}%</p>
             <p className={`mt-2 text-sm ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>
               {correctCount} correct of {totalQuestions}
             </p>
-          </Card>
+          </div>
 
-          <Card className={`h-full p-4 ${isDarkMode ? 'bg-[#0F0F11] border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl'}`}>
+          <div className={`h-full p-4 ${isDarkMode ? 'bg-transparent border-none rounded-none' : 'bg-white border-none rounded-none'}`}>
             <p className={`text-xs uppercase tracking-[0.12em] mb-2 ${isDarkMode ? 'text-gray-400' : 'text-[#747474]'}`}>Status</p>
             <p className={`text-2xl font-bold ${passed ? 'text-[#007970]' : 'text-[#C74601]'}`}>{passed ? 'Pass' : 'Needs Review'}</p>
             <p className={`mt-2 text-sm ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>
@@ -1224,14 +1182,14 @@ const FinalTestCard = ({
                 ? 'You demonstrated strong command of the final Takeaways content.'
                 : 'Review the Takeaways expanded content and retake for stronger defensibility recall.'}
             </p>
-          </Card>
+          </div>
 
-          <Card className={`h-full p-4 md:col-span-2 ${isDarkMode ? 'bg-[#0F0F11] border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl'}`}>
+          <div className={`h-full p-4 md:col-span-2 ${isDarkMode ? 'bg-transparent border-none rounded-none' : 'bg-white border-none rounded-none'}`}>
             <p className={`text-xs uppercase tracking-[0.12em] mb-2 ${isDarkMode ? 'text-gray-400' : 'text-[#747474]'}`}>Completion Summary</p>
             <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>
-              {answeredCount} of {totalQuestions} questions answered. Use Back to review any question pages, or Next to continue to course completion.
+              {answeredCount} of {totalQuestions} questions answered. Use Back to review any question pages, or Advance to continue to course completion.
             </p>
-          </Card>
+          </div>
         </div>
       </section>
     )
@@ -1344,6 +1302,9 @@ const FlowCards = ({
   }
 
   const currentPanelMode = currentIsTrainingCard ? getPanelModeForTitle(currentCardTitle) : 'main'
+  const displayProgressStep = currentIsTrainingCard
+    ? (currentCard?.trainingIndex ?? 0) + 1
+    : currentProgressStep
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -1636,7 +1597,7 @@ const FlowCards = ({
 
       if (currentPanelMode === 'challenge' && !hasCurrentChallengeSubmission) {
         setIsNextLockedFeedback(true)
-        setLiveStatus('Submit your challenge answer before moving to the next card.')
+        setLiveStatus('Select an answer, then use Advance.')
         window.setTimeout(() => setIsNextLockedFeedback(false), 360)
         return
       }
@@ -1864,6 +1825,7 @@ const FlowCards = ({
         manageFocus={isCurrentCard}
         challengeResult={challengeResultForCard}
         onSubmitChallenge={(selectedIndex) => {
+          setLiveStatus('Answer selected. Use Advance to continue.')
           setChallengeResultsByTitle((previous) => ({
             ...previous,
             [card.title]: {
@@ -1878,18 +1840,49 @@ const FlowCards = ({
   }
 
   return (
-    <div className={`relative flex h-full w-full flex-col overflow-hidden rounded-xl transition-colors duration-300 ${
-      isDarkMode 
-        ? 'bg-[#121214]/90 text-[#F3F4F6] backdrop-blur-xl border border-white/10 shadow-[0_0_80px_-20px_rgba(199,70,1,0.3)]' 
-        : 'bg-white text-[#1F1C1B] border-2 border-[#E5E4E3] shadow-[0_30px_60px_-15px_rgba(31,28,27,0.08)] rounded-2xl'
-    }`}>
-      {isDebugMode && showNavigationChrome && (
-        <div className="pointer-events-none absolute right-6 top-4 z-30">
-          <div className={`rounded border px-3 py-1 text-[10px] uppercase tracking-[0.15em] ${isDarkMode ? 'border-[#64F4F5]/50 bg-black/50 text-[#64F4F5]' : 'border-[#C74601]/35 bg-[#FFF3EC] text-[#C74601]'}`}>
-            QA: ON
-          </div>
+    <div className="relative h-full w-full overflow-visible">
+      {showNavigationChrome && (
+        <div className="fixed left-4 top-4 z-50 flex items-center gap-2">
+          <Button
+            variant="ghost"
+            onClick={handleHelpToggle}
+            className={`orange-radiate gap-2 border transition-colors ${
+              currentPanelMode === 'help'
+                ? (isDarkMode ? 'border-[#E56E2E] bg-[#E56E2E]/15 text-[#FFB27F] shadow-[0_0_18px_rgba(229,110,46,0.45)]' : 'border-[#007970] bg-[#E5FEFF] text-[#007970]')
+                : (isDarkMode ? 'border-[#C74601]/35 bg-black/60 text-[#FFB27F] hover:border-[#E56E2E] hover:text-white' : 'border-[#E5E4E3] bg-white text-[#1F1C1B]')
+            }`}
+          >
+            <HelpCircle className="h-4 w-4" />
+            Help
+          </Button>
+
+          <Button
+            variant="ghost"
+            onClick={onToggleDarkMode}
+            className={`orange-radiate ${isDarkMode ? 'border border-[#C74601]/35 bg-black/60 text-[#FFB27F] hover:border-[#E56E2E] hover:text-white' : 'border border-[#E5E4E3] bg-white text-[#1F1C1B]'}`}
+          >
+            {isDarkMode ? 'Switch to Light Mode' : 'Switch to Night Mode'}
+          </Button>
+
+          <Button
+            variant="ghost"
+            onClick={onToggleDebugMode}
+            className={`${
+              isDarkMode
+                ? 'border border-white/10 bg-black/50 text-[#64F4F5] hover:border-[#64F4F5]/60 hover:text-white'
+                : 'border border-[#E5E4E3] bg-white text-[#C74601]'
+            }`}
+          >
+            <Zap className="h-4 w-4" />
+            QA {isDebugMode ? 'ON' : 'OFF'}
+          </Button>
         </div>
       )}
+      <div className={`relative flex h-full w-full flex-col overflow-hidden rounded-xl transition-colors duration-300 ${
+        isDarkMode 
+          ? 'bg-[#121214]/90 text-[#F3F4F6] backdrop-blur-xl border border-white/10 shadow-[0_0_80px_-20px_rgba(199,70,1,0.3)]' 
+          : 'bg-white text-[#1F1C1B] border-2 border-[#E5E4E3] shadow-[0_30px_60px_-15px_rgba(31,28,27,0.08)] rounded-2xl'
+      }`}>
       {/* Header */}
       {showNavigationChrome && (
       <header className={`flex shrink-0 items-center justify-between px-8 py-5 transition-colors ${
@@ -1910,7 +1903,7 @@ const FlowCards = ({
                 ? 'text-white/50 bg-black/50 border-white/10 backdrop-blur-sm shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] rounded' 
                 : 'text-[#1F1C1B] font-semibold bg-[#F7FEFF] border-2 border-[#007970] shadow-[3px_3px_0_#007970] rounded-lg'
             }`}>
-              {currentProgressStep} <span className={isDarkMode ? 'text-[#C74601]' : 'text-[#007970]'}>/ {totalProgressSteps}</span>
+              {displayProgressStep} <span className={isDarkMode ? 'text-[#C74601]' : 'text-[#007970]'}>/ {totalProgressSteps}</span>
             </div>
           </div>
         )}
@@ -1943,7 +1936,7 @@ const FlowCards = ({
         )}
 
         <div
-          className="absolute inset-0 z-10 flex items-center justify-center"
+          className="absolute inset-0 z-10 flex items-stretch justify-center"
           onTouchStart={(e) => (touchStartXRef.current = e.changedTouches[0].clientX)}
           onTouchEnd={(e) => {
             if (!touchStartXRef.current) return
@@ -1983,58 +1976,28 @@ const FlowCards = ({
       {/* Footer Controls */}
       {showNavigationChrome && (
         <footer className={`px-8 py-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4 relative z-20 shrink-0 transition-colors ${
-          isDarkMode ? 'border-t border-white/5 bg-[#0A0A0C]/80 backdrop-blur-xl' : 'border-t-2 border-[#E5E4E3] bg-[#FAFBF8]'
+          isDarkMode ? 'border-t border-white/10 bg-[#0A0A0C]/90 backdrop-blur-xl' : 'border-t-2 border-[#E5E4E3] bg-[#FAFBF8]'
         }`}>
             {/* Left: Navigation */}
             <div className="flex items-center gap-2 justify-self-start">
               <Button
                 variant="ghost"
                 onClick={goPrev}
-                className={`gap-2 font-semibold uppercase tracking-widest border-transparent transition-colors ${
+                className={`gap-2 px-3 py-2 font-semibold uppercase tracking-[0.14em] border-transparent transition-colors ${
                   isDarkMode 
                     ? 'text-white/50 hover:text-white hover:bg-white/10' 
                     : 'text-[#747474] hover:text-[#1F1C1B] hover:bg-[#E5E4E3]'
                 }`}
               >
-                <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-                <span className="hidden sm:inline">Back</span>
-              </Button>
-
-              <div className={`h-4 w-px mx-1 ${isDarkMode ? 'bg-white/10' : 'bg-[#E5E4E3]'}`} />
-
-              <Button
-                variant="ghost"
-                onClick={handleHelpToggle}
-                className={`gap-2 font-semibold uppercase tracking-widest border-transparent transition-colors ${
-                  currentPanelMode === 'help' 
-                    ? (isDarkMode ? 'text-[#C74601] bg-[#C74601]/20' : 'text-[#C74601] bg-[#FFEEE5]')
-                    : (isDarkMode ? 'text-white/50 hover:text-white hover:bg-white/10' : 'text-[#747474] hover:text-[#1F1C1B] hover:bg-[#E5E4E3]')
-                }`}
-              >
-                <HelpCircle className="h-4 w-4" />
-                <span className="hidden sm:inline">Help</span>
-              </Button>
-
-              <div className={`h-4 w-px mx-1 ${isDarkMode ? 'bg-white/10' : 'bg-[#E5E4E3]'}`} />
-
-              <Button
-                variant="ghost"
-                onClick={onToggleDarkMode}
-                className={`gap-2 font-semibold uppercase tracking-widest border-transparent transition-colors ${
-                  isDarkMode
-                    ? 'text-[#FFB27F] hover:text-white hover:bg-white/10'
-                    : 'text-[#007970] hover:text-[#005a54] hover:bg-[#E5FEFF]'
-                }`}
-              >
-                <span className="hidden lg:inline">{isDarkMode ? 'Light Mode' : 'Night Mode'}</span>
-                <span className="lg:hidden">Mode</span>
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Return</span>
               </Button>
             </div>
 
             {/* Center: Audio Controls */}
             <div className="flex flex-col items-center gap-2 justify-self-center">
               <div className={`flex items-center gap-1 p-1 transition-colors ${
-                isDarkMode ? 'bg-black/50 border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl shadow-sm'
+                isDarkMode ? 'bg-black/50 border border-white/10 rounded-full' : 'bg-white border-2 border-[#E5E4E3] rounded-xl shadow-sm'
               }`}>
                 {audioPlaybackState === 'playing' ? (
                   <Button
@@ -2099,19 +2062,6 @@ const FlowCards = ({
             {/* Right: Actions */}
             <div className="flex items-center gap-3 justify-self-end">
               <Button
-                variant="ghost"
-                onClick={onToggleDebugMode}
-                className={`gap-2 font-semibold uppercase tracking-widest border-transparent transition-colors ${
-                  isDarkMode
-                    ? 'text-[#64F4F5] hover:text-white hover:bg-white/10'
-                    : 'text-[#C74601] hover:text-[#A83B01] hover:bg-[#FFEEE5]'
-                }`}
-              >
-                <Zap className="h-4 w-4" />
-                <span className="hidden lg:inline">QA {isDebugMode ? 'ON' : 'OFF'}</span>
-              </Button>
-
-              <Button
                 onClick={handleChallengeClick}
                 className={`relative overflow-hidden transition-all duration-300 font-bold uppercase tracking-widest text-xs border-transparent ${
                   isChallengeUnlocked
@@ -2133,14 +2083,12 @@ const FlowCards = ({
                 onClick={goNext}
                 className={`group transition-all ${
                   isDarkMode
-                    ? 'next-button-glow rounded border border-white bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:bg-[#64F4F5] hover:shadow-[0_0_20px_rgba(100,244,245,0.4)]'
+                    ? 'next-button-glow rounded-md border border-[#007970] bg-[#007970] text-white shadow-[0_0_20px_rgba(0,121,112,0.3)] hover:bg-[#00968b] hover:shadow-[0_0_24px_rgba(0,121,112,0.45)]'
                     : 'next-button-glow rounded-xl border-2 border-[#004142] bg-[#007970] text-white hover:bg-[#006059] hover:shadow-[4px_4px_0_#004142] hover:-translate-y-1 hover:-translate-x-1'
                 } ${isNextLockedFeedback ? 'animate-shake' : ''}`}
               >
-                <span className="hidden sm:inline font-bold uppercase tracking-widest text-xs">Next</span>
-                <span className={`next-button-arrow-wrap inline-flex h-6 w-6 items-center justify-center rounded-full ${isDarkMode ? 'bg-black/10' : 'bg-white/20'}`}>
-                  <ArrowRight className="next-button-arrow h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </span>
+                <span className="hidden sm:inline font-bold uppercase tracking-widest text-xs">Advance</span>
+                <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           <audio
@@ -2158,6 +2106,7 @@ const FlowCards = ({
           />
         </footer>
       )}
+      </div>
     </div>
   )
 }

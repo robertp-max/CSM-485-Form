@@ -211,7 +211,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .next-button-glow:hover::after {
-  box-shadow: 0 0 22px rgba(100, 244, 245, 0.45), 0 0 36px rgba(199, 70, 1, 0.2);
+  box-shadow: 0 0 0 rgba(100, 244, 245, 0);
 }
 
 .next-button-arrow-wrap {
@@ -220,16 +220,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .next-button-arrow-wrap::before {
-  content: '';
-  position: absolute;
-  inset: -60%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 70%);
-  transform: translateX(-120%);
-  transition: transform 300ms ease;
-}
-
-.next-button-glow:hover .next-button-arrow-wrap::before {
-  transform: translateX(95%);
+  content: none;
 }
 
 .next-button-arrow {
@@ -241,6 +232,10 @@ h1, h2, h3, h4, h5, h6 {
   filter: drop-shadow(0 0 8px rgba(100, 244, 245, 0.8));
 }
 
+.orange-radiate {
+  animation: orangeRadiate 2.1s ease-in-out infinite;
+}
+
 @keyframes swipeInRight {
   from {
     transform: translateX(24px);
@@ -249,6 +244,16 @@ h1, h2, h3, h4, h5, h6 {
   to {
     transform: translateX(0);
     opacity: 1;
+  }
+}
+
+@keyframes orangeRadiate {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(229, 110, 46, 0);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(229, 110, 46, 0.35), 0 0 28px rgba(199, 70, 1, 0.18);
   }
 }
 
