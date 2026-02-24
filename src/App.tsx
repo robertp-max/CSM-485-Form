@@ -31,6 +31,11 @@ import additionalContentRaw from './assets/Additional Content.txt?raw'
 import { TRAINING_CARDS } from './data/trainingCards'
 import { CARD_METADATA } from './data/cardMetadata'
 
+// Quick links to supplemental documentation (open in new tab)
+const SYSTEMS_DOC_URL = new URL('./assets/CI_eLearning_Architecture.txt', import.meta.url).href
+const COURSE_FRAMEWORK_URL = new URL('../card-content.txt', import.meta.url).href
+const MASTERING_CMS485_URL = new URL('./assets/CMS-485 Research.md', import.meta.url).href
+
 const ANIMATION_MS = 320
 const COVER_ZOOM_MS = 180
 const PROGRESS_STORAGE_KEY = 'cms485.course.progress.v2'
@@ -1944,6 +1949,12 @@ const FlowCards = ({
 
         {showNavigationChrome && (
           <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-2">
+              <a href={SYSTEMS_DOC_URL} target="_blank" rel="noreferrer" className="text-sm px-3 py-1 bg-white border border-slate-200 rounded text-slate-700 hover:bg-slate-50">Systems Documentation</a>
+              <a href={COURSE_FRAMEWORK_URL} target="_blank" rel="noreferrer" className="text-sm px-3 py-1 bg-white border border-slate-200 rounded text-slate-700 hover:bg-slate-50">Course Framework</a>
+              <a href={MASTERING_CMS485_URL} target="_blank" rel="noreferrer" className="text-sm px-3 py-1 bg-white border border-slate-200 rounded text-slate-700 hover:bg-slate-50">Mastering CMS-485</a>
+            </div>
+
             <div className={`text-xl font-medium tracking-widest px-5 py-1.5 border transition-colors ${
               isDarkMode 
                 ? 'text-white/50 bg-black/50 border-white/10 backdrop-blur-sm shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] rounded' 
