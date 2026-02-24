@@ -184,30 +184,15 @@ h1, h2, h3, h4, h5, h6 {
   animation: lockShake 360ms ease;
 }
 
-.help-scroll-panel {
-  scrollbar-width: thin;
-  scrollbar-color: #007970 transparent;
-  scrollbar-gutter: stable;
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.help-scroll-panel::-webkit-scrollbar {
-  width: 10px;
-}
-
-.help-scroll-panel::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.help-scroll-panel::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #64F4F5 0%, #007970 100%);
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-
-.help-scroll-panel::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #8AFAFB 0%, #009b91 100%);
-  background-clip: padding-box;
+.hide-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .next-button-glow {

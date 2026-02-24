@@ -51,6 +51,160 @@ type CardItem = {
   content: ReactElement | null
 }
 
+type FlowCardKind = 'cover' | 'training' | 'final-test' | 'complete'
+
+type FlowCardItem = {
+  title: string
+  content: ReactElement | null
+  kind: FlowCardKind
+  trainingIndex?: number
+}
+
+type FinalTestQuestion = {
+  id: string
+  prompt: string
+  options: string[]
+  correctIndex: number
+  rationale: string
+}
+
+const FINAL_TEST_TITLE = 'Final Test'
+
+const FINAL_TEST_OBJECTIVE =
+  'Validate mastery of final operational priorities by applying the daily habits, leadership controls, and defensibility standards from the expanded Takeaways content.'
+
+const FINAL_TEST_KEY_POINTS = [
+  'Daily documentation must include skilled rationale, intervention details, and patient response every visit.',
+  'Discrepancies should be escalated and reconciled immediately while the clinical picture is fresh.',
+  'Leadership controls require metric surveillance, focused retraining, and one source of truth.',
+]
+
+const FINAL_TEST_CLINICAL_LENS =
+  'Test decisions against one standard: clear, complete, and clinically coherent documentation at every step of the episode lifecycle.'
+
+const FINAL_TEST_QUESTIONS: FinalTestQuestion[] = [
+  {
+    id: 'ft-1',
+    prompt: 'Which 3 elements must be clearly documented in every visit note?',
+    options: [
+      'Skilled rationale, intervention details, and patient response',
+      'Staffing level, room setup, and patient preference',
+      'Billing code, payer tier, and episode length',
+      'Device brand, visit route, and chart color',
+    ],
+    correctIndex: 0,
+    rationale: 'Daily habits in the Takeaways require these three elements to be explicit before closing a note.',
+  },
+  {
+    id: 'ft-2',
+    prompt: 'When should OASIS-to-POC or order discrepancies be reconciled?',
+    options: [
+      'At discharge when all notes are complete',
+      'Immediately, not deferred to episode end',
+      'Only if a payer requests clarification',
+      'During annual policy review meetings',
+    ],
+    correctIndex: 1,
+    rationale: 'The expanded content states problems age poorly, so discrepancies should be escalated and fixed today.',
+  },
+  {
+    id: 'ft-3',
+    prompt: 'Before major episode milestones, what self-audit behavior is expected?',
+    options: [
+      'Review chart as an auditor would for narrative coherence and required elements',
+      'Only verify signature dates',
+      'Wait for manager review before checking anything',
+      'Copy the previous milestone documentation',
+    ],
+    correctIndex: 0,
+    rationale: 'The Takeaways call for structured self-audit habits through an auditor lens at SOC, recert, and discharge.',
+  },
+  {
+    id: 'ft-4',
+    prompt: 'Which leadership control is explicitly required for sustained compliance?',
+    options: [
+      'Monthly social media updates',
+      'Tracking denial trends, signature timeliness, and order-aging metrics',
+      'Increasing visit volume targets each quarter',
+      'Rotating documentation templates weekly',
+    ],
+    correctIndex: 1,
+    rationale: 'Leadership controls in the expanded content prioritize routine metric monitoring to catch vulnerabilities early.',
+  },
+  {
+    id: 'ft-5',
+    prompt: 'How should retraining be delivered when chart deficiencies trend in one area?',
+    options: [
+      'Use focused retraining tied to the specific deficiency pattern',
+      'Send one generic agency-wide reminder',
+      'Wait for survey findings to trigger education',
+      'Suspend all audits until quarter end',
+    ],
+    correctIndex: 0,
+    rationale: 'The content directs leaders to run targeted retraining rather than broad non-specific reminders.',
+  },
+  {
+    id: 'ft-6',
+    prompt: 'What is the purpose of maintaining a single source of truth for policy/workflow/checklists?',
+    options: [
+      'Reduce team meetings',
+      'Ensure immediate, unified operational updates when regulations change',
+      'Eliminate physician involvement in revisions',
+      'Avoid documenting process changes',
+    ],
+    correctIndex: 1,
+    rationale: 'The Takeaways emphasize synchronized updates so the agency moves in unison with regulatory changes.',
+  },
+  {
+    id: 'ft-7',
+    prompt: 'According to the final operational priorities, defensibility is built through:',
+    options: [
+      'High volume and rapid closure only',
+      'Consistency, clinical traceability, and timely order/signature governance',
+      'Minimal documentation with verbal clarification later',
+      'Separate standards by discipline',
+    ],
+    correctIndex: 1,
+    rationale: 'The final section explicitly defines this 3-part structure as the defensibility foundation.',
+  },
+  {
+    id: 'ft-8',
+    prompt: 'Which statement best reflects the recommended day-60 mindset?',
+    options: [
+      'Documentation can relax after recertification',
+      'Apply the same framework as a repeatable standard across every episode',
+      'Move to summary-only charting near episode end',
+      'Focus on speed over narrative linkage',
+    ],
+    correctIndex: 1,
+    rationale: 'The expanded content says to keep the same defensible framework active across every episode without letting guard down.',
+  },
+  {
+    id: 'ft-9',
+    prompt: 'What does compliance-ready documentation protect, per the closing section?',
+    options: [
+      'Only reimbursement cycle timing',
+      'Only survey outcomes',
+      'Clinician licenses, financial integrity, and patient safety/coordination',
+      'Only internal dashboard performance',
+    ],
+    correctIndex: 2,
+    rationale: 'The closing text links documentation quality to licensure protection, financial integrity, and safe coordinated care.',
+  },
+  {
+    id: 'ft-10',
+    prompt: 'What final audit standard should guide every chart touchpoint?',
+    options: [
+      'Maximum note length',
+      'Narrative style preference by reviewer',
+      'Clear, complete, and clinically coherent documentation at every step',
+      'Template consistency regardless of patient specifics',
+    ],
+    correctIndex: 2,
+    rationale: 'The final audit focus is stated verbatim in the Key Takeaways and Next Actions expanded content.',
+  },
+]
+
 const normalizeText = (value: string) => {
   return value
     .toLowerCase()
@@ -669,21 +823,23 @@ const TrainingSection = ({
   )
 
   const helpPanel = (
-    <div ref={helpPanelRef} tabIndex={-1} className="h-full">
-      <Card className="help-scroll-panel h-full overflow-y-scroll pr-1">
-        <h3 className="mb-6 text-2xl font-bold text-[#C74601] flex items-center gap-2">
+    <div ref={helpPanelRef} tabIndex={-1} className="h-full min-h-0">
+      <Card className="h-full min-h-0 flex flex-col">
+        <h3 className="mb-6 shrink-0 text-2xl font-bold text-[#C74601] flex items-center gap-2">
           <HelpCircle className="h-5 w-5" />
           Learner Help Guide
         </h3>
-        <div className="grid grid-cols-1 gap-4 pb-2 md:grid-cols-2">
-          {LEARNER_HELP_SECTIONS.map((helpSection) => (
-            <section key={`${title}-${helpSection.title}`} className={`rounded-lg border p-4 ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-[#E5E4E3] bg-[#FAFBF8]'}`}>
-              <h4 className="mb-2 text-sm font-bold uppercase tracking-wide text-[#007970]">{helpSection.title}</h4>
-              <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-[#524048]'}`}>
-                {helpSection.body.join(' • ')}
-              </p>
-            </section>
-          ))}
+        <div className="hide-scrollbar min-h-0 flex-1 overflow-y-auto">
+          <div className="grid grid-cols-1 gap-4 pb-2 md:grid-cols-2">
+            {LEARNER_HELP_SECTIONS.map((helpSection) => (
+              <section key={`${title}-${helpSection.title}`} className={`rounded-lg border p-4 ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-[#E5E4E3] bg-[#FAFBF8]'}`}>
+                <h4 className="mb-2 text-sm font-bold uppercase tracking-wide text-[#007970]">{helpSection.title}</h4>
+                <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-[#524048]'}`}>
+                  {helpSection.body.join(' • ')}
+                </p>
+              </section>
+            ))}
+          </div>
         </div>
       </Card>
     </div>
@@ -775,6 +931,166 @@ const TrainingSection = ({
   )
 }
 
+const FinalTestCard = ({
+  isDarkMode,
+  pageIndex,
+  answers,
+  onAnswer,
+}: {
+  isDarkMode: boolean
+  pageIndex: number
+  answers: Record<string, number>
+  onAnswer: (questionId: string, optionIndex: number) => void
+}) => {
+  const totalQuestions = FINAL_TEST_QUESTIONS.length
+  const isCoverPage = pageIndex === 0
+  const isResultPage = pageIndex === totalQuestions + 1
+  const questionPageIndex = pageIndex - 1
+  const activeQuestion = questionPageIndex >= 0 && questionPageIndex < totalQuestions
+    ? FINAL_TEST_QUESTIONS[questionPageIndex]
+    : null
+
+  const answeredCount = FINAL_TEST_QUESTIONS.filter((question) => answers[question.id] !== undefined).length
+  const correctCount = FINAL_TEST_QUESTIONS.filter((question) => answers[question.id] === question.correctIndex).length
+  const scorePercent = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0
+  const passed = scorePercent >= 80
+
+  if (isCoverPage) {
+    return (
+      <section className={`flex h-full flex-col overflow-hidden px-6 py-4 transition-colors duration-300 ${isDarkMode ? 'bg-transparent' : 'bg-white'}`}>
+        <div className="mb-4 shrink-0">
+          <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${
+            isDarkMode ? 'border-white/10 bg-white/5 text-[#64F4F5]' : 'border-[#C74601]/20 bg-[#FFEEE5] text-[#C74601]'
+          }`}>
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Final Assessment
+          </div>
+          <h2 className={`mt-3 font-montserrat text-2xl md:text-3xl font-semibold ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>
+            {FINAL_TEST_TITLE} Cover
+          </h2>
+        </div>
+
+        <div className="grid flex-1 min-h-0 gap-3 md:grid-cols-2">
+          <Card className={`h-full p-4 ${isDarkMode ? 'bg-[#0F0F11] border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl'}`}>
+            <h3 className={`mb-2 text-sm font-semibold uppercase tracking-[0.12em] ${isDarkMode ? 'text-[#64F4F5]' : 'text-[#007970]'}`}>Objective</h3>
+            <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>{FINAL_TEST_OBJECTIVE}</p>
+          </Card>
+
+          <Card className={`h-full p-4 ${isDarkMode ? 'bg-[#0F0F11] border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl'}`}>
+            <h3 className={`mb-2 text-sm font-semibold uppercase tracking-[0.12em] ${isDarkMode ? 'text-[#64F4F5]' : 'text-[#007970]'}`}>Clinical Lens</h3>
+            <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>{FINAL_TEST_CLINICAL_LENS}</p>
+          </Card>
+
+          <Card className={`h-full p-4 md:col-span-2 ${isDarkMode ? 'bg-[#0F0F11] border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl'}`}>
+            <h3 className={`mb-2 text-sm font-semibold uppercase tracking-[0.12em] ${isDarkMode ? 'text-[#64F4F5]' : 'text-[#007970]'}`}>Key Points</h3>
+            <ul className="space-y-2">
+              {FINAL_TEST_KEY_POINTS.map((point, index) => (
+                <li key={point} className="flex items-start gap-2">
+                  <span className={`text-xs font-bold mt-0.5 ${isDarkMode ? 'text-[#C74601]' : 'text-[#C74601]'}`}>{`0${index + 1}`}</span>
+                  <span className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>{point}</span>
+                </li>
+              ))}
+            </ul>
+            <p className={`mt-3 text-xs uppercase tracking-[0.12em] ${isDarkMode ? 'text-gray-500' : 'text-[#747474]'}`}>
+              Use Next to begin Question 1 of {totalQuestions}
+            </p>
+          </Card>
+        </div>
+      </section>
+    )
+  }
+
+  if (activeQuestion && activeQuestion !== null) {
+    const selectedIndex = answers[activeQuestion.id]
+    return (
+      <section className={`flex h-full flex-col overflow-hidden px-6 py-4 transition-colors duration-300 ${isDarkMode ? 'bg-transparent' : 'bg-white'}`}>
+        <div className="mb-4 shrink-0 flex items-center justify-between gap-4">
+          <h2 className={`font-montserrat text-xl md:text-2xl font-semibold ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>
+            Final Test · Question {pageIndex} of {totalQuestions}
+          </h2>
+          <div className={`text-xs font-semibold uppercase tracking-[0.12em] ${isDarkMode ? 'text-gray-400' : 'text-[#747474]'}`}>
+            Based on expanded Takeaways content
+          </div>
+        </div>
+
+        <Card className={`h-full min-h-0 p-4 md:p-5 flex flex-col ${isDarkMode ? 'bg-[#0F0F11] border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl'}`}>
+          <p className={`text-lg leading-snug mb-4 ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>{activeQuestion.prompt}</p>
+
+          <div className="grid gap-2">
+            {activeQuestion.options.map((option, optionIndex) => {
+              const isSelected = selectedIndex === optionIndex
+              return (
+                <button
+                  key={`${activeQuestion.id}-${option}`}
+                  type="button"
+                  onClick={() => onAnswer(activeQuestion.id, optionIndex)}
+                  className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm transition-all ${
+                    isSelected
+                      ? (isDarkMode
+                        ? 'border-[#64F4F5] bg-[#64F4F5]/10 text-[#64F4F5]'
+                        : 'border-[#007970] bg-[#E5FEFF] text-[#007970]')
+                      : (isDarkMode
+                        ? 'border-white/10 bg-white/[0.02] text-white/80 hover:border-white/30'
+                        : 'border-[#E5E4E3] bg-white text-[#524048] hover:border-[#007970]')
+                  }`}
+                >
+                  <span className="font-semibold mr-2">{String.fromCharCode(65 + optionIndex)}.</span>
+                  {option}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className={`mt-auto pt-3 text-xs uppercase tracking-[0.12em] ${isDarkMode ? 'text-gray-500' : 'text-[#747474]'}`}>
+            {selectedIndex === undefined ? 'Select an answer, then use Next.' : 'Answer selected. Use Next to continue.'}
+          </div>
+        </Card>
+      </section>
+    )
+  }
+
+  if (isResultPage) {
+    return (
+      <section className={`flex h-full flex-col overflow-hidden px-6 py-4 transition-colors duration-300 ${isDarkMode ? 'bg-transparent' : 'bg-white'}`}>
+        <div className="mb-4 shrink-0">
+          <h2 className={`font-montserrat text-2xl md:text-3xl font-semibold ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>
+            Final Test Results
+          </h2>
+        </div>
+
+        <div className="grid flex-1 min-h-0 gap-3 md:grid-cols-2">
+          <Card className={`h-full p-4 ${isDarkMode ? 'bg-[#0F0F11] border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl'}`}>
+            <p className={`text-xs uppercase tracking-[0.12em] mb-2 ${isDarkMode ? 'text-gray-400' : 'text-[#747474]'}`}>Score</p>
+            <p className={`text-4xl font-bold ${passed ? 'text-[#007970]' : 'text-[#C74601]'}`}>{scorePercent}%</p>
+            <p className={`mt-2 text-sm ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>
+              {correctCount} correct of {totalQuestions}
+            </p>
+          </Card>
+
+          <Card className={`h-full p-4 ${isDarkMode ? 'bg-[#0F0F11] border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl'}`}>
+            <p className={`text-xs uppercase tracking-[0.12em] mb-2 ${isDarkMode ? 'text-gray-400' : 'text-[#747474]'}`}>Status</p>
+            <p className={`text-2xl font-bold ${passed ? 'text-[#007970]' : 'text-[#C74601]'}`}>{passed ? 'Pass' : 'Needs Review'}</p>
+            <p className={`mt-2 text-sm ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>
+              {passed
+                ? 'You demonstrated strong command of the final Takeaways content.'
+                : 'Review the Takeaways expanded content and retake for stronger defensibility recall.'}
+            </p>
+          </Card>
+
+          <Card className={`h-full p-4 md:col-span-2 ${isDarkMode ? 'bg-[#0F0F11] border border-white/10 rounded-lg' : 'bg-white border-2 border-[#E5E4E3] rounded-xl'}`}>
+            <p className={`text-xs uppercase tracking-[0.12em] mb-2 ${isDarkMode ? 'text-gray-400' : 'text-[#747474]'}`}>Completion Summary</p>
+            <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>
+              {answeredCount} of {totalQuestions} questions answered. Use Back to review any question pages, or Next to continue to course completion.
+            </p>
+          </Card>
+        </div>
+      </section>
+    )
+  }
+
+  return null
+}
+
 const FlowCards = ({
   isDarkMode,
   isDebugMode,
@@ -790,16 +1106,19 @@ const FlowCards = ({
     return new Map(CARD_METADATA.map((item) => [item.title, item]))
   }, [])
 
-  const cards = useMemo(
+  const cards = useMemo<FlowCardItem[]>(
     () => [
-      { title: 'Title', content: null },
-      ...TRAINING_CARDS.map((card) => {
+      { title: 'Title', content: null, kind: 'cover' as const },
+      ...TRAINING_CARDS.map((card, trainingIndex) => {
         return {
           title: card.title,
           content: null,
+          kind: 'training' as const,
+          trainingIndex,
         }
       }),
-      { title: 'Complete', content: null },
+      { title: FINAL_TEST_TITLE, content: null, kind: 'final-test' as const },
+      { title: 'Complete', content: null, kind: 'complete' as const },
     ],
     [metadataByTitle],
   )
@@ -823,14 +1142,18 @@ const FlowCards = ({
   const [isPanelAnimating, setIsPanelAnimating] = useState(false)
   const [panelTransitionDirection, setPanelTransitionDirection] = useState<'next' | 'prev'>('next')
   const [previousPanelMode, setPreviousPanelMode] = useState<PanelMode | null>(null)
+  const [finalTestPageIndex, setFinalTestPageIndex] = useState(0)
+  const [finalTestAnswers, setFinalTestAnswers] = useState<Record<string, number>>({})
   const [liveStatus, setLiveStatus] = useState('')
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const touchStartXRef = useRef<number | null>(null)
   const audioElementRef = useRef<HTMLAudioElement | null>(null)
 
-  const currentIsTrainingCard = currentIndex > 0 && currentIndex < cards.length - 1
+  const currentCard = cards[currentIndex]
+  const currentIsTrainingCard = currentCard?.kind === 'training'
+  const currentIsFinalTestCard = currentCard?.kind === 'final-test'
   const canAdvanceFromCurrent = !currentIsTrainingCard || viewedCardIndexes.has(currentIndex)
-  const currentCardTitle = cards[currentIndex]?.title ?? ''
+  const currentCardTitle = currentCard?.title ?? ''
   const currentVoiceRecording = currentIsTrainingCard ? VOICE_RECORDING_BY_TITLE.get(currentCardTitle) ?? null : null
   const isChallengeUnlocked = isDebugMode || audioCompletedTitles.has(currentCardTitle)
   const hasCurrentChallengeSubmission = Boolean(challengeResultsByTitle[currentCardTitle])
@@ -1101,6 +1424,33 @@ const FlowCards = ({
       return
     }
 
+    if (currentIsFinalTestCard) {
+      const totalFinalTestPages = FINAL_TEST_QUESTIONS.length + 2
+
+      if (finalTestPageIndex === 0) {
+        setFinalTestPageIndex(1)
+        return
+      }
+
+      if (finalTestPageIndex >= 1 && finalTestPageIndex <= FINAL_TEST_QUESTIONS.length) {
+        const question = FINAL_TEST_QUESTIONS[finalTestPageIndex - 1]
+        if (finalTestAnswers[question.id] === undefined) {
+          setIsNextLockedFeedback(true)
+          setLiveStatus('Select an answer before moving to the next question.')
+          window.setTimeout(() => setIsNextLockedFeedback(false), 360)
+          return
+        }
+
+        setFinalTestPageIndex((prev) => Math.min(totalFinalTestPages - 1, prev + 1))
+        return
+      }
+
+      if (finalTestPageIndex < totalFinalTestPages - 1) {
+        setFinalTestPageIndex((prev) => Math.min(totalFinalTestPages - 1, prev + 1))
+        return
+      }
+    }
+
     if (currentIsTrainingCard) {
       if (currentPanelMode === 'main') {
         handleAudioPlayClick()
@@ -1137,6 +1487,13 @@ const FlowCards = ({
   }
 
   const goPrev = () => {
+    if (currentIsFinalTestCard) {
+      if (finalTestPageIndex > 0) {
+        setFinalTestPageIndex((prev) => Math.max(0, prev - 1))
+        return
+      }
+    }
+
     if (currentIsTrainingCard) {
       if (currentPanelMode === 'help') {
         transitionPanel(helpReturnMode, 'prev')
@@ -1249,7 +1606,7 @@ const FlowCards = ({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [currentIndex, showReportGrid, canAdvanceFromCurrent])
+  }, [currentIndex, showReportGrid, canAdvanceFromCurrent, currentPanelMode, currentIsFinalTestCard, finalTestPageIndex, finalTestAnswers])
 
   const getAudioStatusLabel = () => {
     if (isDebugMode) {
@@ -1268,19 +1625,46 @@ const FlowCards = ({
   }
 
   const renderCardContent = (index: number) => {
+    const cardItem = cards[index]
+
     if (index === 0) {
       if (showReportGrid) {
-        return <ReportGridCard items={cards.slice(1, -1)} onSelect={(itemIndex) => handleReportSelect(itemIndex + 1)} className="zoom-enter" isDarkMode={isDarkMode} unlockedCount={unlockedTrainingCount} />
+        return (
+          <ReportGridCard
+            items={TRAINING_CARDS.map((item) => ({ title: item.title, content: null }))}
+            onSelect={(itemIndex) => handleReportSelect(itemIndex + 1)}
+            className="zoom-enter"
+            isDarkMode={isDarkMode}
+            unlockedCount={unlockedTrainingCount}
+          />
+        )
       }
 
       return <TitleCard onView={handleViewFromCover} className={isCoverZoomingOut ? 'zoom-exit' : ''} isDarkMode={isDarkMode} />
     }
 
-    if (index === cards.length - 1) {
+    if (cardItem?.kind === 'complete') {
       return <EndCard isDarkMode={isDarkMode} />
     }
 
-    const card = TRAINING_CARDS[index - 1]
+    if (cardItem?.kind === 'final-test') {
+      return (
+        <FinalTestCard
+          isDarkMode={isDarkMode}
+          pageIndex={finalTestPageIndex}
+          answers={finalTestAnswers}
+          onAnswer={(questionId, optionIndex) => {
+            setFinalTestAnswers((previous) => ({
+              ...previous,
+              [questionId]: optionIndex,
+            }))
+          }}
+        />
+      )
+    }
+
+    const trainingIndex = cardItem?.trainingIndex ?? index - 1
+    const card = TRAINING_CARDS[trainingIndex]
     const metadata = metadataByTitle.get(card.title)
     const isCurrentCard = index === currentIndex
     const panelModeForCard = getPanelModeForTitle(card.title)
