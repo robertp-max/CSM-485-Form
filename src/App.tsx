@@ -8,6 +8,8 @@ import {
   Pause,
   Play,
   RotateCcw,
+  Volume2,
+  VolumeX,
   Square,
   AlertCircle,
   CheckCircle,
@@ -26,6 +28,7 @@ import { PlanOfCareFocusPanel } from './components/PlanOfCareFocusPanel'
 import titleMedia from './assets/CI Home Health Logo_White.png'
 import headerLogoGray from './assets/CI Home Health Logo_Gray.png'
 import coverBanner from './assets/CMS-485 LMS Banner.png'
+import introVideo from './assets/CMS-485 eLearner.mp4'
 import additionalContentRaw from './assets/Additional Content.txt?raw'
 import { TRAINING_CARDS } from './data/trainingCards'
 import { CARD_METADATA } from './data/cardMetadata'
@@ -51,7 +54,7 @@ type CardItem = {
   content: ReactElement | null
 }
 
-type FlowCardKind = 'cover' | 'training' | 'final-test' | 'complete'
+type FlowCardKind = 'intro-video' | 'cover' | 'training' | 'final-test' | 'complete'
 
 type FlowCardItem = {
   title: string
@@ -305,6 +308,23 @@ const getChallengeOptions = (bullets: string[], objective: string) => {
   return [optionA, optionB, optionC]
 }
 
+const getChallengeData = (title: string, bullets: string[], objective: string) => {
+  const baseOptions = getChallengeOptions(bullets, objective)
+  const seed = Array.from(title).reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const rotation = seed % baseOptions.length
+
+  const options = baseOptions.map((_, index) => {
+    return baseOptions[(index + rotation) % baseOptions.length]
+  })
+
+  const correctIndex = (baseOptions.length - rotation) % baseOptions.length
+
+  return {
+    options,
+    correctIndex,
+  }
+}
+
 const LEARNER_HELP_SECTIONS: HelpSection[] = [
   {
     title: 'How This Training Works',
@@ -389,6 +409,134 @@ const TitleCard = ({ onView, isDarkMode, className }: { onView: () => void; isDa
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </span>
         </button>
+      </div>
+    </div>
+  )
+}
+
+const IntroVideoCard = ({
+  isDarkMode,
+  onComplete,
+}: {
+  isDarkMode: boolean
+  onComplete: () => void
+}) => {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isMuted, setIsMuted] = useState(true) // Start muted – browsers block unmuted autoplay
+
+  // Keep the DOM .muted property in sync imperatively (avoids React attribute quirk)
+  useEffect(() => {
+    const video = videoRef.current
+    if (video) {
+      video.muted = isMuted
+      video.volume = 1
+    }
+  }, [isMuted])
+
+  // Autoplay after 1.5 s – always starts muted to satisfy browser policy
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      const video = videoRef.current
+      if (!video) return
+
+      video.muted = true
+      video.volume = 1
+      setIsMuted(true)
+
+      video
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => setIsPlaying(false))
+    }, 1500)
+
+    return () => window.clearTimeout(timerId)
+  }, [])
+
+  const toggleMute = () => {
+    const video = videoRef.current
+    if (!video) return
+    const next = !isMuted
+    video.muted = next
+    video.volume = 1
+    setIsMuted(next)
+  }
+
+  return (
+    <div className={`relative h-full w-full overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#121214]' : 'bg-white'}`}>
+      <video
+        ref={videoRef}
+        className="absolute inset-0 h-full w-full object-cover"
+        src={introVideo}
+        preload="auto"
+        playsInline
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={onComplete}
+      />
+
+      {/* "Tap for sound" overlay — shown when playing but muted */}
+      {isPlaying && isMuted && (
+        <button
+          type="button"
+          onClick={toggleMute}
+          className="absolute inset-0 z-30 flex items-center justify-center bg-black/30 transition-opacity hover:bg-black/40"
+          aria-label="Tap for sound"
+        >
+          <div className="flex items-center gap-2 rounded-full bg-black/60 px-6 py-3 text-white shadow-lg backdrop-blur-sm">
+            <VolumeX className="h-6 w-6" />
+            <span className="text-base font-semibold">Tap for Sound</span>
+          </div>
+        </button>
+      )}
+
+      <div className={`absolute inset-0 z-10 pointer-events-none ${isDarkMode ? 'bg-black/20' : 'bg-white/10'}`} />
+
+      <div className="absolute bottom-6 left-6 z-20 flex items-center gap-2">
+        {!isPlaying ? (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              const video = videoRef.current
+              if (!video) return
+              video.muted = false
+              video.volume = 1
+              setIsMuted(false)
+              video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false))
+            }}
+            className="px-4 py-2"
+          >
+            <Play className="h-4 w-4" />
+            Play
+          </Button>
+        ) : (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              const video = videoRef.current
+              if (!video) return
+              video.pause()
+              setIsPlaying(false)
+            }}
+            className="px-4 py-2"
+          >
+            <Pause className="h-4 w-4" />
+            Pause
+          </Button>
+        )}
+
+        <Button
+          variant="secondary"
+          onClick={toggleMute}
+          className="px-4 py-2"
+          aria-label={isMuted ? 'Unmute' : 'Mute'}
+        >
+          {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+        </Button>
+
+        <span className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>
+          {isPlaying ? (isMuted ? 'Playing · Muted' : 'Playing') : 'Paused'}
+        </span>
       </div>
     </div>
   )
@@ -571,6 +719,7 @@ const TrainingSection = ({
   const additionalPanelRef = useRef<HTMLDivElement | null>(null)
   const challengeFirstOptionRef = useRef<HTMLButtonElement | null>(null)
   const helpPanelRef = useRef<HTMLDivElement | null>(null)
+  const challengeData = useMemo(() => getChallengeData(title, bullets, objective), [title, bullets, objective])
 
   useEffect(() => {
     if (challengeResult) {
@@ -670,9 +819,9 @@ const TrainingSection = ({
       {!hasSubmittedChallenge && (
         <>
         <div className="space-y-2">
-        {getChallengeOptions(bullets, objective).map((option, index) => {
+        {challengeData.options.map((option, index) => {
           const isSelected = selectedChallengeIndex === index
-          const isCorrect = index === 0
+          const isCorrect = index === challengeData.correctIndex
 
           let stateStyles = isDarkMode
             ? 'border-white/10 bg-black/20 text-white/60 hover:border-white/50 hover:bg-white/5 hover:text-white'
@@ -746,26 +895,26 @@ const TrainingSection = ({
 
       {hasSubmittedChallenge && selectedChallengeIndex !== null && (
         <div className={`mt-4 rounded-xl border p-4 ${
-          selectedChallengeIndex === 0
+          selectedChallengeIndex === challengeData.correctIndex
             ? (isDarkMode ? 'border-[#007970] bg-[#007970]/10' : 'border-2 border-[#007970] bg-[#F0FDFA]')
             : (isDarkMode ? 'border-[#D70101] bg-[#D70101]/10' : 'border-2 border-[#D70101] bg-[#FFF0F0]')
         }`}>
           <div className="flex items-start gap-3">
-            {selectedChallengeIndex === 0 ? (
+            {selectedChallengeIndex === challengeData.correctIndex ? (
               <ShieldCheck className={`mt-0.5 h-5 w-5 shrink-0 ${isDarkMode ? 'text-[#64F4F5]' : 'text-[#007970]'}`} />
             ) : (
               <AlertCircle className={`mt-0.5 h-5 w-5 shrink-0 ${isDarkMode ? 'text-[#FF8A8A]' : 'text-[#D70101]'}`} />
             )}
             <div className="space-y-2">
               <p className={`text-sm font-bold uppercase tracking-wide ${
-                selectedChallengeIndex === 0 ? (isDarkMode ? 'text-[#64F4F5]' : 'text-[#007970]') : (isDarkMode ? 'text-[#FF8A8A]' : 'text-[#D70101]')
+                selectedChallengeIndex === challengeData.correctIndex ? (isDarkMode ? 'text-[#64F4F5]' : 'text-[#007970]') : (isDarkMode ? 'text-[#FF8A8A]' : 'text-[#D70101]')
               }`}>
-                {selectedChallengeIndex === 0 ? 'Correct Answer' : 'Incorrect'}
+                {selectedChallengeIndex === challengeData.correctIndex ? 'Correct Answer' : 'Incorrect'}
               </p>
 
               <div className={`text-xs md:text-sm leading-relaxed space-y-1 ${isDarkMode ? 'text-gray-300' : 'text-[#524048]'}`}>
-                <p><span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>Correct Answer:</span> {getChallengeOptions(bullets, objective)[0]}</p>
-                {selectedChallengeIndex !== 0 && (
+                <p><span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>Correct Answer:</span> {challengeData.options[challengeData.correctIndex]}</p>
+                {selectedChallengeIndex !== challengeData.correctIndex && (
                   <p className="opacity-90"><span className="font-semibold">Why:</span> This directly supports the learning objective: "{objective}"</p>
                 )}
               </div>
@@ -1108,6 +1257,7 @@ const FlowCards = ({
 
   const cards = useMemo<FlowCardItem[]>(
     () => [
+      { title: 'Intro Video', content: null, kind: 'intro-video' as const },
       { title: 'Title', content: null, kind: 'cover' as const },
       ...TRAINING_CARDS.map((card, trainingIndex) => {
         return {
@@ -1150,8 +1300,18 @@ const FlowCards = ({
   const audioElementRef = useRef<HTMLAudioElement | null>(null)
 
   const currentCard = cards[currentIndex]
+  const coverCardIndex = useMemo(() => cards.findIndex((item) => item.kind === 'cover'), [cards])
+  const trainingStartIndex = useMemo(() => cards.findIndex((item) => item.kind === 'training'), [cards])
   const currentIsTrainingCard = currentCard?.kind === 'training'
   const currentIsFinalTestCard = currentCard?.kind === 'final-test'
+  const showNavigationChrome = currentIsTrainingCard || currentIsFinalTestCard
+  const progressCardIndexes = useMemo(() => {
+    return cards
+      .map((item, index) => (item.kind === 'training' || item.kind === 'final-test' ? index : -1))
+      .filter((index) => index >= 0)
+  }, [cards])
+  const currentProgressStep = Math.max(1, progressCardIndexes.indexOf(currentIndex) + 1)
+  const totalProgressSteps = Math.max(1, progressCardIndexes.length)
   const canAdvanceFromCurrent = !currentIsTrainingCard || viewedCardIndexes.has(currentIndex)
   const currentCardTitle = currentCard?.title ?? ''
   const currentVoiceRecording = currentIsTrainingCard ? VOICE_RECORDING_BY_TITLE.get(currentCardTitle) ?? null : null
@@ -1159,12 +1319,13 @@ const FlowCards = ({
   const hasCurrentChallengeSubmission = Boolean(challengeResultsByTitle[currentCardTitle])
   const currentCardMetadata = currentIsTrainingCard ? metadataByTitle.get(currentCardTitle) : undefined
   const hasCurrentPocFocus = Boolean(currentCardMetadata?.pocFocus)
-  const highestViewedIndex = useMemo(() => {
-    return Math.max(...Array.from(viewedCardIndexes))
-  }, [viewedCardIndexes])
+  const viewedTrainingCount = useMemo(() => {
+    return cards.filter((item, index) => item.kind === 'training' && viewedCardIndexes.has(index)).length
+  }, [cards, viewedCardIndexes])
+
   const unlockedTrainingCount = isDebugMode
     ? TRAINING_CARDS.length
-    : Math.min(TRAINING_CARDS.length, Math.max(1, highestViewedIndex, currentIndex))
+    : Math.min(TRAINING_CARDS.length, Math.max(1, viewedTrainingCount + 1))
 
   const getPanelModeForTitle = (title: string): PanelMode => {
     if (helpModeForTitle === title) {
@@ -1526,7 +1687,7 @@ const FlowCards = ({
   }
 
   const handleReportSelect = (nextIndex: number) => {
-    const trainingCardNumber = nextIndex
+    const trainingCardNumber = nextIndex - trainingStartIndex + 1
     const isLocked = !isDebugMode && trainingCardNumber > unlockedTrainingCount
     if (isLocked) {
       setLiveStatus('Topic is locked until prior topics are completed.')
@@ -1542,6 +1703,10 @@ const FlowCards = ({
   }
 
   const handleViewFromCover = () => {
+    if (currentCard?.kind !== 'cover') {
+      return
+    }
+
     if (isCoverZoomingOut || showReportGrid) {
       return
     }
@@ -1592,7 +1757,7 @@ const FlowCards = ({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'ArrowRight') {
-        if (currentIndex === 0 && !showReportGrid) {
+        if (currentCard?.kind === 'cover' && !showReportGrid) {
           handleViewFromCover()
           return
         }
@@ -1606,7 +1771,7 @@ const FlowCards = ({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [currentIndex, showReportGrid, canAdvanceFromCurrent, currentPanelMode, currentIsFinalTestCard, finalTestPageIndex, finalTestAnswers])
+  }, [currentIndex, showReportGrid, canAdvanceFromCurrent, currentPanelMode, currentIsFinalTestCard, finalTestPageIndex, finalTestAnswers, currentCard])
 
   const getAudioStatusLabel = () => {
     if (isDebugMode) {
@@ -1627,12 +1792,25 @@ const FlowCards = ({
   const renderCardContent = (index: number) => {
     const cardItem = cards[index]
 
-    if (index === 0) {
+    if (cardItem?.kind === 'intro-video') {
+      return (
+        <IntroVideoCard
+          isDarkMode={isDarkMode}
+          onComplete={() => {
+            if (currentIndex === index && coverCardIndex >= 0) {
+              goTo(coverCardIndex, 'next')
+            }
+          }}
+        />
+      )
+    }
+
+    if (cardItem?.kind === 'cover') {
       if (showReportGrid) {
         return (
           <ReportGridCard
             items={TRAINING_CARDS.map((item) => ({ title: item.title, content: null }))}
-            onSelect={(itemIndex) => handleReportSelect(itemIndex + 1)}
+            onSelect={(itemIndex) => handleReportSelect(itemIndex + trainingStartIndex)}
             className="zoom-enter"
             isDarkMode={isDarkMode}
             unlockedCount={unlockedTrainingCount}
@@ -1670,6 +1848,7 @@ const FlowCards = ({
     const panelModeForCard = getPanelModeForTitle(card.title)
     const additionalContentForCard = getAdditionalContentForTitle(card.title)
     const challengeResultForCard = challengeResultsByTitle[card.title] ?? null
+    const challengeDataForCard = getChallengeData(card.title, card.bullets, card.objective)
 
     return (
       <TrainingSection
@@ -1689,7 +1868,7 @@ const FlowCards = ({
             ...previous,
             [card.title]: {
               selectedIndex,
-              isCorrect: selectedIndex === 0,
+              isCorrect: selectedIndex === challengeDataForCard.correctIndex,
             },
           }))
         }}
@@ -1704,7 +1883,7 @@ const FlowCards = ({
         ? 'bg-[#121214]/90 text-[#F3F4F6] backdrop-blur-xl border border-white/10 shadow-[0_0_80px_-20px_rgba(199,70,1,0.3)]' 
         : 'bg-white text-[#1F1C1B] border-2 border-[#E5E4E3] shadow-[0_30px_60px_-15px_rgba(31,28,27,0.08)] rounded-2xl'
     }`}>
-      {isDebugMode && currentIndex > 0 && currentIndex < cards.length - 1 && (
+      {isDebugMode && showNavigationChrome && (
         <div className="pointer-events-none absolute right-6 top-4 z-30">
           <div className={`rounded border px-3 py-1 text-[10px] uppercase tracking-[0.15em] ${isDarkMode ? 'border-[#64F4F5]/50 bg-black/50 text-[#64F4F5]' : 'border-[#C74601]/35 bg-[#FFF3EC] text-[#C74601]'}`}>
             QA: ON
@@ -1712,7 +1891,7 @@ const FlowCards = ({
         </div>
       )}
       {/* Header */}
-      {currentIndex > 0 && currentIndex < cards.length - 1 && (
+      {showNavigationChrome && (
       <header className={`flex shrink-0 items-center justify-between px-8 py-5 transition-colors ${
         isDarkMode ? 'border-b border-white/5' : 'border-b-2 border-[#E5E4E3] bg-white'
       }`}>
@@ -1724,14 +1903,14 @@ const FlowCards = ({
           />
         </div>
 
-        {currentIndex > 0 && currentIndex < cards.length - 1 && (
+        {showNavigationChrome && (
           <div className="flex items-center gap-4">
             <div className={`text-xl font-medium tracking-widest px-5 py-1.5 border transition-colors ${
               isDarkMode 
                 ? 'text-white/50 bg-black/50 border-white/10 backdrop-blur-sm shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] rounded' 
                 : 'text-[#1F1C1B] font-semibold bg-[#F7FEFF] border-2 border-[#007970] shadow-[3px_3px_0_#007970] rounded-lg'
             }`}>
-              {currentIndex} <span className={isDarkMode ? 'text-[#C74601]' : 'text-[#007970]'}>/ {cards.length - 2}</span>
+              {currentProgressStep} <span className={isDarkMode ? 'text-[#C74601]' : 'text-[#007970]'}>/ {totalProgressSteps}</span>
             </div>
           </div>
         )}
@@ -1739,11 +1918,11 @@ const FlowCards = ({
       )}
 
       {/* Progress Bar */}
-      {currentIndex > 0 && currentIndex < cards.length - 1 && (
+      {showNavigationChrome && (
         <div className={`w-full relative overflow-hidden shrink-0 ${isDarkMode ? 'bg-white/5 h-1' : 'bg-[#E5E4E3] h-1.5'}`}>
           <div 
             className={`absolute top-0 left-0 h-full bg-gradient-to-r from-[#007970] via-[#64F4F5] to-[#C74601] transition-all duration-700 ease-out ${isDarkMode ? 'shadow-[0_0_15px_#C74601]' : ''}`}
-            style={{ width: `${((currentIndex + (currentPanelMode === 'main' ? 0.3 : currentPanelMode === 'additional' ? 0.6 : 1)) / (cards.length - 2)) * 100}%` }}
+            style={{ width: `${((currentProgressStep + (currentPanelMode === 'main' ? 0.3 : currentPanelMode === 'additional' ? 0.6 : 1)) / totalProgressSteps) * 100}%` }}
           />
         </div>
       )}
@@ -1802,7 +1981,7 @@ const FlowCards = ({
       </main>
 
       {/* Footer Controls */}
-      {currentIndex > 0 && currentIndex < cards.length - 1 && (
+      {showNavigationChrome && (
         <footer className={`px-8 py-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4 relative z-20 shrink-0 transition-colors ${
           isDarkMode ? 'border-t border-white/5 bg-[#0A0A0C]/80 backdrop-blur-xl' : 'border-t-2 border-[#E5E4E3] bg-[#FAFBF8]'
         }`}>
