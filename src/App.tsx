@@ -291,6 +291,19 @@ const VOICE_RECORDING_BY_TITLE = (() => {
     }
   }
 
+  // Manual mapping for Homebound Criteria: Core Standard (card 10)
+  // If a recording filename includes "homebound criteria" or starts with "10 Homebound", map it explicitly.
+  const homeboundCardTitle = 'Homebound Criteria: Core Standard'
+  if (!mapping.has(homeboundCardTitle)) {
+    for (const [filePath, audioUrl] of Object.entries(VOICE_RECORDINGS)) {
+      const stem = normalizeText(getRecordingStemFromPath(filePath))
+      if (stem.includes('homebound criteria') || stem.startsWith('10 homebound')) {
+        mapping.set(homeboundCardTitle, audioUrl)
+        break
+      }
+    }
+  }
+
   return mapping
 })()
 
