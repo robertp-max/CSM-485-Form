@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Compliance Gap: LMS vs. Recorded Video</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome (for icons) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Placeholder Comments -->
+    <!-- Chosen Palette: "Corporate Trust" - Warm Slate Neutrals (Bg), Indigo (Primary/LMS), Rose (Risk/Video), Emerald (Success). Designed to feel professional, authoritative, and calm. -->
+    
+    <!-- Application Structure Plan: 
+         1. Hero Section: Establishes the core conflict (Delivery vs. Management).
+         2. Interactive Simulator (The Core Interaction): Allows users to "test" a strategy (Video vs. LMS) and see the calculated 'Risk Score' and 'Audit Readiness' update dynamically. This gamifies the "Why LMS is better" argument.
+         3. Comparative Analysis (Radar Chart): Visualizes the qualitative differences in 5 key dimensions.
+         4. Regulatory Landscape: Breaks down specific laws (OSHA, HIPAA) requiring the data trails that only LMS provides.
+         5. Use & Misuse Matrix: A filterable card layout to concretely demonstrate where each method succeeds or fails.
+         Why this structure? The report is heavy on abstract concepts (compliance, audit trails). By starting with a Simulator, we make the abstract concrete immediately.
+    -->
+
+    <!-- Visualization & Content Choices:
+         1. Simulator Gauge (Donut Chart): Goal -> Inform/Impact. Method -> Chart.js Doughnut. Interaction -> Toggles update data. Justification -> Immediate visual feedback on the "danger" of using video alone.
+         2. Strategic Fit (Radar Chart): Goal -> Compare. Method -> Chart.js Radar. Interaction -> Hover for details. Justification -> Shows that while Video scores high on "Ease of Creation", it fails on "Control" and "Analytics".
+         3. Compliance Checklist (Dynamic DOM): Goal -> Inform/Regulations. Method -> HTML/JS Toggle. Justification -> Users need to see the specific clause (e.g., 21 CFR Part 11) that Video violates.
+         4. Scenario Cards: Goal -> Organize/Use Cases. Method -> Flex Grid + Filter Logic. Justification -> distinct examples help users map the theory to their daily operations.
+    -->
+
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Slate 50 */
+            color: #334155; /* Slate 700 */
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Chart Container Utilities (Strictly enforced) */
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: 40vh;
+            max-height: 400px;
+            min-height: 300px;
+        }
+
+        .radar-wrapper {
+            position: relative;
+            width: 100%;
+            height: 50vh;
+            max-height: 500px;
+            min-height: 350px;
+            margin: 0 auto;
+        }
+
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease-in-out;
+        }
+        .card-shadow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Animation utilities */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-indigo-600 text-xl"></i>
+                    <span class="font-bold text-xl text-slate-800 tracking-tight">Formal<span class="text-indigo-600">Train</span> Analytics</span>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <button onclick="scrollToSection('simulator')" class="text-slate-600 hover:text-indigo-600 font-medium transition">Risk Simulator</button>
+                    <button onclick="scrollToSection('analysis')" class="text-slate-600 hover:text-indigo-600 font-medium transition">Data Analysis</button>
+                    <button onclick="scrollToSection('regulations')" class="text-slate-600 hover:text-indigo-600 font-medium transition">Regulations</button>
+                    <button onclick="scrollToSection('cases')" class="text-slate-600 hover:text-indigo-600 font-medium transition">Use Cases</button>
+                </div>
+                <button class="md:hidden text-slate-600" id="mobile-menu-btn">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu (Hidden by default) -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-slate-100 p-4">
+            <div class="flex flex-col space-y-4">
+                <button onclick="scrollToSection('simulator')" class="text-left text-slate-600 font-medium">Risk Simulator</button>
+                <button onclick="scrollToSection('analysis')" class="text-left text-slate-600 font-medium">Data Analysis</button>
+                <button onclick="scrollToSection('regulations')" class="text-left text-slate-600 font-medium">Regulations</button>
+                <button onclick="scrollToSection('cases')" class="text-left text-slate-600 font-medium">Use Cases</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+            <div class="text-center max-w-3xl mx-auto">
+                <div class="inline-flex items-center px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-sm font-semibold mb-6">
+                    <span class="mr-2">●</span> Source Report Analysis
+                </div>
+                <h1 class="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight mb-6">
+                    The Audit Trail Gap: <br>
+                    <span class="text-indigo-600">LMS</span> vs. <span class="text-rose-500">Recorded Video</span>
+                </h1>
+                <p class="text-lg text-slate-600 mb-8 leading-relaxed">
+                    While recorded video is a powerful <em>medium</em> for content delivery, research confirms it fails as a <em>mechanism</em> for formal training. This interactive report explores the critical deficits in tracking, compliance, and cognitive engagement when relying on video files alone.
+                </p>
+                <div class="flex justify-center gap-4">
+                    <button onclick="scrollToSection('simulator')" class="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
+                        Run Risk Simulator
+                    </button>
+                    <button onclick="scrollToSection('cases')" class="px-6 py-3 bg-white text-slate-700 border border-slate-300 rounded-lg font-semibold hover:bg-slate-50 transition">
+                        Explore Misuse Cases
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Section 1: The Simulator (Interactive Dashboard) -->
+    <section id="simulator" class="py-16 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-10">
+                <h2 class="text-3xl font-bold text-slate-900 mb-4">Training Risk Simulator</h2>
+                <p class="text-slate-600 max-w-2xl">
+                    Adjust the parameters below to see how different training delivery methods impact your organization's <strong>Audit Readiness</strong> and <strong>Compliance Risk</strong>. Formal training requires proof of understanding, not just proof of distribution.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Controls -->
+                <div class="lg:col-span-4 bg-white p-6 rounded-xl border border-slate-200 card-shadow h-fit">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-6 border-b border-slate-100 pb-3">Configuration</h3>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Delivery Method</label>
+                            <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-lg">
+                                <button id="btn-video" class="px-4 py-2 rounded-md text-sm font-medium bg-white text-indigo-600 shadow-sm transition" onclick="setMode('video')">Raw Video File</button>
+                                <button id="btn-lms" class="px-4 py-2 rounded-md text-sm font-medium text-slate-500 hover:text-slate-700 transition" onclick="setMode('lms')">LMS Platform</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Required Compliance Level</label>
+                            <select id="compliance-level" class="w-full border-slate-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm p-2 border" onchange="updateSimulator()">
+                                <option value="low">Internal Policy (Low)</option>
+                                <option value="med">Industry Standard (ISO 9001)</option>
+                                <option value="high">Strict Regulatory (OSHA/HIPAA)</option>
+                            </select>
+                        </div>
+
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                            <h4 class="text-sm font-semibold text-blue-800 mb-1" id="sim-status-title">Current State: Video</h4>
+                            <p class="text-xs text-blue-600" id="sim-status-desc">
+                                Training distributed via MP4 link or shared drive. No metadata on user interaction.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Output -->
+                <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Gauge 1: Risk -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 card-shadow flex flex-col items-center">
+                        <h4 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Compliance Risk Score</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="riskChart"></canvas>
+                        </div>
+                        <p id="risk-text" class="text-center text-sm font-medium text-rose-600 mt-4">High Risk: No Audit Trail</p>
+                    </div>
+
+                    <!-- Gauge 2: Readiness -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 card-shadow flex flex-col items-center">
+                        <h4 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Audit Readiness</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="readinessChart"></canvas>
+                        </div>
+                        <p id="readiness-text" class="text-center text-sm font-medium text-slate-500 mt-4">0% Ready</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dynamic Insight Box -->
+            <div id="insight-box" class="mt-8 bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-lg transition-all duration-300">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-500 mt-0.5"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-rose-800">Critical Vulnerability Detected</h3>
+                        <div class="mt-2 text-sm text-rose-700">
+                            <p>
+                                Using raw video files creates a "Black Box" phenomenon. You know you sent the file, but you cannot prove legally who watched it, when they watched it, or if they understood it. In a court of law or audit, <span class="font-bold">if it isn't documented, it didn't happen.</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 2: Comparative Analysis (Radar) -->
+    <section id="analysis" class="py-16 bg-white border-t border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                
+                <!-- Text Content -->
+                <div>
+                    <div class="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold mb-4">
+                        Data Analysis
+                    </div>
+                    <h2 class="text-3xl font-bold text-slate-900 mb-6">The Multidimensional Gap</h2>
+                    <p class="text-slate-600 mb-6 leading-relaxed">
+                        The report highlights that while Video excels in <strong>Accessibility</strong> and <strong>Cost of Creation</strong>, it collapses in areas critical for formal organizational training: <strong>Accountability</strong>, <strong>Interactivity</strong>, and <strong>Data Granularity</strong>.
+                    </p>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                <i class="fa-solid fa-magnifying-glass-chart"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="text-lg font-medium text-slate-900">Granular Analytics</h4>
+                                <p class="text-sm text-slate-500">LMS tracks timestamps, pause rates, and quiz attempts. Video only tracks "views" (often aggregated).</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                <i class="fa-solid fa-brain"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="text-lg font-medium text-slate-900">Cognitive Engagement</h4>
+                                <p class="text-sm text-slate-500">LMS enforces active learning via checkpoints. Video encourages passive consumption (the "background noise" effect).</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Radar Chart -->
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                    <h3 class="text-center text-sm font-semibold text-slate-500 mb-2">Capability Matrix</h3>
+                    <div class="radar-wrapper">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                    <div class="mt-4 flex justify-center gap-6 text-sm">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
+                            <span class="text-slate-600">LMS System</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-rose-400"></span>
+                            <span class="text-slate-600">Recorded Video</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 3: Regulations & Compliance -->
+    <section id="regulations" class="py-16 bg-slate-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold mb-4">The Regulatory Reality</h2>
+                <p class="text-slate-400 max-w-2xl mx-auto">
+                    Why "watching a video" is insufficient for legal compliance. The following regulations explicitly require data trails that standard video files cannot provide.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Reg Card 1 -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-indigo-500 transition duration-300">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-white">OSHA</h3>
+                        <i class="fa-solid fa-helmet-safety text-orange-500 text-2xl"></i>
+                    </div>
+                    <p class="text-slate-400 text-sm mb-4">Occupational Safety and Health Administration</p>
+                    <div class="bg-slate-900/50 p-3 rounded border border-slate-700 mb-4">
+                        <p class="text-xs text-indigo-300 font-mono">Requirement: Proof of Comprehension</p>
+                    </div>
+                    <p class="text-sm text-slate-300">
+                        OSHA audits often look for evidence that employees *understood* safety protocols, not just attended. LMS quizzes provide this proof; video views do not.
+                    </p>
+                </div>
+
+                <!-- Reg Card 2 -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-indigo-500 transition duration-300">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-white">21 CFR Part 11</h3>
+                        <i class="fa-solid fa-file-signature text-blue-400 text-2xl"></i>
+                    </div>
+                    <p class="text-slate-400 text-sm mb-4">FDA Electronic Records</p>
+                    <div class="bg-slate-900/50 p-3 rounded border border-slate-700 mb-4">
+                        <p class="text-xs text-indigo-300 font-mono">Requirement: Electronic Signatures & Audit Trails</p>
+                    </div>
+                    <p class="text-sm text-slate-300">
+                        Requires a secure, computer-generated, time-stamped audit trail. A simple video playback log is easily manipulated and insufficient for FDA standards.
+                    </p>
+                </div>
+
+                <!-- Reg Card 3 -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-indigo-500 transition duration-300">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-white">GDPR & ISO</h3>
+                        <i class="fa-solid fa-shield-halved text-emerald-400 text-2xl"></i>
+                    </div>
+                    <p class="text-slate-400 text-sm mb-4">Data Protection & Quality Standards</p>
+                    <div class="bg-slate-900/50 p-3 rounded border border-slate-700 mb-4">
+                        <p class="text-xs text-indigo-300 font-mono">Requirement: Competence Verification</p>
+                    </div>
+                    <p class="text-sm text-slate-300">
+                        ISO 9001 requires organizations to "retain appropriate documented information" as evidence of competence. LMS certificates serve as this legal evidence.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 4: Use & Misuse Cases -->
+    <section id="cases" class="py-16 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-10">
+                <div>
+                    <h2 class="text-3xl font-bold text-slate-900">Use & Misuse Matrix</h2>
+                    <p class="text-slate-600 mt-2">Filter scenarios to understand where each technology belongs.</p>
+                </div>
+                
+                <div class="mt-4 md:mt-0 flex bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
+                    <button class="px-4 py-2 text-sm font-medium rounded-md bg-indigo-100 text-indigo-700 filter-btn active-filter" data-filter="all" onclick="filterCases('all')">All</button>
+                    <button class="px-4 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50 filter-btn" data-filter="lms-win" onclick="filterCases('lms-win')">LMS Ideal</button>
+                    <button class="px-4 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50 filter-btn" data-filter="video-win" onclick="filterCases('video-win')">Video Ideal</button>
+                    <button class="px-4 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50 filter-btn" data-filter="misuse" onclick="filterCases('misuse')">Critical Misuse</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="cases-grid">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-slate-500 text-sm">
+                Generated Interactive Report Analysis<br>
+                Based on research regarding LMS efficacy vs. Static Media.
+            </p>
+            <p class="text-slate-400 text-xs mt-4">
+                &copy; 2023 Analysis Artifact. No external database connected.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // --- Data & State ---
+        const casesData = [
+            {
+                id: 1,
+                category: 'lms-win',
+                title: 'Sexual Harassment Prevention',
+                icon: 'fa-scale-balanced',
+                desc: 'Mandatory annual training requiring proof of completion and understanding to protect the company from liability.',
+                reason: 'LMS provides the legal audit trail required in court.'
+            },
+            {
+                id: 2,
+                category: 'video-win',
+                title: 'Quick Software Update',
+                icon: 'fa-laptop-code',
+                desc: 'A 2-minute screen capture showing a button location change in internal software.',
+                reason: 'LMS is overkill. Speed of distribution is key here.'
+            },
+            {
+                id: 3,
+                category: 'misuse',
+                title: 'Heavy Machinery Safety',
+                icon: 'fa-truck-medical',
+                desc: 'Sending a YouTube link to forklift operators regarding new load balancing protocols.',
+                reason: 'MISUSE: No way to verify if the operator watched or understood. High injury/liability risk.'
+            },
+            {
+                id: 4,
+                category: 'lms-win',
+                title: 'Onboarding Certification',
+                icon: 'fa-id-badge',
+                desc: 'New hire track involving 5 modules, 3 quizzes, and a policy acknowledgement signature.',
+                reason: 'LMS structures the learning path and automates reminders.'
+            },
+            {
+                id: 5,
+                category: 'misuse',
+                title: 'CEO Weekly Update',
+                icon: 'fa-user-tie',
+                desc: 'Forcing employees to log into an LMS, enroll, and take a quiz just to hear the CEO say "Good job".',
+                reason: 'MISUSE: Creates friction. This should be a simple video link.'
+            },
+            {
+                id: 6,
+                category: 'lms-win',
+                title: 'HIPAA Data Privacy',
+                icon: 'fa-user-nurse',
+                desc: 'Healthcare staff training on patient data handling.',
+                reason: 'Regulatory requirement for documented evidence of competence.'
+            }
+        ];
+
+        // --- Chart Configs ---
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#64748b';
+
+        let riskChartInstance = null;
+        let readinessChartInstance = null;
+        let radarChartInstance = null;
+
+        // --- Core Functions ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            renderCases('all');
+        });
+
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // --- Simulator Logic ---
+        function setMode(mode) {
+            // Update UI buttons
+            const btnVideo = document.getElementById('btn-video');
+            const btnLms = document.getElementById('btn-lms');
+            const statusTitle = document.getElementById('sim-status-title');
+            const statusDesc = document.getElementById('sim-status-desc');
+            const insightBox = document.getElementById('insight-box');
+            
+            // Toggle Visuals
+            if (mode === 'video') {
+                btnVideo.className = "px-4 py-2 rounded-md text-sm font-medium bg-white text-indigo-600 shadow-sm transition";
+                btnVideo.classList.remove('text-slate-500');
+                
+                btnLms.className = "px-4 py-2 rounded-md text-sm font-medium text-slate-500 hover:text-slate-700 transition";
+                
+                statusTitle.innerText = "Current State: Raw Video File";
+                statusTitle.className = "text-sm font-semibold text-rose-800 mb-1";
+                statusTitle.parentElement.className = "bg-rose-50 p-4 rounded-lg border border-rose-100";
+                statusDesc.innerText = "Training distributed via MP4 link. No tracking data.";
+                statusDesc.className = "text-xs text-rose-600";
+
+                insightBox.className = "mt-8 bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-lg transition-all duration-300 fade-in";
+                insightBox.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0"><i class="fa-solid fa-triangle-exclamation text-rose-500 mt-0.5"></i></div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-rose-800">Critical Vulnerability</h3>
+                            <div class="mt-2 text-sm text-rose-700"><p>Using raw video leaves you with no legal proof of training. In a compliance audit, you would likely fail.</p></div>
+                        </div>
+                    </div>`;
+
+            } else {
+                btnLms.className = "px-4 py-2 rounded-md text-sm font-medium bg-white text-indigo-600 shadow-sm transition";
+                btnLms.classList.remove('text-slate-500');
+                
+                btnVideo.className = "px-4 py-2 rounded-md text-sm font-medium text-slate-500 hover:text-slate-700 transition";
+
+                statusTitle.innerText = "Current State: LMS Platform";
+                statusTitle.className = "text-sm font-semibold text-emerald-800 mb-1";
+                statusTitle.parentElement.className = "bg-emerald-50 p-4 rounded-lg border border-emerald-100";
+                statusDesc.innerText = "Centralized tracking, interactive quizzes, and certificates.";
+                statusDesc.className = "text-xs text-emerald-600";
+
+                insightBox.className = "mt-8 bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-lg transition-all duration-300 fade-in";
+                insightBox.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0"><i class="fa-solid fa-circle-check text-emerald-500 mt-0.5"></i></div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-emerald-800">Audit Ready</h3>
+                            <div class="mt-2 text-sm text-emerald-700"><p>The LMS records timestamps, quiz scores, and digital signatures. You can generate a compliance report instantly.</p></div>
+                        </div>
+                    </div>`;
+            }
+
+            // Store current mode for calculator
+            window.currentSimMode = mode;
+            updateSimulator();
+        }
+
+        function updateSimulator() {
+            const mode = window.currentSimMode || 'video';
+            const level = document.getElementById('compliance-level').value;
+            
+            let riskValue = 0;
+            let readinessValue = 0;
+            let riskLabel = "";
+            let readinessLabel = "";
+            let riskColor = "";
+
+            // Logic Calculation based on source report findings
+            if (mode === 'video') {
+                if (level === 'low') {
+                    riskValue = 40; readinessValue = 20;
+                    riskLabel = "Moderate Risk"; riskColor = "#fbbf24"; // Amber
+                } else if (level === 'med') {
+                    riskValue = 85; readinessValue = 5;
+                    riskLabel = "High Risk"; riskColor = "#f43f5e"; // Rose
+                } else { // high
+                    riskValue = 99; readinessValue = 0;
+                    riskLabel = "Critical Failure"; riskColor = "#be123c"; // Dark Rose
+                }
+            } else { // LMS
+                if (level === 'low') {
+                    riskValue = 5; readinessValue = 95;
+                    riskLabel = "Minimal Risk"; riskColor = "#10b981"; // Emerald
+                } else if (level === 'med') {
+                    riskValue = 10; readinessValue = 90;
+                    riskLabel = "Compliant"; riskColor = "#10b981";
+                } else { // high
+                    riskValue = 15; readinessValue = 85; // Never 100% due to human error
+                    riskLabel = "Audit Ready"; riskColor = "#10b981";
+                }
+            }
+
+            // Update Charts
+            updateDoughnut(riskChartInstance, riskValue, riskColor);
+            updateDoughnut(readinessChartInstance, readinessValue, "#6366f1");
+
+            // Update Text
+            const riskText = document.getElementById('risk-text');
+            riskText.innerText = riskLabel;
+            riskText.style.color = riskColor;
+
+            const readText = document.getElementById('readiness-text');
+            readText.innerText = `${readinessValue}% Ready`;
+        }
+
+        function updateDoughnut(chart, value, color) {
+            chart.data.datasets[0].data = [value, 100 - value];
+            chart.data.datasets[0].backgroundColor = [color, '#f1f5f9'];
+            chart.update();
+        }
+
+        // --- Chart Initialization ---
+        function initCharts() {
+            // Risk Chart
+            const ctxRisk = document.getElementById('riskChart').getContext('2d');
+            riskChartInstance = new Chart(ctxRisk, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Risk', 'Safe'],
+                    datasets: [{
+                        data: [85, 15],
+                        backgroundColor: ['#f43f5e', '#f1f5f9'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                }
+            });
+
+            // Readiness Chart
+            const ctxRead = document.getElementById('readinessChart').getContext('2d');
+            readinessChartInstance = new Chart(ctxRead, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ready', 'Missing'],
+                    datasets: [{
+                        data: [5, 95],
+                        backgroundColor: ['#6366f1', '#f1f5f9'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                }
+            });
+
+            // Radar Chart (Analysis)
+            const ctxRadar = document.getElementById('radarChart').getContext('2d');
+            radarChartInstance = new Chart(ctxRadar, {
+                type: 'radar',
+                data: {
+                    labels: ['Analytics & Tracking', 'User Engagement', 'Security/Control', 'Ease of Creation', 'Scalability'],
+                    datasets: [{
+                        label: 'LMS',
+                        data: [95, 85, 90, 40, 95],
+                        fill: true,
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                        borderColor: 'rgb(99, 102, 241)',
+                        pointBackgroundColor: 'rgb(99, 102, 241)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(99, 102, 241)'
+                    }, {
+                        label: 'Video File',
+                        data: [10, 30, 20, 95, 40],
+                        fill: true,
+                        backgroundColor: 'rgba(244, 63, 94, 0.2)',
+                        borderColor: 'rgb(244, 63, 94)',
+                        pointBackgroundColor: 'rgb(244, 63, 94)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(244, 63, 94)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    elements: {
+                        line: { borderWidth: 3 }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: { color: '#e2e8f0' },
+                            grid: { color: '#e2e8f0' },
+                            pointLabels: {
+                                font: { size: 11, weight: '600' },
+                                color: '#475569'
+                            },
+                            ticks: { display: false, backdropColor: 'transparent' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // Initial Sim calculation
+            window.currentSimMode = 'video';
+            updateSimulator();
+        }
+
+        // --- Case Library Logic ---
+        function filterCases(filter) {
+            // Update buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if(btn.getAttribute('data-filter') === filter) {
+                    btn.classList.add('bg-indigo-100', 'text-indigo-700');
+                    btn.classList.remove('text-slate-600', 'hover:bg-slate-50');
+                } else {
+                    btn.classList.remove('bg-indigo-100', 'text-indigo-700');
+                    btn.classList.add('text-slate-600', 'hover:bg-slate-50');
+                }
+            });
+            renderCases(filter);
+        }
+
+        function renderCases(filter) {
+            const container = document.getElementById('cases-grid');
+            container.innerHTML = '';
+
+            const filtered = filter === 'all' ? casesData : casesData.filter(c => c.category === filter);
+
+            filtered.forEach(item => {
+                // Determine styling based on category
+                let tagColor = '';
+                let tagText = '';
+                if(item.category === 'lms-win') { tagColor = 'bg-emerald-100 text-emerald-700'; tagText = 'LMS Use Case'; }
+                else if(item.category === 'video-win') { tagColor = 'bg-blue-100 text-blue-700'; tagText = 'Video Use Case'; }
+                else { tagColor = 'bg-rose-100 text-rose-700'; tagText = 'Misuse Case'; }
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-6 rounded-xl border border-slate-200 card-shadow fade-in flex flex-col";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-semibold ${tagColor}">${tagText}</span>
+                        <i class="fa-solid ${item.icon} text-slate-400 text-lg"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">${item.title}</h3>
+                    <p class="text-slate-600 text-sm mb-4 flex-grow">${item.desc}</p>
+                    <div class="mt-4 pt-4 border-t border-slate-100">
+                        <p class="text-xs font-semibold text-slate-500 uppercase">Analysis</p>
+                        <p class="text-sm text-slate-700 italic">"${item.reason}"</p>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+        
+        // Mobile Menu Toggle
+        document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+             const menu = document.getElementById('mobile-menu');
+             menu.classList.toggle('hidden');
+        });
+
+    </script>
+</body>
+</html>

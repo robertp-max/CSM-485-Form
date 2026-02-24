@@ -24,6 +24,7 @@ import { Button } from './components/ui/Button'
 import { Card } from './components/ui/Card'
 import { PlanOfCareFocusPanel } from './components/PlanOfCareFocusPanel'
 import { CIArchitectureCard } from './components/CIArchitectureCard'
+import { Cms485VirtualForm } from './components/Cms485VirtualForm'
 import titleMedia from './assets/CI Home Health Logo_White.png'
 import headerLogoGray from './assets/CI Home Health Logo_Gray.png'
 import coverBanner from './assets/CMS-485 LMS Banner.png'
@@ -33,9 +34,9 @@ import { TRAINING_CARDS } from './data/trainingCards'
 import { CARD_METADATA } from './data/cardMetadata'
 
 // Quick links to supplemental documentation (open in new tab)
-const SYSTEMS_DOC_URL = new URL('./assets/CI_eLearning_Architecture.txt', import.meta.url).href
-const COURSE_FRAMEWORK_URL = new URL('../card-content.txt', import.meta.url).href
-const MASTERING_CMS485_URL = new URL('./assets/CMS-485 Research.md', import.meta.url).href
+const SYSTEMS_DOC_URL = import.meta.env.BASE_URL + 'systems-documentation.html'
+const COURSE_FRAMEWORK_URL = import.meta.env.BASE_URL + 'course-framework.html'
+const MASTERING_CMS485_URL = import.meta.env.BASE_URL + 'mastering-cms485.html'
 
 const ANIMATION_MS = 320
 const COVER_ZOOM_MS = 180
@@ -1325,6 +1326,7 @@ const FlowCards = ({
   const [finalTestAnswers, setFinalTestAnswers] = useState<Record<string, number>>({})
   const [liveStatus, setLiveStatus] = useState('')
   const [showCIArchitecture, setShowCIArchitecture] = useState(false)
+  const [showVirtualForm, setShowVirtualForm] = useState(false)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const touchStartXRef = useRef<number | null>(null)
   const audioElementRef = useRef<HTMLAudioElement | null>(null)
@@ -1993,6 +1995,7 @@ const FlowCards = ({
       </header>
       )}
       {showCIArchitecture && <CIArchitectureCard onClose={() => setShowCIArchitecture(false)} />}
+      {showVirtualForm && <Cms485VirtualForm onClose={() => setShowVirtualForm(false)} />}
 
       {/* Progress Bar */}
       {showNavigationChrome && (
@@ -2077,6 +2080,18 @@ const FlowCards = ({
                 <span className="hidden sm:inline">Return</span>
               </Button>
             </div>
+              <Button
+                variant="ghost"
+                onClick={() => setShowVirtualForm(true)}
+                className={`gap-2 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] border transition-all duration-300 ${
+                  isDarkMode
+                    ? 'border-[#64F4F5]/40 text-[#64F4F5] hover:bg-[#64F4F5]/15 hover:border-[#64F4F5] hover:shadow-[0_0_18px_rgba(100,244,245,0.35)]'
+                    : 'border-[#007970]/30 text-[#007970] hover:bg-[#007970]/10 hover:border-[#007970]'
+                }`}
+              >
+                <FileText className="h-4 w-4" />
+                <span className="hidden md:inline">Virtual CMS-485</span>
+              </Button>
 
             {/* Center: Audio Controls */}
             <div className="flex flex-col items-center gap-2 justify-self-center">

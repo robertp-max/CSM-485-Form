@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI eLearner — Course Framework</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap');
+        .font-heading { font-family: 'Montserrat', sans-serif; }
+        .font-body   { font-family: 'Roboto', sans-serif; }
+
+        .bg-noise { position: relative; }
+        .bg-noise::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0F0F11; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+        @keyframes glitch-slide {
+            0% { opacity: 0; transform: translateY(20px); filter: blur(3px); }
+            100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+        .animate-glitch { animation: glitch-slide 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        .section-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            padding: 4px 12px;
+            border-radius: 4px;
+            border: 1px solid;
+        }
+
+        .card-row:hover { border-color: rgba(100, 244, 245, 0.3) !important; }
+        .card-row { transition: border-color 0.3s, background-color 0.3s; }
+
+        .filter-btn.active {
+            background: rgba(100, 244, 245, 0.12);
+            color: #64F4F5;
+            border-color: rgba(100, 244, 245, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-[#09090b] text-white font-body min-h-screen bg-noise">
+
+    <!-- Fixed Background Glows -->
+    <div class="fixed top-[-15%] left-[5%] w-[600px] h-[600px] bg-[#007970]/8 rounded-full blur-[160px] pointer-events-none"></div>
+    <div class="fixed bottom-[-15%] right-[5%] w-[500px] h-[500px] bg-[#C74601]/6 rounded-full blur-[140px] pointer-events-none"></div>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-30 bg-[#121214]/95 backdrop-blur-xl border-b border-white/5">
+        <div class="max-w-6xl mx-auto px-8 py-5 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <img 
+                    src="https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png" 
+                    alt="CareIndeed" 
+                    class="h-7 w-auto object-contain opacity-90"
+                />
+                <div>
+                    <h1 class="text-lg font-heading font-semibold text-white tracking-tight">Course Framework</h1>
+                    <p class="text-[10px] text-white/30 uppercase tracking-[0.2em] font-heading">36 Training Cards · CMS-485 Compliance</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="card-count" class="text-sm font-heading font-medium text-white/40">36 cards</span>
+                <div class="text-xl font-heading font-medium tracking-widest text-white/30 bg-black/50 px-4 py-1.5 border border-white/10 rounded">
+                    <span class="text-[#64F4F5]" id="section-count">12</span> <span class="text-white/20">sections</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Filter Bar -->
+    <div class="sticky top-[73px] z-20 bg-[#0F0F11]/95 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-6xl mx-auto px-8 py-3 flex items-center gap-2 overflow-x-auto">
+            <button onclick="filterSection('all')" class="filter-btn active shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">All</button>
+            <button onclick="filterSection('Foundation')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Foundation</button>
+            <button onclick="filterSection('Regulatory Authority')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Regulatory</button>
+            <button onclick="filterSection('Certification Lifecycle')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Certification</button>
+            <button onclick="filterSection('Orders & Signatures')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Orders</button>
+            <button onclick="filterSection('Eligibility')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Eligibility</button>
+            <button onclick="filterSection('Clinical Necessity')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Clinical</button>
+            <button onclick="filterSection('Medical Necessity')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Medical</button>
+            <button onclick="filterSection('Clinical Alignment')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Alignment</button>
+            <button onclick="filterSection('Coding Context')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Coding</button>
+            <button onclick="filterSection('Service Planning')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Services</button>
+            <button onclick="filterSection('Survey Readiness')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Survey</button>
+            <button onclick="filterSection('Case Cards')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Cases</button>
+            <button onclick="filterSection('Takeaways')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Takeaways</button>
+        </div>
+    </div>
+
+    <!-- Cards Grid -->
+    <main class="max-w-6xl mx-auto px-8 py-10 relative z-10">
+        <div id="cards-grid" class="space-y-4">
+            <!-- Cards injected by JS -->
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/5 bg-[#0A0A0C]/80 py-6 text-center">
+        <p class="text-[10px] text-white/20 font-heading uppercase tracking-[0.2em]">Care Indeed Home Health · CMS-485 Training Framework</p>
+    </footer>
+
+    <script>
+        const cards = [
+            { id: 1, title: "What CMS-485 Is and Why It Matters", section: "Foundation", objective: "Define CMS-485 as the Plan of Care format and connect it to payment and survey outcomes.", bullets: ["CMS-485 is a structured Plan of Care representation used to communicate ordered home health services.", "Defensible POC documentation supports clinician decision-making, patient safety, and reimbursement integrity.", "Weak or inconsistent POC content is a common root cause of denials and condition-level survey findings."], audit: "Reviewer expectation: one coherent story from certification through claim." },
+            { id: 2, title: "Why Documentation Quality Drives Outcomes", section: "Foundation", objective: "Explain the operational impact of complete and traceable POC documentation.", bullets: ["High-quality documentation reduces claim rework and prevents preventable ADR escalation.", "Clear skilled rationale improves interdisciplinary execution and handoff quality.", "Documentation quality is both a compliance control and a care-quality control."] },
+            { id: 3, title: "CoPs Authority for the Plan of Care", section: "Regulatory Authority", objective: "Tie Plan of Care expectations to Conditions of Participation requirements.", bullets: ["The Plan of Care must be established and periodically reviewed by the authorized practitioner.", "POC content must remain patient-specific and clinically linked to current assessment findings.", "Agencies must operationalize CoP requirements in workflow, not only policy language."] },
+            { id: 4, title: "Required POC Content Elements", section: "Regulatory Authority", objective: "Identify required Plan of Care elements that must be complete and traceable.", bullets: ["Diagnoses, measurable goals, interventions, disciplines, frequency, and duration must be explicit.", "Safety risks, homebound support, and discharge planning must be addressed when applicable.", "Missing required elements can invalidate necessity narrative and delay compliant billing."] },
+            { id: 5, title: "Certification vs Recertification", section: "Certification Lifecycle", objective: "Differentiate certification and recertification requirements in practical workflow terms.", bullets: ["Certification establishes initial eligibility and plan authorization for the episode window.", "Recertification must reflect ongoing need and updated clinical status, not copy-forward text.", "Certification cycles must remain synchronized with reassessment and care progression."] },
+            { id: 6, title: "Recertification Drift Risk", section: "Certification Lifecycle", objective: "Prevent recertification failures caused by stale goals or unchanged rationale.", bullets: ["Unchanged goals across episodes can signal poor clinical reassessment and weak necessity support.", "Recert content must show progress, barriers, and revised interventions where indicated.", "Recertification should document why continued skilled services remain reasonable and necessary."], audit: "Common denial pattern: recert narrative does not match visit-level documentation." },
+            { id: 7, title: "Physician Orders: Required Specificity", section: "Orders & Signatures", objective: "Define order language that is compliant, specific, and executable.", bullets: ["Orders must include discipline, intervention, frequency, duration, and clinical intent.", "Vague order wording creates interpretation risk and weakens review defensibility.", "Order precision supports consistency between plan and visit execution."] },
+            { id: 8, title: "Signature Timing and Dating Rules", section: "Orders & Signatures", objective: "Apply signature timing controls to prevent avoidable billing defects.", bullets: ["Required signatures must be completed and dated according to policy and payer expectations.", "Late signatures are objective defects and common denial drivers in post-payment review.", "A billing hard-stop should prevent release when signature prerequisites are incomplete."] },
+            { id: 9, title: "Acceptable Signature Methods", section: "Orders & Signatures", objective: "Distinguish acceptable signature approaches and documentation expectations.", bullets: ["Electronic signatures must maintain identity integrity and audit traceability.", "Signature method must be consistently documented across compliance artifacts.", "Authentication controls should be validated during onboarding and periodic audits."] },
+            { id: 10, title: "Homebound Criteria: Core Standard", section: "Eligibility", objective: "Define homebound status in precise, defensible clinical language.", bullets: ["Homebound status must describe taxing effort and condition-related limitation to leaving home.", "Documentation should include objective detail, not generic statements.", "Homebound rationale should remain aligned with assessment and visit findings."] },
+            { id: 11, title: "Homebound Defensibility Examples", section: "Eligibility", objective: "Compare strong vs weak homebound documentation patterns.", bullets: ["Strong: specific functional limitations, assistive needs, symptom burden, and safety risk context.", "Weak: broad statements without objective function or symptom support.", "Defensible homebound documentation should be longitudinally consistent across episodes."] },
+            { id: 12, title: "Skilled Need Requirements", section: "Clinical Necessity", objective: "Identify what qualifies as skilled services for coverage purposes.", bullets: ["Skilled services require clinical judgment, teaching, intervention management, or assessment synthesis.", "Task-only activity without skilled intent may fail necessity review.", "Documentation must connect intervention to risk management and measurable outcome."] },
+            { id: 13, title: "Qualifying Skilled Service Patterns", section: "Clinical Necessity", objective: "Use standardized language for common skilled service scenarios.", bullets: ["Complex wound management, unstable medication response, and focused disease education are frequent examples.", "Each note should show why skilled care was required on that date of service.", "Skilled narrative must include assessment, intervention, and response."] },
+            { id: 14, title: "Medical Necessity Standards", section: "Medical Necessity", objective: "Apply medical necessity logic that withstands payer and audit scrutiny.", bullets: ["Necessity requires reasonable and necessary services tied to documented condition and risk.", "Service intensity and frequency should reflect actual patient status and progression.", "Over-documenting tasks without clinical reasoning undermines necessity arguments."] },
+            { id: 15, title: "Top Denial Drivers and Controls", section: "Medical Necessity", objective: "Connect common denial reasons to preventive controls at chart level.", bullets: ["Missing signatures, weak skilled rationale, and timeline inconsistencies remain high-frequency drivers.", "Use pre-bill control checks for signature, plan completeness, and traceability.", "Track denial themes monthly and implement targeted remediation loops."], audit: "Control quality matters more than template completion alone." },
+            { id: 16, title: "OASIS to Plan of Care Alignment", section: "Clinical Alignment", objective: "Ensure OASIS findings are reflected in the Plan of Care strategy.", bullets: ["POC interventions should map directly to assessed deficits, risks, and priorities from OASIS.", "Contradictions between OASIS and POC create review flags for consistency.", "Alignment should be visible at SOC and maintained through recertification."] },
+            { id: 17, title: "Maintaining OASIS-POC Continuity", section: "Clinical Alignment", objective: "Operationalize continuity checks between assessments and visit documentation.", bullets: ["Use interdisciplinary review to reconcile updates in condition, goals, and interventions.", "When condition changes, revise POC and document rationale promptly.", "Continuity checks should occur before billing readiness confirmation."] },
+            { id: 18, title: "Diagnosis and PDGM Relevance", section: "Coding Context", objective: "Understand how diagnosis quality affects grouping and coverage framing.", bullets: ["Principal diagnosis should reflect the dominant skilled driver for care delivery.", "Secondary diagnoses should contextualize complexity and risk burden.", "Diagnosis-to-care mismatch weakens coding integrity and medical necessity support."] },
+            { id: 19, title: "Diagnosis Integrity Safeguards", section: "Coding Context", objective: "Reduce diagnosis-related claim risk through validation controls.", bullets: ["Validate diagnosis logic against visit content and physician orders before finalization.", "Avoid code selection driven by habit rather than current clinical profile.", "Document rationale for principal diagnosis shifts across episodes."] },
+            { id: 20, title: "Visit Frequency and Duration", section: "Service Planning", objective: "Set frequency and duration that are clinically justified and review-ready.", bullets: ["Frequency should match risk acuity, intervention complexity, and monitoring needs.", "Duration must align with expected clinical progression and measurable goals.", "Overly generic frequency orders are high-risk in utilization review."] },
+            { id: 21, title: "Discipline Planning and Coordination", section: "Service Planning", objective: "Coordinate disciplines around shared goals and non-duplicative interventions.", bullets: ["Each discipline role should be explicit and linked to objective outcomes.", "Coordination notes should demonstrate communication and care-plan synchronization.", "Duplicative or conflicting services can trigger necessity concerns."] },
+            { id: 22, title: "Verbal and Telephone Orders: Core Rules", section: "Order Management", objective: "Capture verbal or telephone orders with complete trace metadata.", bullets: ["Document exact order, date/time received, receiving clinician, and context.", "Track order from intake through practitioner authentication completion.", "Unresolved verbal orders should escalate before billing progression."] },
+            { id: 23, title: "Interim Order Governance", section: "Order Management", objective: "Manage interim orders consistently during condition changes.", bullets: ["Interim orders should reflect current condition and be integrated into the active plan.", "Order updates must be visible across scheduling, documentation, and QA workflows.", "Aging queues and escalation thresholds reduce unresolved-order risk."] },
+            { id: 24, title: "Survey Deficiency Pattern: Incomplete Plans", section: "Survey Readiness", objective: "Recognize and prevent common survey citations tied to plan completeness.", bullets: ["Incomplete plans often miss measurable goals, intervention detail, or patient-specific language.", "Standardized checklists improve consistency but require clinical verification.", "Supervisor attestations should confirm completeness before release."] },
+            { id: 25, title: "Survey Deficiency Pattern: Weak Coordination", section: "Survey Readiness", objective: "Improve documentation of coordination and communication evidence.", bullets: ["Surveyors expect clear evidence of interdisciplinary coordination and provider communication.", "Unclear role delineation can create citations even with technically complete forms.", "Communication logs should connect to care decisions and plan updates."] },
+            { id: 26, title: "Survey Deficiency Pattern: Safety Gaps", section: "Survey Readiness", objective: "Document safety and risk interventions in actionable terms.", bullets: ["Safety planning should include risk trigger, intervention, and follow-up accountability.", "Generic safety statements without patient context are high-risk.", "Readmission prevention actions must remain visible across episode documentation."] },
+            { id: 27, title: "Audit Trigger: Timeline Conflicts", section: "Audit Readiness", objective: "Prevent timeline inconsistencies across certification, orders, and visits.", bullets: ["SOC, certification windows, and order dates must remain internally consistent.", "Date conflicts create objective audit triggers and downstream billing risk.", "Use timeline reconciliation before claim submission."] },
+            { id: 28, title: "Audit Trigger: Storyline Inconsistency", section: "Audit Readiness", objective: "Sustain one clinical story across plan, visits, and claim narrative.", bullets: ["Reviewer confidence depends on continuity between reason-for-care and visit execution.", "Disconnected documentation components increase denial probability.", "Perform trace checks from initial certification through final bill."] },
+            { id: 29, title: "Defensibility Checklist: Pre-Bill", section: "Audit Readiness", objective: "Use a final pre-bill checklist to reduce avoidable exposure.", bullets: ["Signatures complete and dated; verbal/interim orders resolved.", "Required POC elements present, patient-specific, and measurable.", "Skilled need and homebound rationale are explicit and current."] },
+            { id: 30, title: "Good vs Bad Example: Skilled Narrative", section: "Case Cards", objective: "Contrast defensible and non-defensible note language.", bullets: ["Good: \"Observed edema progression, modified intervention, notified practitioner, updated plan.\"", "Bad: \"Routine visit completed; patient stable.\"", "Good notes show assessment, action, and clinical consequence."] },
+            { id: 31, title: "Good vs Bad Example: Homebound Support", section: "Case Cards", objective: "Differentiate objective homebound evidence from generalized statements.", bullets: ["Good: functional limitation details, assistive needs, and risk context are documented.", "Bad: \"Patient is homebound\" with no supporting evidence.", "Defensible language links limitation directly to safe travel constraints."] },
+            { id: 32, title: "Good vs Bad Example: Goal Quality", section: "Case Cards", objective: "Apply measurable-goal principles to care planning documentation.", bullets: ["Good: measurable target, timeframe, and intervention linkage.", "Bad: broad intention without metric or timeline.", "Goal quality determines whether progress can be verified objectively."] },
+            { id: 33, title: "Good vs Bad Example: Order Specificity", section: "Case Cards", objective: "Recognize order language that withstands utilization review.", bullets: ["Good: discipline + intervention + frequency + purpose in one order statement.", "Bad: \"Evaluate and treat PRN.\"", "Specificity supports execution consistency and audit defensibility."] },
+            { id: 34, title: "Final Checklist: Daily Documentation Habits", section: "Takeaways", objective: "Embed high-reliability documentation behaviors into daily practice.", bullets: ["Document each visit with skilled rationale, intervention detail, and response.", "Escalate and reconcile discrepancies early; do not defer until billing.", "Use structured self-audit habits before completing each episode milestone."] },
+            { id: 35, title: "Final Checklist: Leadership Controls", section: "Takeaways", objective: "Define leadership-level controls for sustained compliance performance.", bullets: ["Track denial trends, signature timeliness, and order-aging metrics monthly.", "Run focused retraining from chart-level deficiencies and audit findings.", "Maintain a single source of truth for policy, workflow, and checklist controls."] },
+            { id: 36, title: "Key Takeaways and Next Actions", section: "Takeaways", objective: "Close with operational priorities for a defensible CMS-485 program.", bullets: ["A defensible CMS-485 workflow is built through consistency, traceability, and timely governance.", "Compliance-ready documentation protects clinicians, patients, and agency financial integrity.", "Apply this framework as a repeatable operating standard across all episodes."], audit: "Final standard: clear, complete, and clinically coherent documentation at every step." }
+        ];
+
+        const sectionColors = {
+            "Foundation":              { bg: "rgba(100,244,245,0.08)", text: "#64F4F5", border: "rgba(100,244,245,0.3)" },
+            "Regulatory Authority":    { bg: "rgba(0,121,112,0.12)",   text: "#00C9B7", border: "rgba(0,121,112,0.4)" },
+            "Certification Lifecycle": { bg: "rgba(199,70,1,0.10)",    text: "#FF8D4D", border: "rgba(199,70,1,0.35)" },
+            "Orders & Signatures":     { bg: "rgba(124,58,237,0.10)",  text: "#A78BFA", border: "rgba(124,58,237,0.35)" },
+            "Eligibility":             { bg: "rgba(16,185,129,0.10)",  text: "#34D399", border: "rgba(16,185,129,0.35)" },
+            "Clinical Necessity":      { bg: "rgba(244,63,94,0.10)",   text: "#FB7185", border: "rgba(244,63,94,0.35)" },
+            "Medical Necessity":       { bg: "rgba(251,146,60,0.10)",  text: "#FB923C", border: "rgba(251,146,60,0.35)" },
+            "Clinical Alignment":      { bg: "rgba(56,189,248,0.10)",  text: "#38BDF8", border: "rgba(56,189,248,0.35)" },
+            "Coding Context":          { bg: "rgba(232,121,249,0.10)", text: "#E879F9", border: "rgba(232,121,249,0.35)" },
+            "Service Planning":        { bg: "rgba(100,244,245,0.08)", text: "#64F4F5", border: "rgba(100,244,245,0.3)" },
+            "Order Management":        { bg: "rgba(0,121,112,0.12)",   text: "#00C9B7", border: "rgba(0,121,112,0.4)" },
+            "Survey Readiness":        { bg: "rgba(199,70,1,0.10)",    text: "#FF8D4D", border: "rgba(199,70,1,0.35)" },
+            "Audit Readiness":         { bg: "rgba(244,63,94,0.10)",   text: "#FB7185", border: "rgba(244,63,94,0.35)" },
+            "Case Cards":              { bg: "rgba(124,58,237,0.10)",  text: "#A78BFA", border: "rgba(124,58,237,0.35)" },
+            "Takeaways":               { bg: "rgba(16,185,129,0.10)",  text: "#34D399", border: "rgba(16,185,129,0.35)" }
+        };
+
+        function getColor(section) {
+            return sectionColors[section] || { bg: "rgba(255,255,255,0.05)", text: "#fff", border: "rgba(255,255,255,0.2)" };
+        }
+
+        function renderCards(filteredCards) {
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = '';
+            document.getElementById('card-count').textContent = filteredCards.length + ' cards';
+
+            filteredCards.forEach((card, idx) => {
+                const c = getColor(card.section);
+                const delay = Math.min(idx * 40, 600);
+                
+                const auditHtml = card.audit 
+                    ? `<div style="margin-top:12px;padding:10px 14px;background:rgba(199,70,1,0.08);border:1px solid rgba(199,70,1,0.25);border-radius:8px;">
+                        <span style="font-family:'Montserrat';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#C74601;">Audit Focus</span>
+                        <p style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:4px;font-weight:300;">${card.audit}</p>
+                       </div>`
+                    : '';
+
+                const bulletsHtml = card.bullets.map((b, i) => 
+                    `<li style="display:flex;gap:10px;align-items:flex-start;">
+                        <span style="color:${c.text};font-family:'Montserrat';font-weight:600;font-size:11px;margin-top:2px;flex-shrink:0;">0${i+1}</span>
+                        <span style="color:rgba(255,255,255,0.6);font-size:14px;font-weight:300;line-height:1.6;">${b}</span>
+                    </li>`
+                ).join('');
+
+                grid.innerHTML += `
+                    <div class="card-row animate-glitch" style="animation-delay:${delay}ms;opacity:0;padding:24px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.01);backdrop-filter:blur(12px);border-radius:12px;position:relative;overflow:hidden;">
+                        <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${c.text};box-shadow:0 0 12px ${c.text};"></div>
+                        
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <span style="font-family:'Montserrat';font-weight:700;font-size:20px;color:rgba(255,255,255,0.12);">${String(card.id).padStart(2,'0')}</span>
+                                <div class="section-chip" style="background:${c.bg};color:${c.text};border-color:${c.border};">
+                                    <div style="width:6px;height:6px;border-radius:50%;background:${c.text};"></div>
+                                    ${card.section}
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 style="font-family:'Montserrat';font-weight:600;font-size:18px;color:white;margin-bottom:8px;">${card.title}</h3>
+                        
+                        <p style="font-size:14px;color:rgba(255,255,255,0.45);font-weight:300;margin-bottom:16px;padding-left:16px;border-left:2px solid ${c.border};">${card.objective}</p>
+
+                        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;">
+                            ${bulletsHtml}
+                        </ul>
+
+                        ${auditHtml}
+                    </div>
+                `;
+            });
+        }
+
+        let currentFilter = 'all';
+        function filterSection(section) {
+            currentFilter = section;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            const filtered = section === 'all' ? cards : cards.filter(c => c.section === section);
+            renderCards(filtered);
+        }
+
+        // Init
+        renderCards(cards);
+    </script>
+</body>
+</html>

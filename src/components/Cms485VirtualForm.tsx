@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, Circle, Search, X, ZoomIn, RotateCcw } from 'lucide-react'
 import { Button } from './ui/Button'
-import samplePdfUrl from '../assets/FAQ # 65 HH Cert and Plan of Care example.pdf'
+const samplePdfUrl = import.meta.env.BASE_URL + 'cms485-sample.pdf'
 import { CMS485_HOTSPOTS, CMS485_PAGE_LABEL, type Cms485Hotspot } from '../data/cms485Hotspots'
 
 type Props = {

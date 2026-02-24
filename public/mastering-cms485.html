@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI eLearner — Mastering the CMS-485</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap');
+        .font-heading { font-family: 'Montserrat', sans-serif; }
+        .font-body   { font-family: 'Roboto', sans-serif; }
+
+        .bg-noise { position: relative; }
+        .bg-noise::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0F0F11; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+        @keyframes glitch-slide {
+            0% { opacity: 0; transform: translateY(20px); filter: blur(3px); }
+            100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+        .animate-glitch { animation: glitch-slide 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            height: 280px;
+        }
+
+        .stat-card {
+            background: #0F0F11;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+        .stat-card:hover { border-color: rgba(100,244,245,0.3); }
+
+        .timeline-dot {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .flow-step {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: border-color 0.3s, transform 0.3s;
+        }
+        .flow-step:hover { border-color: rgba(100,244,245,0.4); transform: translateY(-2px); }
+
+        .denial-item::before {
+            content: "✗";
+            color: #C74601;
+            font-size: 16px;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body class="bg-[#09090b] text-white font-body min-h-screen bg-noise">
+
+    <!-- Fixed Background Glows -->
+    <div class="fixed top-[-15%] left-[5%] w-[600px] h-[600px] bg-[#007970]/8 rounded-full blur-[160px] pointer-events-none"></div>
+    <div class="fixed bottom-[-15%] right-[5%] w-[500px] h-[500px] bg-[#C74601]/6 rounded-full blur-[140px] pointer-events-none"></div>
+
+    <!-- Hero Header -->
+    <header class="relative overflow-hidden border-b border-white/5">
+        <div class="absolute inset-0 bg-gradient-to-br from-[#007970]/15 via-transparent to-[#C74601]/10 pointer-events-none"></div>
+        <div class="max-w-6xl mx-auto px-8 py-16 relative z-10 text-center">
+            <img 
+                src="https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png" 
+                alt="CareIndeed" 
+                class="h-8 w-auto object-contain opacity-80 mx-auto mb-6"
+            />
+            <div class="inline-block px-4 py-1.5 bg-[#C74601]/15 border border-[#C74601]/30 rounded text-[10px] font-heading font-bold uppercase tracking-[0.2em] text-[#C74601] mb-6">Regulatory Compliance</div>
+            <h1 class="text-4xl md:text-6xl font-heading font-bold tracking-tight mb-4">
+                Mastering the <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#64F4F5] to-[#007970]">CMS-485</span>
+            </h1>
+            <p class="text-lg text-white/50 max-w-2xl mx-auto font-light leading-relaxed">
+                The strategic blueprint for Home Health compliance. Ensuring payment, patient safety, and regulatory adherence in every Plan of Care.
+            </p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-8 py-12 space-y-20 relative z-10">
+
+        <!-- SECTION 1: INTRO & KEY STATS -->
+        <section class="animate-glitch">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-2 p-8 border border-white/10 bg-white/[0.02] backdrop-blur-md rounded-xl relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-[#64F4F5] shadow-[0_0_15px_#64F4F5]"></div>
+                    <h2 class="text-2xl font-heading font-semibold text-white mb-4">The "Contract" of Care</h2>
+                    <p class="text-white/60 leading-relaxed font-light mb-6">
+                        The CMS Form 485 is not just paperwork; it is the <strong class="text-[#64F4F5]">legal directive</strong> for all home health services. It certifies that a patient is homebound, requires skilled care, and is under a physician's supervision. Inaccuracies here are the leading cause of payment denials.
+                    </p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="stat-card">
+                            <span class="block text-4xl font-heading font-bold text-[#C74601]">60</span>
+                            <span class="text-[10px] font-heading font-semibold uppercase tracking-wider text-white/30 mt-1">Day Certification Period</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="block text-4xl font-heading font-bold text-[#64F4F5]">90</span>
+                            <span class="text-[10px] font-heading font-semibold uppercase tracking-wider text-white/30 mt-1">Day F2F Window (Pre-Start)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-[#0F0F11] border border-white/10 rounded-xl flex flex-col justify-between hover:border-[#C74601]/40 transition-colors">
+                    <div>
+                        <h3 class="text-lg font-heading font-semibold text-white mb-2 text-center">Audit Vulnerability</h3>
+                        <p class="text-[10px] text-white/30 text-center mb-4 font-heading uppercase tracking-wider">Agencies flagged for POC deficiencies</p>
+                    </div>
+                    <div class="chart-container" style="height: 180px;">
+                        <canvas id="denialChart"></canvas>
+                    </div>
+                    <p class="text-center text-xs font-heading font-bold text-[#C74601] mt-3">1 in 4 agencies face scrutiny</p>
+                </div>
+            </div>
+
+            <!-- Financial Impact Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+                <div class="stat-card">
+                    <span class="block text-2xl font-heading font-bold text-[#64F4F5]">$1.1B</span>
+                    <span class="text-[10px] font-heading uppercase tracking-wider text-white/30 mt-1">Improper Payments (FY)</span>
+                </div>
+                <div class="stat-card">
+                    <span class="block text-2xl font-heading font-bold text-[#C74601]">6.7%</span>
+                    <span class="text-[10px] font-heading uppercase tracking-wider text-white/30 mt-1">Improper Payment Rate</span>
+                </div>
+                <div class="stat-card">
+                    <span class="block text-2xl font-heading font-bold text-white/80">$2,038</span>
+                    <span class="text-[10px] font-heading uppercase tracking-wider text-white/30 mt-1">Avg 30-Day Cost at Risk</span>
+                </div>
+                <div class="stat-card">
+                    <span class="block text-2xl font-heading font-bold text-[#FB7185]">42 CFR</span>
+                    <span class="text-[10px] font-heading uppercase tracking-wider text-white/30 mt-1">484.60 — CoPs Authority</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: THE CERTIFICATION TIMELINE -->
+        <section>
+            <div class="text-center mb-12">
+                <div class="inline-flex items-center gap-3 mb-4">
+                    <div class="w-8 h-px bg-[#C74601]"></div>
+                    <span class="text-[10px] font-heading font-semibold uppercase tracking-[0.2em] text-[#C74601]">Process</span>
+                    <div class="w-8 h-px bg-[#C74601]"></div>
+                </div>
+                <h2 class="text-3xl font-heading font-bold text-white">The Certification Cycle</h2>
+                <p class="text-white/40 max-w-2xl mx-auto mt-3 font-light">A strict chronological workflow required for Medicare reimbursement. Missing these milestones breaks the chain of payment.</p>
+            </div>
+
+            <div class="relative max-w-3xl mx-auto space-y-0">
+                <!-- Vertical line -->
+                <div class="absolute left-[27px] top-0 bottom-0 w-px bg-gradient-to-b from-[#007970] via-[#64F4F5] to-[#C74601]"></div>
+
+                <!-- Event 1 -->
+                <div class="relative flex items-start gap-6 pb-12">
+                    <div class="timeline-dot bg-[#C74601] text-white shadow-[0_0_20px_rgba(199,70,1,0.4)]">1</div>
+                    <div class="flex-1 p-6 bg-[#0F0F11] border border-white/10 rounded-xl hover:border-[#C74601]/40 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-heading font-semibold text-white">Face-to-Face Encounter</h3>
+                            <span class="text-[10px] font-heading font-bold uppercase tracking-wider text-white/20">Pre-Admission</span>
+                        </div>
+                        <p class="text-sm text-white/50 font-light">Must occur 90 days prior to SOC or within 30 days after. Validates homebound status and establishes medical necessity.</p>
+                    </div>
+                </div>
+
+                <!-- Event 2 -->
+                <div class="relative flex items-start gap-6 pb-12">
+                    <div class="timeline-dot bg-[#007970] text-white shadow-[0_0_20px_rgba(0,121,112,0.4)]">2</div>
+                    <div class="flex-1 p-6 bg-[#0F0F11] border border-white/10 rounded-xl hover:border-[#007970]/40 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-heading font-semibold text-white">Start of Care (SOC)</h3>
+                            <span class="text-[10px] font-heading font-bold uppercase tracking-wider text-white/20">Day 0</span>
+                        </div>
+                        <p class="text-sm text-white/50 font-light">First billable visit. Comprehensive assessment initiated. Immediate orders obtained. OASIS completed.</p>
+                    </div>
+                </div>
+
+                <!-- Event 3 -->
+                <div class="relative flex items-start gap-6 pb-12">
+                    <div class="timeline-dot bg-[#64F4F5] text-[#0A0A0C] shadow-[0_0_20px_rgba(100,244,245,0.3)]">3</div>
+                    <div class="flex-1 p-6 bg-[#0F0F11] border border-white/10 rounded-xl hover:border-[#64F4F5]/40 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-heading font-semibold text-white">Care Delivery & Monitoring</h3>
+                            <span class="text-[10px] font-heading font-bold uppercase tracking-wider text-white/20">Day 1–55</span>
+                        </div>
+                        <p class="text-sm text-white/50 font-light">Services provided per signed POC orders. Ongoing documentation of skilled need, homebound status, and measurable progress toward goals.</p>
+                    </div>
+                </div>
+
+                <!-- Event 4 -->
+                <div class="relative flex items-start gap-6">
+                    <div class="timeline-dot bg-[#C74601] text-white shadow-[0_0_20px_rgba(199,70,1,0.4)]">4</div>
+                    <div class="flex-1 p-6 bg-[#0F0F11] border border-white/10 rounded-xl hover:border-[#C74601]/40 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-heading font-semibold text-white">Recertification Decision</h3>
+                            <span class="text-[10px] font-heading font-bold uppercase tracking-wider text-white/20">Day 56–60</span>
+                        </div>
+                        <p class="text-sm text-white/50 font-light">Assessment of goals. Physician must sign Recert POC before the next episode begins. Unchanged goals signal audit risk.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: DENIAL REASONS -->
+        <section>
+            <div class="p-8 border border-white/10 bg-white/[0.02] backdrop-blur-md rounded-xl">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <div class="inline-flex items-center gap-3 mb-4">
+                            <div class="w-8 h-px bg-[#C74601]"></div>
+                            <span class="text-[10px] font-heading font-semibold uppercase tracking-[0.2em] text-[#C74601]">Risk Analysis</span>
+                        </div>
+                        <h2 class="text-3xl font-heading font-bold text-white mb-4">Why Claims Get Denied</h2>
+                        <p class="text-white/50 font-light mb-6">
+                            An incomplete 485 is a liability. Medicare Administrative Contractors (MACs) frequently deny payment for technical deficiencies.
+                        </p>
+                        <ul class="space-y-3">
+                            <li class="denial-item flex items-start text-white/60 font-light"><span><strong class="text-white/80">Unspecific Frequency:</strong> "PRN" orders without specific qualifiers are invalid.</span></li>
+                            <li class="denial-item flex items-start text-white/60 font-light"><span><strong class="text-white/80">Missing Signatures:</strong> Physician signature not dated prior to claim submission.</span></li>
+                            <li class="denial-item flex items-start text-white/60 font-light"><span><strong class="text-white/80">Goal Mismatch:</strong> Goals do not match the identified deficits in OASIS.</span></li>
+                            <li class="denial-item flex items-start text-white/60 font-light"><span><strong class="text-white/80">Weak Skilled Rationale:</strong> Insufficient evidence of skilled need in visit notes.</span></li>
+                            <li class="denial-item flex items-start text-white/60 font-light"><span><strong class="text-white/80">Homebound Not Verified:</strong> Generic homebound statements without clinical detail.</span></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="chart-container">
+                            <canvas id="denialReasonsChart"></canvas>
+                        </div>
+                        <p class="text-center text-[10px] text-white/20 mt-3 font-heading uppercase tracking-wider">Aggregated MAC ADR denial data (simulated)</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: ANATOMY OF THE 485 -->
+        <section>
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center gap-3 mb-4">
+                    <div class="w-8 h-px bg-[#64F4F5]"></div>
+                    <span class="text-[10px] font-heading font-semibold uppercase tracking-[0.2em] text-[#64F4F5]">Composition</span>
+                    <div class="w-8 h-px bg-[#64F4F5]"></div>
+                </div>
+                <h2 class="text-3xl font-heading font-bold text-white">Anatomy of the 485</h2>
+                <p class="text-white/40 max-w-2xl mx-auto mt-3 font-light">A compliant Plan of Care requires specific data elements. Missing any one renders the document incomplete.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="p-6 bg-[#0F0F11] border border-white/10 rounded-xl">
+                    <h3 class="font-heading font-semibold text-white mb-4 text-center text-sm uppercase tracking-wider">Required Data Elements</h3>
+                    <div class="chart-container">
+                        <canvas id="anatomyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="p-5 bg-[#0F0F11] border-l-4 border-[#64F4F5] rounded-lg">
+                        <h4 class="font-heading font-semibold text-white text-sm mb-1">1. Medical Necessity</h4>
+                        <p class="text-sm text-white/50 font-light">Must clearly state the primary diagnosis and the specific skilled need (wound care, gait training, etc.).</p>
+                    </div>
+                    <div class="p-5 bg-[#0F0F11] border-l-4 border-[#007970] rounded-lg">
+                        <h4 class="font-heading font-semibold text-white text-sm mb-1">2. Medications & Treatments</h4>
+                        <p class="text-sm text-white/50 font-light">A complete list of all medications (Rx and OTC) and specific treatments/supplies.</p>
+                    </div>
+                    <div class="p-5 bg-[#0F0F11] border-l-4 border-[#C74601] rounded-lg">
+                        <h4 class="font-heading font-semibold text-white text-sm mb-1">3. Functional Limitations</h4>
+                        <p class="text-sm text-white/50 font-light">Specific limitations (Amputation, Dyspnea, etc.) that support homebound status.</p>
+                    </div>
+                    <div class="p-5 bg-[#0F0F11] border-l-4 border-[#A78BFA] rounded-lg">
+                        <h4 class="font-heading font-semibold text-white text-sm mb-1">4. Measurable Goals</h4>
+                        <p class="text-sm text-white/50 font-light">Goals must be realistic, patient-specific, and measurable with a target date.</p>
+                    </div>
+                    <div class="p-5 bg-[#0F0F11] border-l-4 border-[#FB7185] rounded-lg">
+                        <h4 class="font-heading font-semibold text-white text-sm mb-1">5. Safety & DME</h4>
+                        <p class="text-sm text-white/50 font-light">Safety precautions, durable medical equipment, nutritional needs, and homebound justification.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: THE AUTHORIZATION FLOW -->
+        <section class="bg-[#0F0F11] border border-white/10 rounded-2xl p-8 md:p-12 overflow-hidden">
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center gap-3 mb-4">
+                    <div class="w-8 h-px bg-[#007970]"></div>
+                    <span class="text-[10px] font-heading font-semibold uppercase tracking-[0.2em] text-[#007970]">Process</span>
+                    <div class="w-8 h-px bg-[#007970]"></div>
+                </div>
+                <h2 class="text-3xl font-heading font-bold text-white">The Authorization Loop</h2>
+                <p class="text-white/40 max-w-2xl mx-auto mt-3 font-light">The Plan of Care is a living document requiring synchronization between the HHA and the Certifying Physician.</p>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-center items-center gap-4">
+                <div class="flow-step w-full md:w-1/4">
+                    <div class="text-3xl mb-3">🏥</div>
+                    <h4 class="font-heading font-semibold text-white text-sm mb-1">Assessment</h4>
+                    <p class="text-[11px] text-white/40 font-light">RN/Therapist completes OASIS & drafts POC.</p>
+                </div>
+
+                <div class="text-white/20 text-2xl hidden md:block">→</div>
+                <div class="text-white/20 text-2xl md:hidden">↓</div>
+
+                <div class="flow-step w-full md:w-1/4">
+                    <div class="text-3xl mb-3">📄</div>
+                    <h4 class="font-heading font-semibold text-white text-sm mb-1">Submission</h4>
+                    <p class="text-[11px] text-white/40 font-light">Agency sends 485 to Physician for review.</p>
+                </div>
+
+                <div class="text-white/20 text-2xl hidden md:block">→</div>
+                <div class="text-white/20 text-2xl md:hidden">↓</div>
+
+                <div class="flow-step w-full md:w-1/4 !border-[#C74601]/40">
+                    <div class="text-3xl mb-3">✍️</div>
+                    <h4 class="font-heading font-semibold text-[#C74601] text-sm mb-1">Certification</h4>
+                    <p class="text-[11px] text-white/40 font-light">MD signs & dates. This activates billing eligibility.</p>
+                </div>
+
+                <div class="text-white/20 text-2xl hidden md:block">→</div>
+                <div class="text-white/20 text-2xl md:hidden">↓</div>
+
+                <div class="flow-step w-full md:w-1/4">
+                    <div class="text-3xl mb-3">💉</div>
+                    <h4 class="font-heading font-semibold text-white text-sm mb-1">Care Delivery</h4>
+                    <p class="text-[11px] text-white/40 font-light">Services provided per the signed POC orders.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 6: DEFENSIBILITY FRAMEWORK -->
+        <section>
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center gap-3 mb-4">
+                    <div class="w-8 h-px bg-[#64F4F5]"></div>
+                    <span class="text-[10px] font-heading font-semibold uppercase tracking-[0.2em] text-[#64F4F5]">Framework</span>
+                    <div class="w-8 h-px bg-[#64F4F5]"></div>
+                </div>
+                <h2 class="text-3xl font-heading font-bold text-white">Defensibility Framework</h2>
+                <p class="text-white/40 max-w-2xl mx-auto mt-3 font-light">Every defensible note follows this formula: <strong class="text-white/70">Condition + Risk + Skilled Intervention = Justified Service</strong></p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Strengthen -->
+                <div class="p-6 border border-[#007970]/30 bg-[#007970]/5 rounded-xl">
+                    <h3 class="font-heading font-semibold text-[#64F4F5] mb-4 text-sm uppercase tracking-wider flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-[#64F4F5]"></span> Strengthens Defensibility
+                    </h3>
+                    <ul class="space-y-3 text-sm text-white/60 font-light">
+                        <li class="flex gap-3"><span class="text-[#64F4F5] shrink-0">✓</span> Patient-specific language tied to objective findings</li>
+                        <li class="flex gap-3"><span class="text-[#64F4F5] shrink-0">✓</span> Measurable goals with timeframes and intervention linkage</li>
+                        <li class="flex gap-3"><span class="text-[#64F4F5] shrink-0">✓</span> Skilled rationale documented at every visit</li>
+                        <li class="flex gap-3"><span class="text-[#64F4F5] shrink-0">✓</span> Consistent homebound narrative across episodes</li>
+                        <li class="flex gap-3"><span class="text-[#64F4F5] shrink-0">✓</span> Timely physician signatures and order updates</li>
+                    </ul>
+                </div>
+
+                <!-- Weaken -->
+                <div class="p-6 border border-[#C74601]/30 bg-[#C74601]/5 rounded-xl">
+                    <h3 class="font-heading font-semibold text-[#C74601] mb-4 text-sm uppercase tracking-wider flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-[#C74601]"></span> Weakens Defensibility
+                    </h3>
+                    <ul class="space-y-3 text-sm text-white/60 font-light">
+                        <li class="flex gap-3"><span class="text-[#C74601] shrink-0">✗</span> Copy-forward text without clinical updates</li>
+                        <li class="flex gap-3"><span class="text-[#C74601] shrink-0">✗</span> Generic template language with no patient specifics</li>
+                        <li class="flex gap-3"><span class="text-[#C74601] shrink-0">✗</span> "Routine visit completed; patient stable"</li>
+                        <li class="flex gap-3"><span class="text-[#C74601] shrink-0">✗</span> Broad homebound statements without evidence</li>
+                        <li class="flex gap-3"><span class="text-[#C74601] shrink-0">✗</span> Late or missing physician signatures</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 7: DOCUMENTATION-PAYMENT LINK -->
+        <section>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                <div class="md:col-span-2">
+                    <div class="p-6 bg-[#0F0F11] border border-white/10 rounded-xl">
+                        <h3 class="font-heading font-semibold text-white mb-4 text-center text-sm uppercase tracking-wider">Documentation Specificity vs Patient Acuity</h3>
+                        <div class="chart-container">
+                            <canvas id="scatterChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 border border-white/10 bg-white/[0.02] backdrop-blur-md rounded-xl">
+                    <h3 class="font-heading font-semibold text-[#64F4F5] mb-3 text-sm">The Documentation–Payment Link</h3>
+                    <p class="text-sm text-white/50 font-light mb-4 leading-relaxed">
+                        As Patient Acuity (complexity) increases, the requirement for detailed documentation increases exponentially.
+                    </p>
+                    <div class="space-y-2 text-sm text-white/40 font-light">
+                        <p class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#64F4F5] shrink-0"></span> High acuity requires specific, non-generic goals</p>
+                        <p class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#C74601] shrink-0"></span> Generic POCs correlate with payment adjustments</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 8: KEY COVERAGE PILLARS -->
+        <section>
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center gap-3 mb-4">
+                    <div class="w-8 h-px bg-[#007970]"></div>
+                    <span class="text-[10px] font-heading font-semibold uppercase tracking-[0.2em] text-[#007970]">Coverage</span>
+                    <div class="w-8 h-px bg-[#007970]"></div>
+                </div>
+                <h2 class="text-3xl font-heading font-bold text-white">Four Pillars of Medicare Coverage</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="p-6 bg-[#0F0F11] border border-[#64F4F5]/20 rounded-xl text-center hover:border-[#64F4F5]/50 transition-colors">
+                    <div class="w-12 h-12 rounded-full bg-[#64F4F5]/10 flex items-center justify-center mx-auto mb-3">
+                        <span class="text-xl">🏠</span>
+                    </div>
+                    <h4 class="font-heading font-semibold text-[#64F4F5] text-sm mb-2">Homebound</h4>
+                    <p class="text-xs text-white/40 font-light">Patient is confined to home; leaving requires considerable effort</p>
+                </div>
+                <div class="p-6 bg-[#0F0F11] border border-[#007970]/20 rounded-xl text-center hover:border-[#007970]/50 transition-colors">
+                    <div class="w-12 h-12 rounded-full bg-[#007970]/10 flex items-center justify-center mx-auto mb-3">
+                        <span class="text-xl">🩺</span>
+                    </div>
+                    <h4 class="font-heading font-semibold text-[#007970] text-sm mb-2">Skilled Need</h4>
+                    <p class="text-xs text-white/40 font-light">Services require clinical judgment, teaching, or management</p>
+                </div>
+                <div class="p-6 bg-[#0F0F11] border border-[#C74601]/20 rounded-xl text-center hover:border-[#C74601]/50 transition-colors">
+                    <div class="w-12 h-12 rounded-full bg-[#C74601]/10 flex items-center justify-center mx-auto mb-3">
+                        <span class="text-xl">📋</span>
+                    </div>
+                    <h4 class="font-heading font-semibold text-[#C74601] text-sm mb-2">Physician Plan</h4>
+                    <p class="text-xs text-white/40 font-light">Under care of MD; POC established and periodically reviewed</p>
+                </div>
+                <div class="p-6 bg-[#0F0F11] border border-[#A78BFA]/20 rounded-xl text-center hover:border-[#A78BFA]/50 transition-colors">
+                    <div class="w-12 h-12 rounded-full bg-[#A78BFA]/10 flex items-center justify-center mx-auto mb-3">
+                        <span class="text-xl">✅</span>
+                    </div>
+                    <h4 class="font-heading font-semibold text-[#A78BFA] text-sm mb-2">Reasonable & Necessary</h4>
+                    <p class="text-xs text-white/40 font-light">Services are medically necessary and not custodial</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/5 bg-[#0A0A0C]/80 py-8 text-center">
+        <p class="text-[10px] text-white/20 font-heading uppercase tracking-[0.2em]">Care Indeed Home Health · CMS-485 Compliance Manual</p>
+        <p class="text-[9px] text-white/10 mt-1 font-heading">Generated for educational purposes based on CMS regulatory guidelines</p>
+    </footer>
+
+    <script>
+        Chart.defaults.color = 'rgba(255,255,255,0.35)';
+        Chart.defaults.font.family = 'Roboto';
+
+        function wrapLabel(label) {
+            if (typeof label !== 'string' || label.length <= 16) return label;
+            const words = label.split(' ');
+            const lines = [];
+            let cur = words[0];
+            for (let i = 1; i < words.length; i++) {
+                if ((cur + " " + words[i]).length <= 16) cur += " " + words[i];
+                else { lines.push(cur); cur = words[i]; }
+            }
+            lines.push(cur);
+            return lines;
+        }
+
+        // Denial Donut
+        new Chart(document.getElementById('denialChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Compliant', 'Deficient'],
+                datasets: [{ data: [74, 26], backgroundColor: ['rgba(255,255,255,0.06)', '#C74601'], borderWidth: 0 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // Denial Reasons Bar
+        const reasons = ["Lack of F2F Documentation", "Invalid/Missing Signature", "Medical Necessity Unsupported", "Therapy Goals Not Measurable", "Homebound Not Verified"];
+        new Chart(document.getElementById('denialReasonsChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: reasons.map(wrapLabel),
+                datasets: [{ label: 'Denial Frequency (%)', data: [35, 25, 20, 15, 5], backgroundColor: '#C74601', borderRadius: 4, barPercentage: 0.6 }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { font: { size: 10 } } },
+                    y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                }
+            }
+        });
+
+        // Anatomy Doughnut
+        new Chart(document.getElementById('anatomyChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ["Medications & Treatments", "Goals & Rehab Potential", "Functional Limitations", "Safety Precautions", "Other (Supplies)"].map(wrapLabel),
+                datasets: [{ data: [30, 25, 20, 15, 10], backgroundColor: ['#64F4F5', '#007970', '#C74601', '#A78BFA', 'rgba(255,255,255,0.1)'], borderWidth: 0 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, padding: 16 } } }
+            }
+        });
+
+        // Scatter Chart
+        new Chart(document.getElementById('scatterChart').getContext('2d'), {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Documentation Load vs Acuity',
+                    data: [{x:1,y:10},{x:2,y:15},{x:2.5,y:18},{x:3,y:25},{x:4,y:35},{x:4.5,y:40},{x:5,y:55},{x:1.5,y:12},{x:3.5,y:30}],
+                    backgroundColor: '#C74601', pointRadius: 6, pointHoverRadius: 8
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { title: { display: true, text: 'Patient Acuity (Low → High)', color: 'rgba(255,255,255,0.3)', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.03)' } },
+                    y: { title: { display: true, text: 'Documentation Detail (Score)', color: 'rgba(255,255,255,0.3)', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.03)' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
