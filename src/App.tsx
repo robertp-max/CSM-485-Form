@@ -304,6 +304,26 @@ const VOICE_RECORDING_BY_TITLE = (() => {
     }
   }
 
+  // Manual mappings for newly added recordings (explicit titles)
+  const explicitMappings: Record<string, string[]> = {
+    'Visit Frequency and Duration': ['visit frequency and duration'],
+    'Diagnosis and PDGM Relevance': ['diagnosis and pdgm relevance', 'diagnosis and pdgm'],
+    'Diagnosis Integrity Safeguards': ['diagnosis integrity safeguards', 'diagnosis integrity'],
+    'OASIS to Plan of Care Alignment': ['oasis to plan of care alignment', 'oasis to plan of care alignment (clinical alignment)'],
+  }
+
+  for (const [cardTitle, queries] of Object.entries(explicitMappings)) {
+    if (mapping.has(cardTitle)) continue
+
+    for (const [filePath, audioUrl] of Object.entries(VOICE_RECORDINGS)) {
+      const stem = normalizeText(getRecordingStemFromPath(filePath))
+      if (queries.some((q) => stem.includes(q))) {
+        mapping.set(cardTitle, audioUrl)
+        break
+      }
+    }
+  }
+
   return mapping
 })()
 
