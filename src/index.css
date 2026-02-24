@@ -236,6 +236,11 @@ h1, h2, h3, h4, h5, h6 {
   animation: orangeRadiate 2.1s ease-in-out infinite;
 }
 
+.teal-radiate {
+  animation: tealRadiate 2.1s ease-in-out infinite;
+}
+
+
 @keyframes swipeInRight {
   from {
     transform: translateX(24px);
@@ -254,6 +259,16 @@ h1, h2, h3, h4, h5, h6 {
   }
   50% {
     box-shadow: 0 0 16px rgba(229, 110, 46, 0.35), 0 0 28px rgba(199, 70, 1, 0.18);
+  }
+}
+
+@keyframes tealRadiate {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(0, 121, 112, 0);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(0, 121, 112, 0.28), 0 0 22px rgba(0, 121, 112, 0.12);
   }
 }
 

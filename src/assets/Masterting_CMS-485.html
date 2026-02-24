@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMS 485: The Blueprint of Home Health</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <!-- 
+        SOURCE MATERIAL ANALYSIS & PLAN:
+        Topic: Home Health Plan of Care (CMS Form 485) Regulations & Compliance.
+        
+        Narrative Structure:
+        1.  **Header/Hook:** Define the critical nature of the 485 (The "Contract" of care).
+        2.  **The Timeline (Process):** Visualize the strict 60-day episode and Face-to-Face windows. (Goal: Change/Time) -> HTML/CSS Timeline.
+        3.  **Compliance Risks (Comparison):** Show top reasons for claim denials. (Goal: Compare) -> Chart.js Horizontal Bar.
+        4.  **Anatomy of a POC (Composition):** Breakdown of required elements (Meds, Goals, etc.). (Goal: Inform/Part-to-Whole) -> Chart.js Doughnut.
+        5.  **The Approval Flow (Organization):** The loop between Agency and Physician. (Goal: Flow) -> HTML/CSS Structured Diagram (No Mermaid/SVG).
+        6.  **Outcome Impact (Relationship):** Correlation between accurate POC and Patient Outcomes. (Goal: Relationship) -> Chart.js Scatter/Bubble.
+
+        Palette: "Brilliant Blues & Coral"
+        - Primary: #1E40AF (Blue 800)
+        - Secondary: #3B82F6 (Blue 500)
+        - Accent: #F43F5E (Rose 500)
+        - Background: #F8FAFC (Slate 50)
+        
+        Constraint Checklist:
+        - NO SVG used.
+        - NO Mermaid JS used.
+        - Canvas used for charts.
+        - Tailwind grid layout.
+        - Chart containers responsive with max-width/height.
+    -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC; /* Slate 50 */
+            color: #1E293B; /* Slate 800 */
+        }
+
+        /* CHART CONTAINER STYLING 
+           - Occupies full width of parent
+           - Defined Max Width for readability
+           - Centered
+           - Controlled Height with responsiveness
+           - Relative positioning for tooltips
+        */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* Max width constraint */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Base height for mobile */
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px; /* Taller on desktop */
+            }
+        }
+
+        /* Custom Utilities for Diagram Shapes (No SVG) */
+        .flow-box {
+            background-color: white;
+            border-left: 4px solid #3B82F6;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .arrow-down {
+            width: 0; 
+            height: 0; 
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid #94A3B8;
+            margin: 0 auto;
+        }
+
+        .arrow-right {
+            width: 0; 
+            height: 0; 
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-left: 10px solid #94A3B8;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header Section -->
+    <header class="bg-blue-900 text-white py-12 px-4 shadow-lg">
+        <div class="max-w-6xl mx-auto text-center">
+            <div class="inline-block bg-rose-500 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">Regulatory Compliance</div>
+            <h1 class="text-4xl md:text-6xl font-extrabold mb-4 tracking-tight">Mastering the CMS 485</h1>
+            <p class="text-xl text-blue-100 max-w-2xl mx-auto">The strategic blueprint for Home Health compliance. Ensuring payment, patient safety, and regulatory adherence in every Plan of Care.</p>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-12 space-y-16">
+
+        <!-- SECTION 1: INTRODUCTION & KEY STATS -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="md:col-span-2 bg-white rounded-xl shadow-md p-8 border-t-4 border-blue-500">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">The "Contract" of Care</h2>
+                <p class="text-gray-600 leading-relaxed mb-6">
+                    The CMS Form 485 is not just paperwork; it is the legal directive for all home health services. It certifies that a patient is homebound, requires skilled care, and is under a physician's supervision. Inaccuracies here are the leading cause of payment denials.
+                </p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-4 rounded-lg">
+                        <span class="block text-4xl font-extrabold text-rose-500">60</span>
+                        <span class="text-sm font-semibold text-gray-500 uppercase">Day Certification Period</span>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-lg">
+                        <span class="block text-4xl font-extrabold text-blue-500">90</span>
+                        <span class="text-sm font-semibold text-gray-500 uppercase">Day F2F Window (Pre-Start)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- GOAL: INFORM - Donut Chart for Denial Risk -->
+            <div class="bg-white rounded-xl shadow-md p-6 border-t-4 border-rose-500 flex flex-col justify-center">
+                <h3 class="text-lg font-bold text-gray-800 mb-2 text-center">Audit Vulnerability</h3>
+                <p class="text-xs text-gray-500 text-center mb-4">Percentage of agencies flagged for POC deficiencies in recent review cycles.</p>
+                <div class="chart-container" style="height: 200px; max-height: 250px;">
+                    <canvas id="denialChart"></canvas>
+                </div>
+                <p class="text-center text-xs font-bold text-rose-600 mt-2">Takeaway: 1 in 4 agencies face scrutiny.</p>
+            </div>
+        </section>
+
+        <!-- SECTION 2: THE COMPLIANCE TIMELINE -->
+        <!-- GOAL: CHANGE (Time) - CSS Timeline -->
+        <section>
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-gray-900">The Certification Cycle</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto mt-2">A strict chronological workflow is required for Medicare reimbursement. Missing these milestones breaks the chain of payment.</p>
+            </div>
+
+            <div class="relative max-w-4xl mx-auto">
+                <!-- Vertical Line -->
+                <div class="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-blue-200"></div>
+
+                <!-- Event 1 -->
+                <div class="relative z-10 flex flex-col md:flex-row items-center justify-between mb-12">
+                    <div class="order-1 bg-white p-6 rounded-lg shadow-md w-full md:w-5/12 border-l-4 border-blue-500">
+                        <h3 class="font-bold text-lg text-blue-800">Face-to-Face Encounter</h3>
+                        <p class="text-sm text-gray-600 mt-1">Must occur 90 days prior to SOC or within 30 days after. Validates homebound status.</p>
+                    </div>
+                    <div class="order-2 bg-rose-500 text-white font-bold rounded-full w-12 h-12 flex items-center justify-center border-4 border-white shadow-sm z-20 my-4 md:my-0">1</div>
+                    <div class="order-3 w-full md:w-5/12 text-center md:text-left pl-4">
+                        <span class="text-sm font-bold text-gray-400">Pre-Admission</span>
+                    </div>
+                </div>
+
+                <!-- Event 2 -->
+                <div class="relative z-10 flex flex-col md:flex-row items-center justify-between mb-12">
+                    <div class="order-1 w-full md:w-5/12 text-center md:text-right pr-4 hidden md:block">
+                        <span class="text-sm font-bold text-gray-400">Day 0</span>
+                    </div>
+                    <div class="order-2 bg-blue-500 text-white font-bold rounded-full w-12 h-12 flex items-center justify-center border-4 border-white shadow-sm z-20 my-4 md:my-0">2</div>
+                    <div class="order-3 bg-white p-6 rounded-lg shadow-md w-full md:w-5/12 border-r-4 border-blue-500 text-right md:text-left">
+                        <h3 class="font-bold text-lg text-blue-800">Start of Care (SOC)</h3>
+                        <p class="text-sm text-gray-600 mt-1">First billable visit. Comprehensive assessment initiated. Immediate orders obtained.</p>
+                    </div>
+                </div>
+
+                <!-- Event 3 -->
+                <div class="relative z-10 flex flex-col md:flex-row items-center justify-between">
+                    <div class="order-1 bg-white p-6 rounded-lg shadow-md w-full md:w-5/12 border-l-4 border-rose-500">
+                        <h3 class="font-bold text-lg text-blue-800">Day 56-60: Recertification</h3>
+                        <p class="text-sm text-gray-600 mt-1">Assessment of goals. Physician must sign Recert POC before the next episode begins.</p>
+                    </div>
+                    <div class="order-2 bg-rose-500 text-white font-bold rounded-full w-12 h-12 flex items-center justify-center border-4 border-white shadow-sm z-20 my-4 md:my-0">3</div>
+                    <div class="order-3 w-full md:w-5/12 pl-4">
+                         <span class="text-sm font-bold text-gray-400">Episode End</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: COMMON DENIAL REASONS -->
+        <!-- GOAL: COMPARE - Horizontal Bar Chart -->
+        <section class="bg-white rounded-xl shadow-lg p-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Why Claims Get Denied</h2>
+                    <p class="text-gray-600 mb-6">
+                        An incomplete 485 is a liability. Medicare Administrative Contractors (MACs) frequently deny payment for technical deficiencies found within the Plan of Care.
+                    </p>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <span class="text-rose-500 mr-2 text-xl">&#10007;</span>
+                            <span class="text-gray-700"><strong>Unspecific Frequency:</strong> "PRN" orders without specific qualifiers are invalid.</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-rose-500 mr-2 text-xl">&#10007;</span>
+                            <span class="text-gray-700"><strong>Missing Signatures:</strong> Physician signature not dated prior to claim submission.</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-rose-500 mr-2 text-xl">&#10007;</span>
+                            <span class="text-gray-700"><strong>Goal Mismatch:</strong> Goals do not match the identified deficits in OASIS.</span>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="chart-container">
+                        <canvas id="denialReasonsChart"></canvas>
+                    </div>
+                    <p class="text-center text-xs text-gray-400 mt-2">Source: Aggregated MAC ADR denials data (Simulated)</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: ANATOMY OF A COMPLIANT POC -->
+        <!-- GOAL: ORGANIZE/COMPOSITION - Stacked Bar / Doughnut Interaction -->
+        <section>
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-900">Anatomy of the 485</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">A compliant Plan of Care requires specific data elements to be valid. Missing any one of these renders the document incomplete.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Chart -->
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="font-bold text-gray-700 mb-4 text-center">Required Data Elements Composition</h3>
+                    <div class="chart-container">
+                        <canvas id="anatomyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Descriptive List -->
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-600">
+                        <h4 class="font-bold text-blue-900">1. Medical Necessity</h4>
+                        <p class="text-sm text-blue-800">Must clearly state the primary diagnosis and the specific skilled need (e.g., wound care, gait training).</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-teal-500">
+                        <h4 class="font-bold text-blue-900">2. Medications & Treatments</h4>
+                        <p class="text-sm text-blue-800">A complete list of all medications (prescription and OTC) and specific treatments/supplies.</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-rose-500">
+                        <h4 class="font-bold text-blue-900">3. Functional Limitations</h4>
+                        <p class="text-sm text-blue-800">Specific limitations (e.g., Amputation, Dyspnea) that support homebound status.</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-indigo-500">
+                        <h4 class="font-bold text-blue-900">4. Measurable Goals</h4>
+                        <p class="text-sm text-blue-800">Goals must be realistic, patient-specific, and measurable with a target date.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: PROCESS FLOW -->
+        <!-- GOAL: ORGANIZE (Process) - HTML/CSS Diagram (NO MERMAID) -->
+        <section class="bg-slate-800 text-white rounded-2xl shadow-xl p-8 md:p-12 overflow-hidden">
+            <h2 class="text-3xl font-bold text-center mb-8 text-white">The Authorization Loop</h2>
+            <p class="text-center text-blue-200 mb-10 max-w-3xl mx-auto">
+                The Plan of Care is a living document that requires synchronization between the Home Health Agency (HHA) and the Certifying Physician.
+            </p>
+
+            <div class="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-4">
+                
+                <!-- Step 1 -->
+                <div class="flow-box w-full md:w-1/4 p-4 rounded text-gray-800 flex flex-col items-center text-center">
+                    <div class="text-3xl mb-2">&#127973;</div>
+                    <h4 class="font-bold mb-1">Assessment</h4>
+                    <p class="text-xs">RN/Therapist completes OASIS & drafts POC.</p>
+                </div>
+
+                <!-- Arrow -->
+                <div class="hidden md:block text-gray-400 text-2xl">&#10140;</div>
+                <div class="block md:hidden text-gray-400 text-2xl">&#11015;</div>
+
+                <!-- Step 2 -->
+                <div class="flow-box w-full md:w-1/4 p-4 rounded text-gray-800 flex flex-col items-center text-center">
+                    <div class="text-3xl mb-2">&#128196;</div>
+                    <h4 class="font-bold mb-1">Submission</h4>
+                    <p class="text-xs">Agency sends 485 to Physician for review.</p>
+                </div>
+
+                <!-- Arrow -->
+                <div class="hidden md:block text-gray-400 text-2xl">&#10140;</div>
+                <div class="block md:hidden text-gray-400 text-2xl">&#11015;</div>
+
+                <!-- Step 3 -->
+                <div class="flow-box w-full md:w-1/4 p-4 rounded text-gray-800 flex flex-col items-center text-center border-l-4 !border-rose-500">
+                    <div class="text-3xl mb-2">&#9997;</div>
+                    <h4 class="font-bold mb-1">Certification</h4>
+                    <p class="text-xs">MD signs & dates. This activates billing eligibility.</p>
+                </div>
+
+                <!-- Arrow -->
+                <div class="hidden md:block text-gray-400 text-2xl">&#10140;</div>
+                <div class="block md:hidden text-gray-400 text-2xl">&#11015;</div>
+
+                <!-- Step 4 -->
+                <div class="flow-box w-full md:w-1/4 p-4 rounded text-gray-800 flex flex-col items-center text-center">
+                    <div class="text-3xl mb-2">&#128137;</div>
+                    <h4 class="font-bold mb-1">Care Delivery</h4>
+                    <p class="text-xs">Services provided per the signed POC orders.</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- SECTION 6: FUTURE OUTLOOK -->
+        <!-- GOAL: RELATIONSHIP - Scatter Plot -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">The Documentation-Payment Link</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                <div class="md:col-span-2">
+                    <div class="chart-container">
+                        <canvas id="scatterChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <h3 class="font-bold text-blue-800 mb-2">Documentation Specificity</h3>
+                    <p class="text-sm text-gray-600 mb-4">
+                        As Patient Acuity (complexity) increases, the requirement for detailed documentation in the 485 increases exponentially.
+                    </p>
+                    <p class="text-sm text-gray-600">
+                        <span class="inline-block w-3 h-3 bg-blue-500 rounded-full mr-1"></span> High Acuity Patients require specific, non-generic goals.
+                    </p>
+                    <p class="text-sm text-gray-600 mt-2">
+                        <span class="inline-block w-3 h-3 bg-rose-500 rounded-full mr-1"></span> Generic Plans of Care correlate with payment adjustments.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center text-gray-400 text-sm py-8 border-t border-gray-200">
+            <p>&copy; 2023 Clinical Compliance Insights. All Rights Reserved.</p>
+            <p class="text-xs mt-1">Generated for educational purposes based on CMS regulatory guidelines.</p>
+        </footer>
+
+    </main>
+
+    <!-- SCRIPTS -->
+    <script>
+        // --- UTILITY FUNCTIONS ---
+
+        /**
+         * WRAP LABEL LOGIC (Mandatory)
+         * Splits long strings into arrays of strings ~16 chars long.
+         */
+        function wrapLabel(label) {
+            if (typeof label !== 'string' || label.length <= 16) {
+                return label;
+            }
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                if ((currentLine + " " + words[i]).length <= 16) {
+                    currentLine += " " + words[i];
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+
+        // TOOLTIP CONFIGURATION (Mandatory)
+        const tooltipPlugin = {
+            tooltip: {
+                callbacks: {
+                    title: function(tooltipItems) {
+                        const item = tooltipItems[0];
+                        let label = item.chart.data.labels[item.dataIndex];
+                        if (Array.isArray(label)) {
+                            return label.join(' ');
+                        } else {
+                            return label;
+                        }
+                    }
+                },
+                backgroundColor: '#1E293B',
+                titleFont: { size: 13, family: 'Inter' },
+                bodyFont: { size: 12, family: 'Inter' },
+                padding: 10,
+                cornerRadius: 4,
+                displayColors: false
+            }
+        };
+
+        // COMMON OPTIONS
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                ...tooltipPlugin,
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: { family: 'Inter', size: 11 },
+                        usePointStyle: true,
+                        padding: 20
+                    }
+                }
+            }
+        };
+
+        // --- CHARTS INITIALIZATION ---
+
+        // 1. DENIAL RISK CHART (Small Donut)
+        const ctxDenial = document.getElementById('denialChart').getContext('2d');
+        new Chart(ctxDenial, {
+            type: 'doughnut',
+            data: {
+                labels: ['Compliant', 'Deficient'],
+                datasets: [{
+                    data: [74, 26],
+                    backgroundColor: ['#E2E8F0', '#F43F5E'], // Slate 200 vs Rose 500
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                ...commonOptions,
+                cutout: '70%',
+                plugins: {
+                    ...tooltipPlugin,
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // 2. DENIAL REASONS CHART (Horizontal Bar)
+        const denialReasonsRawLabels = [
+            "Lack of Face-to-Face Encounter Documentation",
+            "Invalid or Missing Physician Signature",
+            "Medical Necessity Not Supported",
+            "Therapy Goals Not Measurable",
+            "Homebound Status Not Verified"
+        ];
+        const ctxReasons = document.getElementById('denialReasonsChart').getContext('2d');
+        new Chart(ctxReasons, {
+            type: 'bar',
+            data: {
+                labels: denialReasonsRawLabels.map(wrapLabel),
+                datasets: [{
+                    label: 'Denial Frequency (%)',
+                    data: [35, 25, 20, 15, 5],
+                    backgroundColor: '#3B82F6', // Blue 500
+                    borderRadius: 4,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Horizontal Bar
+                ...commonOptions,
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: 'Inter' } }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { font: { family: 'Inter', size: 11 } }
+                    }
+                }
+            }
+        });
+
+        // 3. ANATOMY CHART (Doughnut)
+        const anatomyLabels = [
+            "Medications & Treatments",
+            "Goals & Rehab Potential",
+            "Functional Limitations",
+            "Safety Precautions",
+            "Other (Supplies, etc)"
+        ];
+        const ctxAnatomy = document.getElementById('anatomyChart').getContext('2d');
+        new Chart(ctxAnatomy, {
+            type: 'doughnut',
+            data: {
+                labels: anatomyLabels.map(wrapLabel),
+                datasets: [{
+                    data: [30, 25, 20, 15, 10],
+                    backgroundColor: [
+                        '#1E40AF', // Blue 800
+                        '#3B82F6', // Blue 500
+                        '#14B8A6', // Teal 500
+                        '#F43F5E', // Rose 500
+                        '#94A3B8'  // Slate 400
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                ...commonOptions
+            }
+        });
+
+        // 4. RELATIONSHIP SCATTER CHART
+        // Simulating: X = Patient Acuity (Case Mix), Y = Documentation Lines Required
+        const ctxScatter = document.getElementById('scatterChart').getContext('2d');
+        new Chart(ctxScatter, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Documentation Load vs Acuity',
+                    data: [
+                        {x: 1, y: 10}, {x: 2, y: 15}, {x: 2.5, y: 18},
+                        {x: 3, y: 25}, {x: 4, y: 35}, {x: 4.5, y: 40},
+                        {x: 5, y: 55}, {x: 1.5, y: 12}, {x: 3.5, y: 30}
+                    ],
+                    backgroundColor: '#F43F5E',
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                ...commonOptions,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Patient Acuity Level (Low to High)' },
+                        grid: { color: '#E2E8F0' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Required Documentation Detail (Score)' },
+                        grid: { color: '#E2E8F0' }
+                    }
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>

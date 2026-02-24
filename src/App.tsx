@@ -23,6 +23,7 @@ import { RevealSection } from './components/RevealSection'
 import { Button } from './components/ui/Button'
 import { Card } from './components/ui/Card'
 import { PlanOfCareFocusPanel } from './components/PlanOfCareFocusPanel'
+import { CIArchitectureCard } from './components/CIArchitectureCard'
 import titleMedia from './assets/CI Home Health Logo_White.png'
 import headerLogoGray from './assets/CI Home Health Logo_Gray.png'
 import coverBanner from './assets/CMS-485 LMS Banner.png'
@@ -315,6 +316,22 @@ const VOICE_RECORDING_BY_TITLE = (() => {
     'Diagnosis and PDGM Relevance': ['diagnosis and pdgm relevance', 'diagnosis and pdgm'],
     'Diagnosis Integrity Safeguards': ['diagnosis integrity safeguards', 'diagnosis integrity'],
     'OASIS to Plan of Care Alignment': ['oasis to plan of care alignment', 'oasis to plan of care alignment (clinical alignment)'],
+    'Survey Deficiency Pattern: Safety Gaps': ['survey deficiency pattern safety gaps', 'safety gaps'],
+    'Survey Deficiency Pattern: Weak Coordination': ['survey deficiency pattern weak coordination', 'weak coordination'],
+    'Survey Deficiency Pattern: Incomplete Plans': ['survey deficiency pattern incomplete plans', 'incomplete plans'],
+    'Discipline Planning and Coordination': ['discipline planning and coordination'],
+    'Interim Order Governance': ['interim order governance'],
+    'Verbal and Telephone Orders: Core Rules': ['verbal and telephone orders core rules', 'verbal and telephone orders', 'telephone orders core rules'],
+    'Audit Trigger: Timeline Conflicts': ['audit trigger timeline conflicts'],
+    'Audit Trigger: Storyline Inconsistency': ['audit trigger storyline inconsistency'],
+    'Defensibility Checklist: Pre-Bill': ['defensibility checklist pre bill', 'defensibility checklist pre-bill'],
+    'Good vs Bad Example: Skilled Narrative': ['good vs bad example skilled narrative'],
+    'Good vs Bad Example: Homebound Support': ['good vs bad example homebound support'],
+    'Good vs Bad Example: Goal Quality': ['good vs bad example goal quality'],
+    'Good vs Bad Example: Order Specificity': ['good vs bad example order specificity'],
+    'Final Checklist: Daily Documentation Habits': ['final checklist daily documentation habits'],
+    'Final Checklist: Leadership Controls': ['final checklist leadership controls'],
+    'Key Takeaways and Next Actions': ['key takeaways and next actions'],
   }
 
   for (const [cardTitle, queries] of Object.entries(explicitMappings)) {
@@ -725,23 +742,26 @@ const TrainingSection = ({
   const additionalContentTypography = useMemo(() => {
     const length = (additionalContent ?? '').length
 
+    if (length > 2600) {
+      return { fontSize: 'clamp(0.76rem, 0.88vw, 0.92rem)', lineHeight: 1.4, overflowWrap: 'anywhere' as const }
+    }
     if (length > 2200) {
-      return { fontSize: '1.02rem', lineHeight: 1.48 }
+      return { fontSize: 'clamp(0.8rem, 0.95vw, 0.98rem)', lineHeight: 1.42, overflowWrap: 'anywhere' as const }
     }
     if (length > 1800) {
-      return { fontSize: '1.1rem', lineHeight: 1.52 }
+      return { fontSize: 'clamp(0.86rem, 1.02vw, 1.04rem)', lineHeight: 1.45, overflowWrap: 'anywhere' as const }
     }
     if (length > 1400) {
-      return { fontSize: '1.18rem', lineHeight: 1.54 }
+      return { fontSize: 'clamp(0.92rem, 1.08vw, 1.1rem)', lineHeight: 1.48, overflowWrap: 'anywhere' as const }
     }
     if (length > 1000) {
-      return { fontSize: '1.28rem', lineHeight: 1.56 }
+      return { fontSize: 'clamp(0.98rem, 1.15vw, 1.16rem)', lineHeight: 1.52, overflowWrap: 'anywhere' as const }
     }
     if (length > 700) {
-      return { fontSize: '1.4rem', lineHeight: 1.58 }
+      return { fontSize: 'clamp(1.04rem, 1.22vw, 1.24rem)', lineHeight: 1.54, overflowWrap: 'anywhere' as const }
     }
 
-    return { fontSize: '1.6rem', lineHeight: 1.6 }
+    return { fontSize: 'clamp(1.1rem, 1.35vw, 1.34rem)', lineHeight: 1.56, overflowWrap: 'anywhere' as const }
   }, [additionalContent])
 
   useEffect(() => {
@@ -1304,6 +1324,7 @@ const FlowCards = ({
   const [finalTestPageIndex, setFinalTestPageIndex] = useState(0)
   const [finalTestAnswers, setFinalTestAnswers] = useState<Record<string, number>>({})
   const [liveStatus, setLiveStatus] = useState('')
+  const [showCIArchitecture, setShowCIArchitecture] = useState(false)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const touchStartXRef = useRef<number | null>(null)
   const audioElementRef = useRef<HTMLAudioElement | null>(null)
@@ -1893,40 +1914,51 @@ const FlowCards = ({
   return (
     <div className="relative h-full w-full overflow-visible">
       {showNavigationChrome && (
-        <div className="fixed left-4 top-4 z-50 flex items-center gap-2">
-          <Button
-            variant="ghost"
-            onClick={handleHelpToggle}
-            className={`orange-radiate gap-2 border transition-colors ${
-              currentPanelMode === 'help'
-                ? (isDarkMode ? 'border-[#E56E2E] bg-[#E56E2E]/15 text-[#FFB27F] shadow-[0_0_18px_rgba(229,110,46,0.45)]' : 'border-[#007970] bg-[#E5FEFF] text-[#007970]')
-                : (isDarkMode ? 'border-[#C74601]/35 bg-black/60 text-[#FFB27F] hover:border-[#E56E2E] hover:text-white' : 'border-[#E5E4E3] bg-white text-[#1F1C1B]')
-            }`}
-          >
-            <HelpCircle className="h-4 w-4" />
-            Help
-          </Button>
+        <div className="fixed inset-x-4 top-4 z-50 flex items-center justify-between pointer-events-none">
+          <div className="flex items-center gap-2 pointer-events-auto">
+            <Button
+              variant="ghost"
+              onClick={handleHelpToggle}
+              className={`orange-radiate gap-2 border transition-colors ${
+                currentPanelMode === 'help'
+                  ? (isDarkMode ? 'border-[#E56E2E] bg-[#E56E2E]/15 text-[#FFB27F] shadow-[0_0_18px_rgba(229,110,46,0.45)]' : 'border-[#007970] bg-[#E5FEFF] text-[#007970]')
+                  : (isDarkMode ? 'border-[#C74601]/35 bg-black/60 text-[#FFB27F] hover:border-[#E56E2E] hover:text-white' : 'border-[#E5E4E3] bg-white text-[#1F1C1B]')
+              }`}
+            >
+              <HelpCircle className="h-4 w-4" />
+              Help
+            </Button>
 
-          <Button
-            variant="ghost"
-            onClick={onToggleDarkMode}
-            className={`orange-radiate ${isDarkMode ? 'border border-[#C74601]/35 bg-black/60 text-[#FFB27F] hover:border-[#E56E2E] hover:text-white' : 'border border-[#E5E4E3] bg-white text-[#1F1C1B]'}`}
-          >
-            {isDarkMode ? 'Switch to Light Mode' : 'Switch to Night Mode'}
-          </Button>
+            <Button
+              variant="ghost"
+              onClick={onToggleDarkMode}
+              className={`orange-radiate ${isDarkMode ? 'border border-[#C74601]/35 bg-black/60 text-[#FFB27F] hover:border-[#E56E2E] hover:text-white' : 'border border-[#E5E4E3] bg-white text-[#1F1C1B]'}`}
+            >
+              {isDarkMode ? 'Switch to Light Mode' : 'Switch to Night Mode'}
+            </Button>
 
-          <Button
-            variant="ghost"
-            onClick={onToggleDebugMode}
-            className={`${
-              isDarkMode
-                ? 'border border-white/10 bg-black/50 text-[#64F4F5] hover:border-[#64F4F5]/60 hover:text-white'
-                : 'border border-[#E5E4E3] bg-white text-[#C74601]'
-            }`}
-          >
-            <Zap className="h-4 w-4" />
-            QA {isDebugMode ? 'ON' : 'OFF'}
-          </Button>
+            <Button
+              variant="ghost"
+              onClick={onToggleDebugMode}
+              className={`${
+                isDarkMode
+                  ? 'border border-white/10 bg-black/50 text-[#64F4F5] hover:border-[#64F4F5]/60 hover:text-white'
+                  : 'border border-[#E5E4E3] bg-white text-[#C74601]'
+              }`}
+            >
+              <Zap className="h-4 w-4" />
+              QA {isDebugMode ? 'ON' : 'OFF'}
+            </Button>
+          </div>
+
+          <div className="pointer-events-auto">
+            <div className={`flex items-center gap-2 p-1.5 rounded-lg border ${isDarkMode ? 'border-white/10' : 'border-[#007970]/20'} bg-[#007970]/10 teal-radiate shadow-sm backdrop-blur-sm`}>
+              <a href={SYSTEMS_DOC_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Systems Documentation</a>
+              <a href={COURSE_FRAMEWORK_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Course Framework</a>
+              <a href={MASTERING_CMS485_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Mastering CMS-485</a>
+              <button onClick={() => setShowCIArchitecture(true)} className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">CI Architecture</button>
+            </div>
+          </div>
         </div>
       )}
       <div className={`relative flex h-full w-full flex-col overflow-hidden rounded-xl transition-colors duration-300 ${
@@ -1949,12 +1981,6 @@ const FlowCards = ({
 
         {showNavigationChrome && (
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2">
-              <a href={SYSTEMS_DOC_URL} target="_blank" rel="noreferrer" className="text-sm px-3 py-1 bg-white border border-slate-200 rounded text-slate-700 hover:bg-slate-50">Systems Documentation</a>
-              <a href={COURSE_FRAMEWORK_URL} target="_blank" rel="noreferrer" className="text-sm px-3 py-1 bg-white border border-slate-200 rounded text-slate-700 hover:bg-slate-50">Course Framework</a>
-              <a href={MASTERING_CMS485_URL} target="_blank" rel="noreferrer" className="text-sm px-3 py-1 bg-white border border-slate-200 rounded text-slate-700 hover:bg-slate-50">Mastering CMS-485</a>
-            </div>
-
             <div className={`text-xl font-medium tracking-widest px-5 py-1.5 border transition-colors ${
               isDarkMode 
                 ? 'text-white/50 bg-black/50 border-white/10 backdrop-blur-sm shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] rounded' 
@@ -1966,6 +1992,7 @@ const FlowCards = ({
         )}
       </header>
       )}
+      {showCIArchitecture && <CIArchitectureCard onClose={() => setShowCIArchitecture(false)} />}
 
       {/* Progress Bar */}
       {showNavigationChrome && (

@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI eLearner App Architecture Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Custom scrollbar for content areas */
+        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Animation classes */
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Chart Container Utilities */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 300px;
+        }
+
+        /* Flow Diagram Connector Styles */
+        .connector-line {
+            position: absolute;
+            background-color: #cbd5e1;
+            z-index: 0;
+            transition: background-color 0.3s;
+        }
+        .connector-active { background-color: #3b82f6; }
+
+        /* Packet Animation */
+        .data-packet {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            display: none;
+            z-index: 20;
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+        }
+
+        /* Nav active state */
+        .nav-item.active {
+            background-color: #e0e7ff;
+            color: #4338ca;
+            border-right: 4px solid #4338ca;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex overflow-hidden">
+
+    <!-- Sidebar Navigation -->
+    <nav class="w-64 bg-white border-r border-slate-200 flex-shrink-0 flex flex-col h-full z-20 shadow-sm">
+        <div class="p-6 border-b border-slate-100">
+            <img src="https://csm-485-form.vercel.app/assets/CI%20Home%20Health%20Logo_Gray-Dju7zS6k.png" alt="CareIndeed Logo" class="h-8 w-auto object-contain mb-4">
+            <p class="text-xs text-slate-500 mt-1">CI eLearner Interactive Training</p>
+        </div>
+        <div class="flex-1 overflow-y-auto py-4">
+            <ul class="space-y-1">
+                <li><button onclick="navTo('dashboard')" class="nav-item active w-full text-left px-6 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Executive Summary</button></li>
+                <li><button onclick="navTo('ui-ux')" class="nav-item w-full text-left px-6 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">UI/UX Architecture</button></li>
+                <li><button onclick="navTo('system-map')" class="nav-item w-full text-left px-6 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">System Components</button></li>
+                <li><button onclick="navTo('runtime')" class="nav-item w-full text-left px-6 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">State & Data Flow</button></li>
+                <li><button onclick="navTo('deployment')" class="nav-item w-full text-left px-6 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors">Deployment & Ops</button></li>
+            </ul>
+        </div>
+        <div class="p-4 border-t border-slate-100 bg-slate-50">
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span class="text-xs font-medium text-slate-500">System Status: Stable (v2.0)</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+        
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center z-10">
+            <div>
+                <h2 id="page-title" class="text-2xl font-bold text-slate-800">Executive Summary</h2>
+                <p id="page-desc" class="text-sm text-slate-500 mt-1">High-level overview of the CI eLearner Application.</p>
+            </div>
+            <div class="flex gap-2">
+                <span class="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full border border-blue-100">React 18</span>
+                <span class="px-3 py-1 bg-purple-50 text-purple-700 text-xs font-bold rounded-full border border-purple-100">Vite</span>
+                <span class="px-3 py-1 bg-cyan-50 text-cyan-700 text-xs font-bold rounded-full border border-cyan-100">Tailwind JIT</span>
+            </div>
+        </header>
+
+        <!-- Content Container -->
+        <div id="content-area" class="flex-1 overflow-y-auto custom-scroll bg-slate-50 p-8 relative">
+            
+            <!-- SECTION: DASHBOARD (EXECUTIVE SUMMARY) -->
+            <section id="dashboard" class="space-y-8 fade-in">
+                <!-- Intro Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 md:col-span-2">
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">What is this system?</h3>
+                        <p class="text-slate-600 leading-relaxed mb-4">
+                            The <strong class="text-indigo-700">CI eLearner</strong> is a highly interactive, state-driven React Single Page Application (SPA). It replaces legacy static slide decks with an immersive, "neo-brutalist meets glassmorphism" learning experience.
+                        </p>
+                        <p class="text-slate-600 leading-relaxed">
+                            It parses complex regulatory requirements (Conditions of Participation, Homebound Status) into a 3-stage interactive flow: <strong>Foundation</strong> &rarr; <strong>Expanded Context</strong> &rarr; <strong>Validation Challenge</strong>.
+                        </p>
+                    </div>
+                    
+                    <div class="bg-slate-800 p-6 rounded-xl shadow-md text-white flex flex-col justify-between relative overflow-hidden">
+                        <!-- Abstract bg decoration -->
+                        <div class="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500 rounded-full blur-3xl opacity-30"></div>
+                        <div class="relative z-10">
+                            <h3 class="text-lg font-bold mb-1 text-white">Core Philosophy</h3>
+                            <p class="text-slate-300 text-sm">Maximize learner retention through high-contrast UI, immediate validation feedback, and frictionless performance.</p>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-slate-700 relative z-10">
+                            <span class="text-xs font-mono uppercase text-slate-400">Architecture</span>
+                            <div class="font-bold text-emerald-400">Client-Side SPA</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-slate-800">Moodle as a Quasi-Database</h3>
+                        <span class="text-xs bg-white border border-slate-200 px-2 py-1 rounded text-slate-500">Data Architecture</span>
+                    </div>
+                    <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <p class="text-slate-600 mb-4">
+                                Because this React SPA lacks a traditional backend (like Node.js/PostgreSQL), it treats <strong>Moodle as a quasi-database</strong> to achieve persistent state across sessions.
+                            </p>
+                            <p class="text-sm text-slate-500 mb-4">
+                                During active use, the application operates entirely in-memory using React's virtual DOM, making state changes (like advancing cards or answering quizzes) instantaneous. However, to persist this data, the app serializes its current state into a JSON string and pushes it to Moodle's SCORM 1.2 <code>cmi.suspend_data</code> field.
+                            </p>
+                            <p class="text-sm text-slate-500 mb-6">
+                                Upon a learner's return, the app fetches this string from Moodle, parses it, and seamlessly hydrates the React state to resume exactly where they left off.
+                            </p>
+                            <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-100 text-sm text-indigo-800">
+                                <strong>Performance Win:</strong> By decoupling real-time UI state from database constraints (only syncing to Moodle at key checkpoints), complex interactions run at a smooth 60fps without network loading spinners.
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-center justify-center">
+                            <div class="chart-container">
+                                <canvas id="responsibilityChart"></canvas>
+                            </div>
+                            <p class="text-xs text-center text-slate-400 mt-2">Data Processing & Storage Responsibility</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: UI/UX ARCHITECTURE -->
+            <section id="ui-ux" class="hidden space-y-8 fade-in">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-800 mb-6">Design System & Styling Engine</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h4 class="font-bold text-slate-700 border-b pb-2 mb-4">Tailwind JIT Configuration</h4>
+                            <p class="text-sm text-slate-600 mb-4">The app eschews traditional CSS files in favor of Tailwind's utility classes. Arbitrary values are used for exact brand-kit matching without bloating the config file.</p>
+                            
+                            <ul class="space-y-3">
+                                <li class="p-3 bg-slate-50 rounded border border-slate-100">
+                                    <div class="text-xs font-bold text-slate-500 uppercase mb-1">Brand Palette Integration</div>
+                                    <div class="font-mono text-xs text-indigo-600">bg-[#007970] | text-[#C74601] | border-[#1F1C1B]</div>
+                                </li>
+                                <li class="p-3 bg-slate-50 rounded border border-slate-100">
+                                    <div class="text-xs font-bold text-slate-500 uppercase mb-1">Typography Hierarchy</div>
+                                    <div class="text-sm"><strong>Montserrat</strong> (font-heading) for structure.<br><strong>Roboto</strong> (font-body) for legibility.</div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h4 class="font-bold text-slate-700 border-b pb-2 mb-4">Advanced Visual Patterns</h4>
+                            <p class="text-sm text-slate-600 mb-4">The UI implements complex effects that maintain high performance using CSS transforms and variables.</p>
+                            
+                            <ul class="space-y-3">
+                                <li class="p-3 bg-slate-50 rounded border border-slate-100">
+                                    <div class="text-xs font-bold text-slate-500 uppercase mb-1">Dynamic Mouse Tracking Glow</div>
+                                    <p class="text-xs text-slate-600">A global <code>mousemove</code> listener updates native CSS variables (<code>--mouse-x</code>, <code>--mouse-y</code>) allowing a radial gradient to follow the cursor without triggering costly React render cycles.</p>
+                                </li>
+                                <li class="p-3 bg-slate-50 rounded border border-slate-100">
+                                    <div class="text-xs font-bold text-slate-500 uppercase mb-1">Glassmorphism & Depth</div>
+                                    <p class="text-xs text-slate-600">Extensive use of <code>backdrop-blur-xl</code> and translucent backgrounds (e.g., <code>bg-white/85</code>) creates physical depth against dark/patterned underlays.</p>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: SYSTEM MAP -->
+            <section id="system-map" class="hidden space-y-8 fade-in">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <p class="mb-6 text-slate-600 max-w-3xl">
+                        The component architecture is monolithic by design, contained within <code>App.jsx</code> to ensure portability. It imports a singular icon library to keep bundle sizes minimal.
+                    </p>
+
+                    <!-- Block Diagram -->
+                    <div class="relative bg-slate-800 p-8 rounded-xl border border-slate-700 overflow-hidden select-none" style="min-height: 400px;">
+                        <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(rgba(255, 255, 255, 0.5) 1px, transparent 1px); background-size: 20px 20px;"></div>
+                        
+                        <!-- Packet Element for Animation -->
+                        <div id="packet" class="data-packet bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10 h-full text-white">
+                            
+                            <!-- BLOCK 1: Data Model -->
+                            <div class="flex flex-col h-full">
+                                <div class="bg-slate-900 border border-slate-700 rounded-lg p-5 shadow-lg flex-1 flex flex-col justify-between">
+                                    <div class="text-center mt-2">
+                                        <div class="text-3xl mb-2 text-amber-400">📄</div>
+                                        <h4 class="font-bold text-slate-100">Content Model</h4>
+                                        <p class="text-xs text-slate-400 mt-1">Static JSON Array</p>
+                                    </div>
+                                    <div class="space-y-2 mt-4 font-mono text-[10px]">
+                                        <div class="bg-slate-800 p-2 rounded border border-slate-700 text-emerald-400">const cards = [{...}]</div>
+                                        <div class="bg-slate-800 p-2 rounded border border-slate-700">- title, section</div>
+                                        <div class="bg-slate-800 p-2 rounded border border-slate-700">- objective, bullets</div>
+                                        <div class="bg-slate-800 p-2 rounded border border-slate-700">- additional, challenge</div>
+                                    </div>
+                                    <div id="port-app" class="absolute top-1/2 left-[31%] w-3 h-3 bg-amber-400 rounded-full"></div>
+                                </div>
+                            </div>
+
+                            <!-- BLOCK 2: React Engine -->
+                            <div class="flex flex-col justify-center items-center relative">
+                                <div class="absolute w-full h-px bg-slate-600 top-1/2 left-0 -z-10"></div>
+                                
+                                <div class="bg-slate-900 border-2 border-cyan-500 rounded-lg p-5 shadow-[0_0_20px_rgba(6,182,212,0.2)] w-full max-w-[220px] relative z-10">
+                                    <div class="text-center">
+                                        <div class="text-3xl mb-1 text-cyan-400">⚛️</div>
+                                        <h4 class="font-bold text-slate-100 text-sm">React State Engine</h4>
+                                        <p class="text-xs text-slate-400 mt-1">App.jsx</p>
+                                    </div>
+                                    <div class="mt-4 space-y-2 font-mono text-[10px]">
+                                        <div class="bg-slate-800 p-1.5 rounded text-cyan-300">useState(cardIndex)</div>
+                                        <div class="bg-slate-800 p-1.5 rounded text-cyan-300">useState(panelMode)</div>
+                                        <div id="bridge-status" class="bg-slate-800 p-1.5 rounded text-slate-500">Awaiting Interaction...</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- BLOCK 3: Render Layer -->
+                            <div class="flex flex-col h-full">
+                                <div class="bg-slate-900 border border-slate-700 rounded-lg p-5 shadow-lg flex-1 flex flex-col justify-between relative">
+                                    <div id="port-lms" class="absolute top-1/2 -left-1.5 w-3 h-3 bg-purple-400 rounded-full"></div>
+                                    <div class="text-center mt-2">
+                                        <div class="text-3xl mb-2 text-purple-400">🎨</div>
+                                        <h4 class="font-bold text-slate-100">Virtual DOM</h4>
+                                        <p class="text-xs text-slate-400 mt-1">Lucide + Tailwind</p>
+                                    </div>
+                                    <div class="space-y-2 mt-4 text-[10px] font-mono">
+                                        <div class="bg-slate-800 p-2 rounded border border-slate-700">&lt;Header /&gt;</div>
+                                        <div class="bg-slate-800 p-2 rounded border border-slate-700">&lt;MainPanel mode={...} /&gt;</div>
+                                        <div class="bg-slate-800 p-2 rounded border border-slate-700">&lt;FooterControls /&gt;</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Controls -->
+                        <div class="absolute bottom-6 left-0 right-0 flex justify-center z-20">
+                            <button onclick="runDataSimulation()" class="bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-2 rounded-lg font-bold shadow-lg transition-transform transform active:scale-95 text-sm">
+                                Simulate State Change (Next Panel)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h4 class="font-bold text-slate-800 mb-2">Core Dependencies</h4>
+                        <ul class="space-y-3">
+                            <li class="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100">
+                                <span class="text-sm font-medium">UI Library</span>
+                                <span class="text-xs bg-white border border-slate-200 px-2 py-1 rounded font-mono">React 18</span>
+                            </li>
+                            <li class="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100">
+                                <span class="text-sm font-medium">Build Tool</span>
+                                <span class="text-xs bg-white border border-slate-200 px-2 py-1 rounded font-mono">Vite</span>
+                            </li>
+                            <li class="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100">
+                                <span class="text-sm font-medium">Iconography</span>
+                                <span class="text-xs bg-white border border-slate-200 px-2 py-1 rounded font-mono">lucide-react</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h4 class="font-bold text-slate-800 mb-2">State Variables</h4>
+                        <ul class="space-y-3">
+                            <li class="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100">
+                                <span class="text-sm font-medium"><code>cardIndex</code></span>
+                                <span class="text-xs text-slate-500">Tracks current module array index</span>
+                            </li>
+                            <li class="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100">
+                                <span class="text-sm font-medium"><code>panelMode</code></span>
+                                <span class="text-xs text-slate-500">'main' | 'additional' | 'challenge'</span>
+                            </li>
+                            <li class="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100">
+                                <span class="text-sm font-medium"><code>isSubmitted</code></span>
+                                <span class="text-xs text-slate-500">Locks challenge UI to show feedback</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION: RUNTIME (TIMELINE) -->
+            <section id="runtime" class="hidden space-y-8 fade-in">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-800 mb-6">Runtime Sequence: The Tri-Panel Flow</h3>
+                    <p class="text-sm text-slate-500 mb-6">How data flows from initial load to challenge validation.</p>
+
+                    <div class="relative pl-8 border-l-2 border-indigo-100 space-y-8">
+                        
+                        <!-- Step 1 -->
+                        <div class="group relative cursor-pointer" onclick="toggleStepDetails('step1')">
+                            <div class="absolute -left-[41px] bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm z-10">1</div>
+                            <div class="bg-white hover:bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm transition-all">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold text-slate-800">Initial Render (Main Mode)</h4>
+                                    <span class="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded uppercase font-bold">Mount</span>
+                                </div>
+                                <p class="text-sm text-slate-600 mt-2">App mounts. <code>cardIndex</code> is 0. <code>panelMode</code> is 'main'. Virtual DOM renders the Learning Objective and Key Points grid.</p>
+                                
+                                <div id="step1" class="hidden mt-4 pt-4 border-t border-slate-100 bg-slate-900 text-cyan-400 p-4 rounded font-mono text-xs overflow-x-auto">
+                                    const card = cards[cardIndex];<br>
+                                    // Renders &lt;main&gt; block 1<br>
+                                    {panelMode === 'main' && ( ... )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="group relative cursor-pointer" onclick="toggleStepDetails('step2')">
+                            <div class="absolute -left-[41px] bg-white border-2 border-indigo-600 text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm z-10">2</div>
+                            <div class="bg-white hover:bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm transition-all">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold text-slate-800">Internal Navigation</h4>
+                                    <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded uppercase font-bold">Update</span>
+                                </div>
+                                <p class="text-sm text-slate-600 mt-2">User clicks "Initialize Audio" or "Enter Challenge". The <code>panelMode</code> state updates, causing an immediate re-render with CSS transition animations.</p>
+                                
+                                <div id="step2" class="hidden mt-4 pt-4 border-t border-slate-100 bg-slate-900 text-cyan-400 p-4 rounded font-mono text-xs overflow-x-auto">
+                                    setPanelMode('additional');<br>
+                                    setStatusText('System: Playing Audio Protocol');<br>
+                                    // The 'key' prop on the main div forces a remount,<br>
+                                    // triggering the .animate-glitch CSS class.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="group relative cursor-pointer" onclick="toggleStepDetails('step3')">
+                            <div class="absolute -left-[41px] bg-white border-2 border-indigo-600 text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm z-10">3</div>
+                            <div class="bg-white hover:bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm transition-all">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold text-slate-800">Challenge Validation</h4>
+                                    <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded uppercase font-bold">Action</span>
+                                </div>
+                                <p class="text-sm text-slate-600 mt-2">User selects a quiz radio button. State is held in <code>selectedAnswer</code>. Clicking Execute locks the UI via <code>isSubmitted</code>.</p>
+                                
+                                <div id="step3" class="hidden mt-4 pt-4 border-t border-slate-100 bg-slate-900 text-cyan-400 p-4 rounded font-mono text-xs overflow-x-auto">
+                                    const submitChallenge = () => {<br>
+                                    &nbsp;&nbsp;if (selectedAnswer !== null) {<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;setIsSubmitted(true);<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;// UI conditionally renders green checkmarks<br>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;// or red error states based on index 0 being correct.<br>
+                                    &nbsp;&nbsp;}<br>
+                                    };
+                                </div>
+                            </div>
+                        </div>
+
+                         <!-- Step 4 -->
+                         <div class="group relative cursor-pointer" onclick="toggleStepDetails('step4')">
+                            <div class="absolute -left-[41px] bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm z-10">4</div>
+                            <div class="bg-white hover:bg-slate-50 border border-slate-200 p-4 rounded-lg shadow-sm transition-all">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-bold text-slate-800">Card Advancement</h4>
+                                    <span class="text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded uppercase font-bold">Loop</span>
+                                </div>
+                                <p class="text-sm text-slate-600 mt-2">Clicking "Advance" iterates <code>cardIndex</code>, resets <code>panelMode</code> to main, and clears the challenge data for the next topic.</p>
+                                
+                                <div id="step4" class="hidden mt-4 pt-4 border-t border-slate-100 bg-slate-900 text-cyan-400 p-4 rounded font-mono text-xs overflow-x-auto">
+                                    setCardIndex(cardIndex + 1);<br>
+                                    setPanelMode('main');<br>
+                                    setSelectedAnswer(null);<br>
+                                    setIsSubmitted(false);
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+             <!-- SECTION: DEPLOYMENT -->
+             <section id="deployment" class="hidden space-y-8 fade-in">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4">Deployment Environments</h3>
+                    <p class="text-slate-600 mb-8">Because this is a pure client-side application without a Node.js backend requirement, it supports frictionless static hosting.</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        
+                        <!-- Card 1 -->
+                        <div class="border-2 border-slate-200 rounded-xl p-6 hover:border-indigo-400 transition-colors bg-white">
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="text-2xl">🌍</span>
+                                <h4 class="font-bold text-lg">Vercel / Netlify Edge</h4>
+                            </div>
+                            <div class="bg-blue-50 text-blue-800 text-xs font-bold px-2 py-1 rounded inline-block mb-4">Current Implementation</div>
+                            <ul class="space-y-2 text-sm text-slate-600 mb-6">
+                                <li>✅ Zero-config deployment via <code>npm run build</code></li>
+                                <li>✅ Edge caching for sub-second global loads</li>
+                                <li>✅ Perfect for staging, QA, and rapid iteration</li>
+                                <li>❌ No persistent tracking database out of the box</li>
+                            </ul>
+                            <div class="text-xs text-slate-400 mt-auto border-t pt-2">Build Output: Static HTML/JS/CSS</div>
+                        </div>
+
+                        <!-- Card 2 -->
+                        <div class="border-2 border-slate-200 rounded-xl p-6 bg-slate-50 transition-colors opacity-75">
+                            <div class="flex items-center gap-3 mb-4">
+                                <span class="text-2xl">📦</span>
+                                <h4 class="font-bold text-lg">LMS / SCORM Wrapper</h4>
+                            </div>
+                            <div class="bg-slate-200 text-slate-600 text-xs font-bold px-2 py-1 rounded inline-block mb-4">Future Extensibility</div>
+                            <ul class="space-y-2 text-sm text-slate-600 mb-6">
+                                <li>The monolithic file structure makes it trivial to wrap in an Iframe for SCORM.</li>
+                                <li>State transitions (handleNext, submitChallenge) can easily be wired to trigger <code>API.LMSSetValue()</code> to push tracking data.</li>
+                            </ul>
+                            <div class="text-xs text-slate-400 mt-auto border-t border-slate-200 pt-2">Requirements: SCORM API Bridge Script</div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // --- NAVIGATION ---
+        function navTo(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('section').forEach(el => {
+                el.classList.add('hidden');
+            });
+            
+            // Show target
+            const target = document.getElementById(sectionId);
+            target.classList.remove('hidden');
+            
+            // Trigger chart render if needed
+            if (sectionId === 'dashboard' && !Chart.getChart("responsibilityChart")) {
+                initResponsibilityChart();
+            }
+
+            // Update Header
+            const titles = {
+                'dashboard': ['Executive Summary', 'High-level overview of the CMS-485 Training Application.'],
+                'ui-ux': ['UI/UX Architecture', 'Design systems, styling engines, and CSS variables.'],
+                'system-map': ['System Components', 'React architecture and component breakdown.'],
+                'runtime': ['State & Data Flow', 'React state hooks and render lifecycles.'],
+                'deployment': ['Deployment & Ops', 'Hosting environments and build artifacts.']
+            };
+            document.getElementById('page-title').innerText = titles[sectionId][0];
+            document.getElementById('page-desc').innerText = titles[sectionId][1];
+
+            // Update Nav State
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+
+        // --- CHART INITIALIZATION ---
+        function initResponsibilityChart() {
+            const ctx = document.getElementById('responsibilityChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['React Virtual DOM (UI/State)', 'Browser Engine (CSS GPU)', 'Static Assets (JSON)'],
+                    datasets: [{
+                        data: [60, 30, 10], 
+                        backgroundColor: ['#06b6d4', '#8b5cf6', '#f59e0b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ": " + context.raw + "% Load";
+                                }
+                            }
+                        }
+                    },
+                    cutout: '75%'
+                }
+            });
+        }
+
+        // --- TIMELINE INTERACTION ---
+        function toggleStepDetails(id) {
+            const el = document.getElementById(id);
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+                el.classList.add('slide-up');
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+
+        // --- DIAGRAM SIMULATION ---
+        function runDataSimulation() {
+            const packet = document.getElementById('packet');
+            const portApp = document.getElementById('port-app');
+            const portLMS = document.getElementById('port-lms');
+            const bridgeStatus = document.getElementById('bridge-status');
+
+            // 1. Start at Model
+            packet.style.display = 'block';
+            packet.style.top = (portApp.getBoundingClientRect().top - packet.parentElement.getBoundingClientRect().top - 2) + 'px';
+            packet.style.left = (portApp.getBoundingClientRect().left - packet.parentElement.getBoundingClientRect().left - 2) + 'px';
+            
+            bridgeStatus.innerText = "setPanelMode()...";
+            bridgeStatus.className = "bg-slate-800 p-1.5 rounded text-yellow-400";
+
+            // 2. Move to Engine
+            setTimeout(() => {
+                packet.style.transition = "all 0.6s ease-in-out";
+                packet.style.left = "48%";
+                bridgeStatus.innerText = "Reconciling DOM...";
+            }, 100);
+
+            // 3. Move to Render
+            setTimeout(() => {
+                packet.style.left = (portLMS.getBoundingClientRect().left - packet.parentElement.getBoundingClientRect().left - 2) + 'px';
+                bridgeStatus.innerText = "Render Complete";
+                bridgeStatus.className = "bg-slate-800 p-1.5 rounded text-emerald-400";
+            }, 800);
+
+            // 4. Reset
+            setTimeout(() => {
+                packet.style.display = 'none';
+                bridgeStatus.innerText = "Awaiting Interaction...";
+                bridgeStatus.className = "bg-slate-800 p-1.5 rounded text-slate-500";
+                packet.style.transition = "none";
+            }, 1800);
+        }
+
+        // --- INITIALIZATION ---
+        window.addEventListener('DOMContentLoaded', () => {
+            initResponsibilityChart();
+        });
+
+    </script>
+</body>
+</html>
