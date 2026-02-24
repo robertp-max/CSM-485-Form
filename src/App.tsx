@@ -278,6 +278,19 @@ const VOICE_RECORDING_BY_TITLE = (() => {
     mapping.set(bestTitleMatch.title, audioUrl)
   })
 
+  // Manual override: move the OASIS audio to the "Maintaining OASIS-POC Continuity" card
+  // This ensures the narration for the OASIS topic is played with the continuity card when titles are similar.
+  const oasisTitle = 'OASIS to Plan of Care Alignment'
+  const targetTitle = 'Maintaining OASIS-POC Continuity'
+
+  if (mapping.has(oasisTitle)) {
+    const oasisAudio = mapping.get(oasisTitle)
+    if (oasisAudio && !mapping.has(targetTitle)) {
+      mapping.set(targetTitle, oasisAudio)
+      mapping.delete(oasisTitle)
+    }
+  }
+
   return mapping
 })()
 
