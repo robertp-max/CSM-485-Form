@@ -12,6 +12,8 @@ import { GlossaryDebugPanel } from './components/GlossaryDebugPanel'
 applyTheme(getStoredTheme())
 
 const LearningProfessional = lazy(() => import('./LearningProfessional.tsx'))
+const HelpCenter = lazy(() => import('./components/HelpCenter.tsx'))
+const HendersonChallenge = lazy(() => import('./components/HendersonChallenge.tsx'))
 
 type ErrorBoundaryState = {
   hasError: boolean
@@ -61,6 +63,8 @@ createRoot(document.getElementById('root')!).render(
             <Routes>
               <Route path="/" element={<App />} />
               <Route path="/learning" element={<LearningProfessional />} />
+              <Route path="/help" element={<HelpCenter />} />
+              <Route path="/henderson" element={<HendersonChallenge />} />
             </Routes>
           </Suspense>
         </HashRouter>

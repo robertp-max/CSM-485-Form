@@ -3,6 +3,7 @@ import type { ReactElement } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
+  BookOpen,
   ChevronRight,
   Lock,
   Pause,
@@ -18,6 +19,7 @@ import {
   HelpCircle,
   Zap,
 } from 'lucide-react'
+import { useTheme } from './hooks/useTheme'
 import { CardFlowLayout } from './components/CardFlowLayout'
 import { RevealSection } from './components/RevealSection'
 import { Button } from './components/ui/Button'
@@ -30,7 +32,6 @@ import { Cms485VirtualForm } from './components/Cms485VirtualForm'
 import titleMedia from './assets/CI Home Health Logo_White.png'
 import headerLogoGray from './assets/CI Home Health Logo_Gray.png'
 import coverBanner from './assets/CMS-485 LMS Banner.png'
-import introVideo from './assets/CMS-485 Form (jake).mp4'
 import additionalContentRaw from './assets/Additional Content.txt?raw'
 import { TRAINING_CARDS } from './data/trainingCards'
 import { CARD_METADATA } from './data/cardMetadata'
@@ -492,75 +493,38 @@ const IntroVideoCard = ({
   isDarkMode: boolean
   onComplete: () => void
 }) => {
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-    video.muted = false
-    video.defaultMuted = false
-    video.volume = 1
-  }, [])
-
   return (
     <div className={`relative h-full w-full overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#121214]' : 'bg-white'}`}>
-      <video
-        ref={videoRef}
-        className="absolute inset-0 h-full w-full object-cover"
-        src={introVideo}
-        preload="auto"
-        playsInline
-        onPlay={() => {
-          const video = videoRef.current
-          if (video) {
-            video.muted = false
-            video.defaultMuted = false
-            video.volume = 1
-          }
-          setIsPlaying(true)
-        }}
-        onPause={() => setIsPlaying(false)}
-        onEnded={onComplete}
-      />
-
-      <div className={`absolute inset-0 z-10 pointer-events-none ${isDarkMode ? 'bg-black/20' : 'bg-white/10'}`} />
-
-      <div className="absolute bottom-6 left-6 z-20 flex items-center gap-2">
-        {!isPlaying ? (
-          <Button
-            variant="secondary"
-            onClick={() => {
-              const video = videoRef.current
-              if (!video) return
-              video.muted = false
-              video.defaultMuted = false
-              video.volume = 1
-              video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false))
-            }}
-            className="px-4 py-2"
-          >
-            <Play className="h-4 w-4" />
-            Play
-          </Button>
-        ) : (
-          <Button
-            variant="secondary"
-            onClick={() => {
-              const video = videoRef.current
-              if (!video) return
-              video.pause()
-              setIsPlaying(false)
-            }}
-            className="px-4 py-2"
-          >
-            <Pause className="h-4 w-4" />
-            Pause
-          </Button>
-        )}
-
-        <span className={`text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>
-          {isPlaying ? 'Playing' : 'Paused'}
-        </span>
+      {/* Gradient banner placeholder */}
+      <div className={`absolute inset-0 ${isDarkMode ? 'bg-gradient-to-br from-[#007970]/30 via-[#0F0F11] to-[#C74601]/20' : 'bg-gradient-to-br from-[#E5FEFF] via-white to-[#FFEEE5]'}`} />
+      {/* Decorative frame */}
+      <div className="absolute inset-8 border-2 border-dashed rounded-2xl pointer-events-none" style={{ borderColor: isDarkMode ? 'rgba(100,244,245,0.2)' : 'rgba(0,121,112,0.15)' }} />
+      <div className="absolute inset-0 flex flex-col items-center justify-center z-20 gap-6 px-8">
+        <div className={`rounded-2xl px-6 py-2 text-[10px] font-bold uppercase tracking-[0.25em] ${isDarkMode ? 'border border-[#64F4F5]/30 text-[#64F4F5]/70 bg-[#64F4F5]/5' : 'border-2 border-[#007970]/20 text-[#007970]/70 bg-[#E5FEFF]'}`}>
+          Course Introduction
+        </div>
+        <h2 className={`font-montserrat text-4xl md:text-5xl font-semibold text-center leading-tight ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>
+          CMS-485 Home Health
+          <br />
+          <span className="text-[#007970]">Certification & Plan of Care</span>
+        </h2>
+        <p className={`text-sm max-w-lg text-center ${isDarkMode ? 'text-white/60' : 'text-[#747474]'}`}>
+          Master the CMS-485 form — the legal backbone of every home health episode.
+          This training covers certification, plan of care, and clinical documentation.
+        </p>
+        <button
+          onClick={onComplete}
+          className={`mt-4 group overflow-hidden px-8 py-3 font-bold transition-all ${
+            isDarkMode 
+              ? 'rounded-md border border-[#007970] bg-[#007970] text-white shadow-[0_4px_14px_-8px_rgba(0,121,112,0.7)] hover:bg-[#00968b]' 
+              : 'rounded-xl border-2 border-[#004142] bg-[#007970] text-white hover:bg-[#006059] hover:shadow-[4px_4px_0_#004142]'
+          }`}
+        >
+          <span className="relative z-10 flex items-center gap-2 uppercase tracking-widest text-sm">
+            Begin Course
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </span>
+        </button>
       </div>
     </div>
   )
@@ -1321,7 +1285,13 @@ const FlowCards = ({
   const [helpModeForTitle, setHelpModeForTitle] = useState<string | null>(null)
   const [helpReturnMode, setHelpReturnMode] = useState<'main' | 'additional' | 'challenge'>('main')
   const [audioPlaybackState, setAudioPlaybackState] = useState<'idle' | 'playing' | 'paused'>('idle')
-  const [audioCompletedTitles, setAudioCompletedTitles] = useState<Set<string>>(() => new Set())
+  const [audioCompletedTitles, setAudioCompletedTitles] = useState<Set<string>>(() => {
+    try {
+      const raw = window.localStorage.getItem('cms485.audioCompleted')
+      if (raw) return new Set(JSON.parse(raw) as string[])
+    } catch { /* ignore */ }
+    return new Set()
+  })
   const [challengeResultsByTitle, setChallengeResultsByTitle] = useState<Record<string, ChallengeResult>>({})
   const [isPocPanelExpanded, setIsPocPanelExpanded] = useState(false)
   const [isPanelAnimating, setIsPanelAnimating] = useState(false)
@@ -1587,6 +1557,12 @@ const FlowCards = ({
 
     window.localStorage.setItem(PROGRESS_STORAGE_KEY, payload)
   }, [currentIndex, viewedCardIndexes])
+
+  useEffect(() => {
+    if (audioCompletedTitles.size > 0) {
+      window.localStorage.setItem('cms485.audioCompleted', JSON.stringify(Array.from(audioCompletedTitles)))
+    }
+  }, [audioCompletedTitles])
 
   useEffect(() => {
     if (!isAnimating) {
@@ -1967,6 +1943,8 @@ const FlowCards = ({
               <a href={COURSE_FRAMEWORK_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Framework</a>
               <a href={MASTERING_CMS485_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Mastering</a>
               <button onClick={() => setShowCIArchitecture(true)} className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Architect</button>
+              <a href="#/help" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12 flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />Help</a>
+              <a href="#/henderson" className="text-xs font-semibold tracking-widest text-[#C74601] px-3 py-1 rounded hover:bg-[#C74601]/10 font-bold">Henderson</a>
             </div>
           </div>
         </div>
@@ -2219,7 +2197,7 @@ const FlowCards = ({
 }
 
 function App() {
-  const [isDarkMode, setIsDarkMode] = useState(true)
+  const { isDarkMode, toggle } = useTheme()
   const [isDebugMode, setIsDebugMode] = useState(true)
 
   return (
@@ -2227,7 +2205,7 @@ function App() {
       <FlowCards
         isDarkMode={isDarkMode}
         isDebugMode={isDebugMode}
-        onToggleDarkMode={() => setIsDarkMode((prev) => !prev)}
+        onToggleDarkMode={toggle}
         onToggleDebugMode={() => setIsDebugMode((prev) => !prev)}
       />
     </CardFlowLayout>

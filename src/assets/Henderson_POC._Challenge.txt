@@ -1,0 +1,62 @@
+📄 Requirements Document: George Henderson Clinical Simulator1. Purpose & GoalTo move beyond a static form and create a High-Fidelity Clinical Decision Support (CDS) Simulator. The goal is to force learners to synthesize complex, conflicting data (Cardiovascular, Vascular, Metabolic, and Safety) and correctly populate a CMS-485 Plan of Care through interactive drag-and-drop and discovery-based learning.2. Technical StackFramework: React (Vite)Styling: Tailwind CSS (CareIndeed Branding: Teal #007970, Orange #C74601)Icons/UI: Lucide-ReactInteractivity: Framer Motion (for "drag-and-drop" animations and hover states)3. Key FeaturesNarrative Side-Panel: A scrollable "Medical Evaluation" of George Henderson.Drag-and-Drop CMS-485: Users drag "Answer Chips" into the correct Boxes (11, 15, 18, 21).Sandbox Hover Mode: When hovering over a Box, a "Clinical Logic" tooltip appears explaining the "Why" (e.g., Why B is better than A).The "Crisis" Trigger: A visual warning system that flashes when the learner ignores the Bradycardia ($HR\ 48$) or the Firearm.🤖 Prompt for Claude (Copy & Paste this)System Prompt: You are an expert Senior Full-Stack Developer specializing in Educational Healthcare simulations.Task: Build a highly interactive React (Vite + Tailwind) application for a "Home Health CMS-485 Master Challenge" using the CareIndeed branding (Teal: #007970, Orange: #C74601).Data Context (George Henderson):Condition: Wagner Grade 3 Foot Ulcer (Probe-to-bone), BS 342, $HR\ 48$ (Ashen), Left leg is cold/pulseless (Ischemia).Environment: Loaded firearm on nightstand, power is out, Insulin is warm, daughter has quit.Schedule Logic: 72h stabilization (3w1), then 2w for rest of month (2w3), then 1w4 for second month.Functional Requirements:Split Screen UI: Left side is the "Clinical Narrative"; Right side is the "Interactive CMS-485 Form".Drag-and-Drop Mechanic: Create "Answer Chips" at the bottom. Users must drag the correct chip into the designated CMS-485 boxes (Box 11, 15, 18, 21).Sandbox Hover Feature: Implement a "Logic Overlay." When a user hovers over a CMS-485 box, show a "CareIndeed Clinical Tip" tooltip using Framer Motion that explains the audit logic (e.g., "Box 21 Logic: 72 hours = 3w1, not 7w1").Interactive Alerts: If a user tries to submit without addressing the $HR\ 48$ or the Firearm, show a "Critical Safety Warning" modal in CareIndeed Orange.Success State: On correct completion, show a "CareIndeed Clinical Master" certificate/badge.Styling Instructions:Use Montserrat for headers and Roboto for body.The UI should look like a professional Salesforce Experience Cloud portal.Use lucide-react for icons (e.g., AlertTriangle for the heart rate, Home for the safety hazards).Deliverable: Provide the complete App.jsx and any necessary component code in a single, clean block.🎓 User Instructions (To be displayed in the App)Review the Chart: Read George Henderson’s evaluation in the left panel. Pay close attention to the "Hidden" visit schedule and the vitals.Analyze the "Why": Hover over the CMS-485 boxes to see Clinical Logic Tooltips. These explain how an auditor would view your choices.Build the Plan: Drag the "Clinical Answer Chips" from the bottom dock into the correct fields on the CMS-485 form.Manage the Crisis: Ensure you have identified the Vascular Ischemia and Safety Risks before hitting "Final Submission."Submit: Click the "Generate Master Plan" button to check your accuracy.💡 Pro-Tip for your LMSWhen you run this in a Sandbox (like CodeSandbox or locally with Vite), make sure to include Framer Motion. It makes the "hover text" feel incredibly smooth and premium, matching the CareIndeed brand experience!
+
+🏆 George Henderson Case: Master Solution KeyBox 11: Principal DiagnosisCorrect Choice: E11.621 (Type 2 DM with foot ulcer).Clinical Logic: While the bradycardia and ischemia are urgent, Home Health regulations require the primary diagnosis to be the condition that necessitates the "Skilled Service" (wound care). Coding the chronic cause (Diabetes) with the acute manifestation (Ulcer) justifies the long-term clinical oversight.The Trap: Avoid coding the Cellulitis (L03.115) as primary, as it is a symptom of the underlying Wagner Grade 3 ulcer.Box 15: Functional LimitationsCorrect Choices: Endurance, Ambulation, and Loss of Protective Sensation (LOPS).Clinical Logic: LOPS is the "invisible" reason for the patient's condition. Because he cannot feel his feet (Neuropathy), he was unaware of the "gritty" bone-deep infection or the ill-fitting shoes. This justifies the need for "Skilled Teaching" on foot inspections.Box 18: Skilled Nursing OrdersCorrect Choice: Cleanse with NS, apply Collagen, cover with foam; notify MD of Wagner Grade 3 status and request urgent X-ray/Specialist consult.Clinical Logic: The "Probe-to-Bone" finding is a clinical red flag for Osteomyelitis. Standard dressings are insufficient; the clinician must initiate a medical escalation.The Trap: Soaking the foot (Epsom salts) is strictly contraindicated for diabetic ulcers as it causes skin maceration and increases infection risk.Box 21: Visit Frequency (The Schedule Logic)Correct Choice: SN: 3w1, 2w3, 1w4 | PT: 2w3, 1w2.Step-by-Step Extraction:72 Hours Stabilization: This equals 3 visits in the first calendar week (3w1).Month 1 Remainder: After week 1, 3 weeks remain in the first month at 2 visits per week (2w3).Month 2: Four weeks at once-weekly (1w4).PT Schedule: Starts after the 48-hour hold. 2 visits for 3 weeks (2w3), then 1 visit for 2 weeks (1w2).Box 24: Critical Safety & Behavioral GoalsMandatory Inclusion: "Establish safe environment by removing/securing firearm and stabilizing HR via 911 transfer."Clinical Logic: You cannot treat a patient in the middle of a Silent MI ($HR\ 48$, ashen) or in the presence of an unsecured weapon. Safety and life-stabilization always precede wound healing.🛠️ Developer Implementation LogicValidation Rule: The "Generate Master Plan" button should only return a Success (Green) state if:Box 21 matches Option A exactly.Box 11 starts with "E11.621".Critical Task: The user has clicked/dragged the "Emergency Transfer/Safety" chip before the "Wound Care" chip.
+
+CareIndeed Validation Logic (When Selected Correctly)
+Box 11: Principal Diagnosis (E11.621)
+"Excellent sequencing! You correctly prioritized the metabolic cause over the superficial symptoms. By coding the Diabetes with Foot Ulcer as primary, you have successfully justified the high-acuity skilled nursing needed for a Wagner Grade 3 wound while satisfying CMS audit requirements for diagnostic etiology."
+
+Box 18: Skilled Nursing Orders (Option B)
+"Critical catch! You didn't just 'clean a wound'; you identified a medical emergency. By recognizing 'Probe-to-Bone' as suspected Osteomyelitis, you moved from a basic dressing change to an advanced clinical protocol. This saves limbs and lives."
+
+Box 21: Visit Frequency (SN 3w1, 2w3, 1w4)
+"Spot-on calculation! You successfully navigated the 'Stabilization Trap.' You correctly identified that 72 hours of daily oversight only accounts for 3 visits in the first week (3w1). Your ability to translate narrative coordination notes into precise CMS-485 frequencies shows high-level administrative competence."
+
+The Priority Task: 911/Safety First
+"Master-Level Priority! You recognized that clinical care cannot occur in a vacuum of danger. By prioritizing the Bradycardia (Silent MI) and the unsecured firearm over the wound care, you demonstrated the most important trait of a CareIndeed clinician: Total Patient Advocacy and Safety First."
+
+Developer Prompt Update: The "Confirmation Modal"
+Technical Instruction: When the "Success" state is triggered in the React app, do not just show a checkmark. Display a "Clinical Logic Breakdown" modal. This modal must loop through the user's correct answers and display the "Validation Affirmation" text above. This ensures that "lucky guessers" are still exposed to the clinical rationale before they move to the next module.
+
+Summary of the "George Henderson" High-Acuity Build
+The Problem: Multi-system failure (Cardiac, Vascular, Metabolic, Environmental).
+
+The Test: Can the learner prioritize the Heart/Limb/Safety while correctly documenting the Wound/Diabetes?
+
+The Goal: 100% accuracy in translating "Messy Reality" into a "Structured Plan of Care" (CMS-485).
+
+🩺 Clinical Remediation: George Henderson Case
+Box 11: Principal Diagnosis Selection
+Why Answer A (Cellulitis) is Wrong: Cellulitis is considered a symptom or manifestation of the underlying wound. Coding it as primary fails to capture the chronic metabolic cause (Diabetes) required for high-acuity home health reimbursement.
+
+Why Answer C (Ischemia) is Wrong: While life-threatening, acute limb ischemia is a surgical emergency. If this were the primary reason for the visit, the patient should be in the ER, not home health.
+
+The Correct Logic: E11.621 (Type 2 DM with foot ulcer) is the "Gold Standard" because it links the etiology to the manifestation, justifying the specialized skilled nursing needed for wound management.
+
+Box 18: Skilled Nursing Orders (The Bone Trap)
+Why Answer A (Betadine) is Wrong: Betadine is cytotoxic and can delay granulation in a diabetic wound. Furthermore, a "dry sterile dressing" is inappropriate for a Wagner Grade 3 ulcer requiring moisture balance.
+
+Why Answer C (Soaking) is Wrong: NEVER soak a diabetic foot. Maceration of the skin increases the risk of infection spread, and hot water can cause burns due to the patient's peripheral neuropathy.
+
+The Correct Logic: You must identify the "Probe-to-Bone" finding as suspected Osteomyelitis. This requires a specialized order (Collagen/Foam) and immediate MD notification for advanced imaging (X-ray) and potential surgical debridement.
+
+Box 21: Frequency (The Schedule Trap)
+Why Answer B (7w1) is Wrong: Although the note mentions "daily oversight," it specifies this is only for the first 72 hours. In CMS-485 coding, this is represented as 3 visits in week 1 (3w1), not a full week of daily visits.
+
+Why Answer D (PT 1w1) is Wrong: Adding a "1w1" evaluation for PT is a common mistake; however, the narrative states PT will see the patient twice a week for three weeks after a 48-hour hold. This is documented as 2w3, not as a separate evaluation week.
+
+The Correct Logic: SN: 3w1, 2w3, 1w4 matches the narrative's specific timeline of 72 hours stabilization, 3 remaining weeks of the first month, and the 4 weeks of the second month.
+
+Critical Priority: The "911 Moment"
+The Remediation: If the learner prioritized the wound over the heart rate/firearm, they failed the "Safety First" test.
+
+Clinical Rationale:
+
+Cardiac: A heart rate of 48 (Bradycardia) in an ashen, diaphoretic diabetic patient is a Silent MI until proven otherwise.
+
+Vascular: The cold, pulseless L leg indicates an acute blockage that can lead to amputation within hours.
+
+Safety: You cannot perform clinical care in the presence of an unsecured firearm and a confused patient. Safety and life-stabilization are always the first "Skilled Actions".
+
+Next Steps for the Developer
+Include this remediation text in a "Post-Quiz Review" modal. When a user selects a wrong answer, trigger the corresponding "Why it's wrong" explanation to reinforce the CareIndeed clinical standards.
