@@ -1,8 +1,11 @@
-import { Component, StrictMode } from 'react'
+import { Component, StrictMode, lazy, Suspense } from 'react'
 import type { ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { HashRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
+
+const LearningProfessional = lazy(() => import('./LearningProfessional.tsx'))
 
 type ErrorBoundaryState = {
   hasError: boolean
@@ -46,7 +49,14 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <App />
+      <HashRouter>
+        <Suspense fallback={<div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#FAFBF8' }}><p style={{ color: '#524048', fontFamily: 'Roboto, sans-serif' }}>Loading…</p></div>}>
+          <Routes>
+            <Route path="/" element={<App />} />
+            <Route path="/learning" element={<LearningProfessional />} />
+          </Routes>
+        </Suspense>
+      </HashRouter>
     </ErrorBoundary>
   </StrictMode>,
 )
