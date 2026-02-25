@@ -32,6 +32,7 @@ const StyleInjector = () => (
 
 const debugMode = true;
 import { TRAINING_CARDS } from '../../data/trainingCards';
+import { FINAL_TEST_TITLE, FINAL_TEST_OBJECTIVE, FINAL_TEST_KEY_POINTS, FINAL_TEST_QUESTIONS } from '../../data/finalTest';
 
 const mapCardFromTraining = (c: any) => ({
   title: c.title,
@@ -48,6 +49,14 @@ const mapCardFromTraining = (c: any) => ({
 
 const cards = [
   ...TRAINING_CARDS.map(mapCardFromTraining),
+  {
+    title: FINAL_TEST_TITLE,
+    section: 'Final Test',
+    objective: FINAL_TEST_OBJECTIVE,
+    bullets: FINAL_TEST_KEY_POINTS,
+    additional: '',
+    challenge: FINAL_TEST_QUESTIONS[0]?.options ?? ['See final test questions'],
+  },
   { title: 'Completion', final: true },
 ];
 
