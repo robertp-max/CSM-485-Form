@@ -37,6 +37,8 @@ import { CARD_METADATA } from './data/cardMetadata'
 const SYSTEMS_DOC_URL = import.meta.env.BASE_URL + 'systems-documentation.html'
 const COURSE_FRAMEWORK_URL = import.meta.env.BASE_URL + 'course-framework.html'
 const MASTERING_CMS485_URL = import.meta.env.BASE_URL + 'mastering-cms485.html'
+const COURSE_DOCUMENTATION_URL = import.meta.env.BASE_URL + 'course-documentation.html'
+const FAQ_HUB_URL = import.meta.env.BASE_URL + 'faq-hub.html'
 
 const ANIMATION_MS = 320
 const COVER_ZOOM_MS = 180
@@ -1014,7 +1016,7 @@ const TrainingSection = ({
               <section key={`${title}-${helpSection.title}`} className={`rounded-lg border p-4 ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-[#E5E4E3] bg-[#FAFBF8]'}`}>
                 <h4 className="mb-2 text-sm font-bold uppercase tracking-wide text-[#007970]">{helpSection.title}</h4>
                 <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-[#524048]'}`}>
-                  {helpSection.body.join(' • ')}
+                  {helpSection.body.join(' â€¢ ')}
                 </p>
               </section>
             ))}
@@ -1185,7 +1187,7 @@ const FinalTestCard = ({
       <section className={`flex h-full flex-col overflow-hidden px-10 py-6 transition-colors duration-300 ${isDarkMode ? 'bg-transparent' : 'bg-white'}`}>
         <div className="mb-4 shrink-0 flex items-center justify-between gap-4">
           <h2 className={`font-montserrat text-xl md:text-2xl font-semibold ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>
-            Final Test · Question {pageIndex} of {totalQuestions}
+            Final Test Â· Question {pageIndex} of {totalQuestions}
           </h2>
           <div className={`text-xs font-semibold uppercase tracking-[0.12em] ${isDarkMode ? 'text-gray-400' : 'text-[#747474]'}`}>
             Based on expanded Takeaways content
@@ -1955,10 +1957,12 @@ const FlowCards = ({
 
           <div className="pointer-events-auto">
             <div className={`flex items-center gap-2 p-1.5 rounded-lg border ${isDarkMode ? 'border-white/10' : 'border-[#007970]/20'} bg-[#007970]/10 teal-radiate shadow-sm backdrop-blur-sm`}>
-              <a href={SYSTEMS_DOC_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Systems Documentation</a>
-              <a href={COURSE_FRAMEWORK_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Course Framework</a>
-              <a href={MASTERING_CMS485_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Mastering CMS-485</a>
-              <button onClick={() => setShowCIArchitecture(true)} className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">CI Architecture</button>
+              <a href={FAQ_HUB_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">FAQ Hub</a>
+              <a href={COURSE_DOCUMENTATION_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Course Docs</a>
+              <a href={SYSTEMS_DOC_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Systems</a>
+              <a href={COURSE_FRAMEWORK_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Framework</a>
+              <a href={MASTERING_CMS485_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Mastering</a>
+              <button onClick={() => setShowCIArchitecture(true)} className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Architect</button>
             </div>
           </div>
         </div>

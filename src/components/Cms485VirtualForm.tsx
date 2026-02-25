@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, Circle, Search, X, ZoomIn, RotateCcw } from 'lucide-react'
 import { Button } from './ui/Button'
-const samplePdfUrl = import.meta.env.BASE_URL + 'cms485-sample.pdf'
 import { CMS485_HOTSPOTS, CMS485_PAGE_LABEL, type Cms485Hotspot } from '../data/cms485Hotspots'
 
 type Props = {
@@ -277,7 +276,7 @@ export const Cms485VirtualForm = ({ onClose }: Props) => {
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 md:px-6">
           <div>
             <h2 className="text-lg font-semibold tracking-wide">Interactive CMS-485 Virtual Form</h2>
-            <p className="text-xs text-white/60">{CMS485_PAGE_LABEL} · Guided training + Try It simulation</p>
+            <p className="text-xs text-white/60">{CMS485_PAGE_LABEL} Â· Guided training + Try It simulation</p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" className="text-xs" onClick={resetAll}>
@@ -337,13 +336,47 @@ export const Cms485VirtualForm = ({ onClose }: Props) => {
               className="hide-scrollbar h-[calc(100%-40px)] min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/35 p-2"
             >
               <div className="mx-auto w-full max-w-[1100px] origin-top" style={{ transform: `scale(${zoom})` }}>
-                <div className="relative aspect-[8.5/11] overflow-hidden rounded-lg border border-white/10 bg-black">
-                  <iframe
-                    src={`${samplePdfUrl}#page=1&toolbar=0&view=FitH`}
-                    title="CMS-485 sample page"
-                    className="absolute inset-0 h-full w-full"
-                  />
-
+                <div className="relative aspect-[8.5/11] overflow-hidden rounded-lg border border-white/10 bg-white">
+                  {/* HTML-rendered CMS-485 form */}
+                  <div className="absolute inset-0 overflow-hidden text-[#0F172A]" style={{ fontSize: 'clamp(6px, 0.85vw, 11px)' }}>
+                    <div className="flex items-start border-b-2 border-[#334155]" style={{ height: '5.5%' }}>
+                      <div className="flex-1 flex items-center justify-center h-full bg-[#1E293B] text-white px-2"><span className="font-bold tracking-wide text-center" style={{ fontSize: 'clamp(7px, 1vw, 13px)' }}>HOME HEALTH CERTIFICATION AND PLAN OF CARE</span></div>
+                      <div className="w-[18%] h-full flex items-center justify-center border-l-2 border-[#334155] bg-[#F1F5F9] text-[10px] font-semibold text-[#334155]">Form CMS-485</div>
+                    </div>
+                    <div className="border-b border-[#94A3B8] grid grid-cols-5" style={{ height: '10.5%' }}>
+                      <div className="border-r border-[#94A3B8] p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">1. Patient HIC #</div><div className="mt-0.5 font-mono">XXX-XX-XXXX-A</div></div>
+                      <div className="border-r border-[#94A3B8] p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">2. SOC Date</div><div className="mt-0.5 font-mono">02/24/2026</div></div>
+                      <div className="border-r border-[#94A3B8] p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">3. Certification Period</div><div className="mt-0.5 font-mono">02/24  04/23/2026</div></div>
+                      <div className="border-r border-[#94A3B8] p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">4. Medical Record #</div><div className="mt-0.5 font-mono">MR-2026-0485</div></div>
+                      <div className="p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">5. Provider #</div><div className="mt-0.5 font-mono">10-7654</div></div>
+                    </div>
+                    <div className="border-b border-[#94A3B8] p-1" style={{ height: '5%' }}><div className="text-[8px] font-bold text-[#64748B] uppercase">6. Patient Name, Address, DOB</div><div className="mt-0.5">Jane A. Sample  1234 Elm St, Sacramento, CA 95811  DOB 03/15/1942</div></div>
+                    <div className="border-b border-[#94A3B8] grid grid-cols-2" style={{ height: '12%' }}>
+                      <div className="border-r border-[#94A3B8] p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">7. Principal Dx / ICD / Date</div><div className="mt-0.5">I50.9  Heart failure, unspecified  02/24/2026</div><div className="text-[8px] font-bold text-[#64748B] uppercase mt-1">8. Surgical</div><div>N/A</div></div>
+                      <div className="p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">9. Other Pertinent Dx / ICD</div><div className="mt-0.5 space-y-0.5"><div>N18.3  CKD Stage 3</div><div>I10  Essential HTN</div><div>E11.65  T2DM w/ hyperglycemia</div><div>Z87.39  Hx urinary disease</div></div></div>
+                    </div>
+                    <div className="border-b border-[#94A3B8] p-1" style={{ height: '10%' }}><div className="text-[8px] font-bold text-[#64748B] uppercase">18a. Orders for Discipline and Treatments</div><div className="mt-0.5 space-y-0.5"><div>SN  CHF monitoring, med titration, edema q visit  2x/wk x 3wk then 1x/wk x 3wk</div><div>PT  Therapeutic exercise, balance, transfers  2x/wk x 4wk</div><div>MSW  Community resources, psychosocial  1x/mo x 2mo</div></div></div>
+                    <div className="border-b border-[#94A3B8] grid grid-cols-3" style={{ height: '8%' }}>
+                      <div className="col-span-2 border-r border-[#94A3B8] p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">Frequency Summary</div><div className="mt-0.5">SN 2W31W3  PT 2W4  MSW 1M2 | Total: 19 visits</div></div>
+                      <div className="p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">12. Nutritional / 13. Allergies</div><div className="mt-0.5">Low Na &lt;2g, fluid 1.5L | Sulfa, Codeine</div></div>
+                    </div>
+                    <div className="border-b border-[#94A3B8] p-1" style={{ height: '9%' }}><div className="text-[8px] font-bold text-[#64748B] uppercase">18b. Goals / Rehab Potential / Discharge</div><div className="mt-0.5 space-y-0.5"><div><strong>G1:</strong> Pt verbalizes 3 CHF red flags by visit 4</div><div><strong>G2:</strong> Daily wt/BP log 2lb variance x 2wk</div><div><strong>G3:</strong> Ambulate 150ft w/ RW, min assist, SpO2 92% by wk 4</div><div className="text-[#64748B]">Rehab: Good  D/C when goals met</div></div></div>
+                    <div className="border-b border-[#94A3B8] grid grid-cols-3" style={{ height: '7%' }}>
+                      <div className="col-span-2 border-r border-[#94A3B8] p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">10. DME and Supplies</div><div className="mt-0.5">Rolling walker  BP cuff  Scale  Compression stockings 20-30mmHg</div></div>
+                      <div className="p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">11. Safety Measures</div><div className="mt-0.5">Fall precautions, trip hazards, night lighting, emergency contacts</div></div>
+                    </div>
+                    <div className="border-b border-[#94A3B8] grid grid-cols-4" style={{ height: '10%' }}>
+                      <div className="border-r border-[#94A3B8] p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">14. Functional Limits</div><div className="mt-0.5"> Ambulation  Endurance  Dyspnea  Paralysis</div></div>
+                      <div className="border-r border-[#94A3B8] p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">15. Activities Permitted</div><div className="mt-0.5"> Partial WB  Walker  WC  Up as tolerated</div></div>
+                      <div className="border-r border-[#94A3B8] p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">16. Mental Status</div><div className="mt-0.5"> Oriented  Confused  Depressed  Agitated</div></div>
+                      <div className="p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">17. Prognosis / Homebound</div><div className="mt-0.5">Fair  CHF mgmt, mod readmission risk</div><div className="mt-0.5">HB: severe dyspnea &gt;25ft, taxing, requires assist</div></div>
+                    </div>
+                    <div className="grid grid-cols-2" style={{ height: '11.5%' }}>
+                      <div className="border-r border-[#94A3B8] p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">21. Physician Name</div><div className="mt-0.5">Dr. Robert Chen, MD  CI Medical  Sacramento, CA</div><div className="text-[8px] font-bold text-[#64748B] uppercase mt-1">22. Date HHA Received Signed POT</div><div className="font-mono">02/26/2026</div></div>
+                      <div className="p-1"><div className="text-[8px] font-bold text-[#64748B] uppercase">23. Physician Signature / Date</div><div className="mt-1 font-serif italic" style={{ fontSize: 'clamp(10px,1.4vw,18px)' }}>Robert Chen, MD</div><div className="font-mono mt-0.5">02/25/2026</div><div className="mt-1 inline-block rounded border border-[#0D9488] bg-[#ECFDF5] px-1.5 py-0.5 text-[8px] font-bold text-[#0D9488]"> e-Sig verified</div><div className="text-[8px] font-bold text-[#64748B] uppercase mt-1">19. RN</div><div>Maria Santos, RN BSN  02/24/2026</div></div>
+                    </div>
+                    <div className="flex items-center justify-between px-2 bg-[#F1F5F9] border-t border-[#94A3B8]" style={{ height: '1.5%' }}><span className="text-[7px] text-[#94A3B8]">Form CMS-485 (C-3) (02/2026)</span><span className="text-[7px] text-[#94A3B8]">OMB Approval Pending</span></div>
+                  </div>
                   <div className="absolute inset-0 z-20" aria-label="CMS-485 hotspots overlay">
                     {orderedHotspots.map((hotspot) => {
                       const isSelected = selectedId === hotspot.id
@@ -444,7 +477,7 @@ export const Cms485VirtualForm = ({ onClose }: Props) => {
 
             {allStepsCompleted && mode === 'guided' ? (
               <div className="rounded-xl border border-[#007970]/50 bg-[#007970]/12 p-4">
-                <h3 className="text-base font-semibold text-[#64F4F5]">You’re done</h3>
+                <h3 className="text-base font-semibold text-[#64F4F5]">Youâ€™re done</h3>
                 <p className="mt-1 text-sm text-white/85">
                   All guided sections completed. You can review any hotspot or run Try It mode before finalizing.
                 </p>
@@ -491,7 +524,7 @@ export const Cms485VirtualForm = ({ onClose }: Props) => {
                 {mode === 'guided' && (
                   <div className="mb-4 rounded-xl border border-[#C74601]/45 bg-[#C74601]/10 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-[#FFB27F]">
-                      Step {guidedStepIndex + 1} · {activeForPanel.guidedStep.stepTitle}
+                      Step {guidedStepIndex + 1} Â· {activeForPanel.guidedStep.stepTitle}
                     </p>
                     <p className="mt-2 text-sm text-white/90">{activeForPanel.guidedStep.stepInstruction}</p>
                     <p className="mt-2 text-xs text-white/70"><span className="font-semibold text-white/80">Source:</span> {activeForPanel.guidedStep.source}</p>

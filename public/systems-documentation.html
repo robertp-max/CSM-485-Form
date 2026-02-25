@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CI eLearner — Systems Architecture Documentation</title>
+    <title>CI eLearner  Systems Architecture Documentation</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -11,7 +11,6 @@
         .font-heading { font-family: 'Montserrat', sans-serif; }
         .font-body   { font-family: 'Roboto', sans-serif; }
 
-        /* Noise overlay */
         .bg-noise { position: relative; }
         .bg-noise::before {
             content: "";
@@ -22,11 +21,9 @@
             z-index: 5;
         }
 
-        /* Custom scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0F0F11; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
 
         @keyframes glitch-slide {
             0% { opacity: 0; transform: translateY(20px); filter: blur(3px); }
@@ -48,13 +45,36 @@
             height: 280px;
         }
 
-        .nav-item { transition: all 0.2s; }
-        .nav-item.active {
-            background: rgba(100, 244, 245, 0.08);
-            color: #64F4F5;
-            border-right: 3px solid #64F4F5;
+        .stat-card {
+            background: #0F0F11;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            transition: border-color 0.3s;
         }
-        .nav-item:hover { background: rgba(255,255,255,0.04); color: #fff; }
+        .stat-card:hover { border-color: rgba(100,244,245,0.3); }
+
+        .timeline-dot {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .flow-step {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: border-color 0.3s, transform 0.3s;
+        }
+        .flow-step:hover { border-color: rgba(100,244,245,0.4); transform: translateY(-2px); }
 
         .code-block {
             background: #0A0A0C;
@@ -68,419 +88,489 @@
         }
     </style>
 </head>
-<body class="bg-[#09090b] text-white font-body h-screen flex overflow-hidden bg-noise">
+<body class="bg-[#09090b] text-white font-body min-h-screen bg-noise">
 
-    <!-- Sidebar Navigation -->
-    <nav class="w-64 bg-[#0F0F11] border-r border-white/5 flex-shrink-0 flex flex-col h-full z-20">
-        <div class="p-6 border-b border-white/5">
-            <img 
-                src="https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png" 
-                alt="CareIndeed" 
-                class="h-8 w-auto object-contain opacity-90 mb-3"
+    <!-- Fixed Background Glows -->
+    <div class="fixed top-[-15%] left-[5%] w-[600px] h-[600px] bg-[#007970]/8 rounded-full blur-[160px] pointer-events-none"></div>
+    <div class="fixed bottom-[-15%] right-[5%] w-[500px] h-[500px] bg-[#C74601]/6 rounded-full blur-[140px] pointer-events-none"></div>
+
+    <!-- Hero Header -->
+    <header class="relative overflow-hidden border-b border-white/5">
+        <div class="absolute inset-0 bg-gradient-to-br from-[#007970]/15 via-transparent to-[#C74601]/10 pointer-events-none"></div>
+        <div class="max-w-6xl mx-auto px-8 py-16 relative z-10 text-center">
+            <img
+                src="https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png"
+                alt="CareIndeed"
+                class="h-8 w-auto object-contain opacity-80 mx-auto mb-6"
             />
-            <p class="text-[10px] uppercase tracking-[0.2em] text-white/30 font-heading">Systems Architecture</p>
-        </div>
-        <div class="flex-1 overflow-y-auto py-4">
-            <ul class="space-y-0.5 px-2">
-                <li><button onclick="navTo('dashboard')" class="nav-item active w-full text-left px-5 py-3 text-xs font-heading font-medium uppercase tracking-wider text-white/50 rounded-lg">Executive Summary</button></li>
-                <li><button onclick="navTo('ui-ux')" class="nav-item w-full text-left px-5 py-3 text-xs font-heading font-medium uppercase tracking-wider text-white/50 rounded-lg">UI/UX Architecture</button></li>
-                <li><button onclick="navTo('system-map')" class="nav-item w-full text-left px-5 py-3 text-xs font-heading font-medium uppercase tracking-wider text-white/50 rounded-lg">System Components</button></li>
-                <li><button onclick="navTo('runtime')" class="nav-item w-full text-left px-5 py-3 text-xs font-heading font-medium uppercase tracking-wider text-white/50 rounded-lg">State & Data Flow</button></li>
-                <li><button onclick="navTo('deployment')" class="nav-item w-full text-left px-5 py-3 text-xs font-heading font-medium uppercase tracking-wider text-white/50 rounded-lg">Deployment & Ops</button></li>
-            </ul>
-        </div>
-        <div class="p-4 border-t border-white/5">
-            <div class="flex items-center gap-3">
-                <div class="w-2 h-2 rounded-full bg-[#64F4F5] animate-pulse shadow-[0_0_6px_#64F4F5]"></div>
-                <span class="text-[10px] font-heading font-medium text-white/30 uppercase tracking-wider">System Status: Stable</span>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col h-full overflow-hidden relative z-10">
-
-        <!-- Header -->
-        <header class="px-8 py-5 flex items-center justify-between border-b border-white/5 bg-[#121214]/90 backdrop-blur-xl shrink-0">
-            <div>
-                <h2 id="page-title" class="text-xl font-heading font-semibold text-white tracking-tight">Executive Summary</h2>
-                <p id="page-desc" class="text-xs text-white/40 mt-0.5 font-body">High-level overview of the CI eLearner Application.</p>
-            </div>
-            <div class="flex gap-2">
+            <div class="inline-block px-4 py-1.5 bg-[#64F4F5]/10 border border-[#64F4F5]/30 rounded text-[10px] font-heading font-bold uppercase tracking-[0.2em] text-[#64F4F5] mb-6">Technical Architecture</div>
+            <h1 class="text-4xl md:text-6xl font-heading font-bold tracking-tight mb-4">
+                CI <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#64F4F5] to-[#007970]">eLearner</span> Architecture
+            </h1>
+            <p class="text-lg text-white/50 max-w-2xl mx-auto font-light leading-relaxed">
+                Systems documentation for the interactive React SPA training platform. Design systems, state management, component architecture, and deployment strategy.
+            </p>
+            <div class="flex justify-center gap-3 mt-8">
                 <span class="px-3 py-1 bg-[#007970]/20 text-[#64F4F5] text-[10px] font-heading font-bold rounded border border-[#007970]/30">React 18</span>
                 <span class="px-3 py-1 bg-[#C74601]/15 text-[#FF8D4D] text-[10px] font-heading font-bold rounded border border-[#C74601]/30">Vite</span>
                 <span class="px-3 py-1 bg-[#64F4F5]/10 text-[#64F4F5] text-[10px] font-heading font-bold rounded border border-[#64F4F5]/20">Tailwind JIT</span>
+                <span class="px-3 py-1 bg-[#A78BFA]/10 text-[#A78BFA] text-[10px] font-heading font-bold rounded border border-[#A78BFA]/20">TypeScript</span>
             </div>
-        </header>
-
-        <!-- Content -->
-        <div id="content-area" class="flex-1 overflow-y-auto p-8 relative">
-
-            <!-- Abstract glows -->
-            <div class="fixed top-[-20%] left-[10%] w-[500px] h-[500px] bg-[#007970]/10 rounded-full blur-[150px] pointer-events-none"></div>
-            <div class="fixed bottom-[-20%] right-[5%] w-[400px] h-[400px] bg-[#C74601]/8 rounded-full blur-[120px] pointer-events-none"></div>
-
-            <!-- SECTION: EXECUTIVE SUMMARY -->
-            <section id="dashboard" class="space-y-8 animate-glitch">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="md:col-span-2 p-6 border border-white/10 bg-white/[0.02] backdrop-blur-md rounded-xl relative overflow-hidden group hover:border-[#64F4F5]/30 transition-colors">
-                        <div class="absolute top-0 left-0 w-1 h-full bg-[#64F4F5] shadow-[0_0_15px_#64F4F5]"></div>
-                        <h3 class="text-lg font-heading font-semibold text-white mb-3">What is this system?</h3>
-                        <p class="text-white/70 leading-relaxed mb-4 font-light">
-                            The <strong class="text-[#64F4F5]">CI eLearner</strong> is a highly interactive, state-driven React Single Page Application (SPA). It replaces legacy static slide decks with an immersive, "neo-brutalist meets glassmorphism" learning experience.
-                        </p>
-                        <p class="text-white/60 leading-relaxed font-light text-sm">
-                            It parses complex regulatory requirements (Conditions of Participation, Homebound Status) into a 3-stage interactive flow: <strong class="text-white/80">Foundation</strong> → <strong class="text-white/80">Expanded Context</strong> → <strong class="text-white/80">Validation Challenge</strong>.
-                        </p>
-                    </div>
-
-                    <div class="p-6 bg-[#0F0F11] border border-white/10 rounded-xl relative overflow-hidden flex flex-col justify-between hover:border-[#C74601]/40 transition-colors">
-                        <div class="absolute -right-8 -top-8 w-28 h-28 bg-[#C74601]/20 rounded-full blur-3xl"></div>
-                        <div class="relative z-10">
-                            <h3 class="text-lg font-heading font-semibold text-white mb-2">Core Philosophy</h3>
-                            <p class="text-white/50 text-sm font-light leading-relaxed">Maximize learner retention through high-contrast UI, immediate validation feedback, and frictionless performance.</p>
-                        </div>
-                        <div class="mt-4 pt-4 border-t border-white/5 relative z-10">
-                            <span class="text-[10px] font-heading uppercase tracking-wider text-white/30">Architecture</span>
-                            <div class="font-heading font-bold text-[#64F4F5]">Client-Side SPA</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Moodle as Database -->
-                <div class="border border-white/10 bg-[#0F0F11] rounded-xl overflow-hidden">
-                    <div class="p-6 border-b border-white/5 flex justify-between items-center">
-                        <h3 class="text-lg font-heading font-semibold text-white">Application State vs Persistence</h3>
-                        <span class="text-[10px] font-heading uppercase tracking-wider px-3 py-1 border border-white/10 rounded text-white/40">Data Architecture</span>
-                    </div>
-                    <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                        <div>
-                            <p class="text-white/70 mb-4 font-light leading-relaxed">
-                                The application operates entirely in-memory using React's virtual DOM. State changes (like advancing cards or answering quizzes) are instantaneous and require zero server round-trips.
-                            </p>
-                            <p class="text-white/50 text-sm mb-4 font-light leading-relaxed">
-                                If deployed as a standalone web app (Vercel/Netlify), session data is transient. If deployed within an LMS wrapper (SCORM), terminal states are passed to the LMS API via JavaScript bridges.
-                            </p>
-                            <div class="p-4 bg-[#007970]/10 border border-[#007970]/30 rounded-lg">
-                                <p class="text-sm"><strong class="text-[#64F4F5]">Performance Win:</strong> <span class="text-white/60 font-light">By decoupling UI state from database constraints, interactions run at 60fps without loading spinners.</span></p>
-                            </div>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="responsibilityChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- SECTION: UI/UX ARCHITECTURE -->
-            <section id="ui-ux" class="hidden space-y-8 animate-glitch">
-                <div class="p-6 border border-white/10 bg-white/[0.02] backdrop-blur-md rounded-xl">
-                    <h3 class="text-lg font-heading font-semibold text-white mb-6">Design System & Styling Engine</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div>
-                            <h4 class="font-heading font-semibold text-white/80 border-b border-white/5 pb-2 mb-4 text-sm uppercase tracking-wider">Tailwind JIT Configuration</h4>
-                            <p class="text-sm text-white/50 mb-4 font-light">The app uses Tailwind's utility classes with arbitrary values for exact brand-kit matching without bloating the config file.</p>
-                            <ul class="space-y-3">
-                                <li class="p-3 bg-[#0F0F11] rounded-lg border border-white/5">
-                                    <div class="text-[10px] font-heading font-bold text-white/30 uppercase mb-1">Brand Palette</div>
-                                    <div class="code-block text-xs">bg-[#007970] | text-[#C74601] | border-[#1F1C1B]</div>
-                                </li>
-                                <li class="p-3 bg-[#0F0F11] rounded-lg border border-white/5">
-                                    <div class="text-[10px] font-heading font-bold text-white/30 uppercase mb-1">Typography Hierarchy</div>
-                                    <div class="text-sm text-white/60 font-light"><strong class="text-[#64F4F5]">Montserrat</strong> (headings) · <strong class="text-[#C74601]">Roboto</strong> (body)</div>
-                                </li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 class="font-heading font-semibold text-white/80 border-b border-white/5 pb-2 mb-4 text-sm uppercase tracking-wider">Advanced Visual Patterns</h4>
-                            <p class="text-sm text-white/50 mb-4 font-light">Complex effects using CSS transforms and variables maintain high performance.</p>
-                            <ul class="space-y-3">
-                                <li class="p-3 bg-[#0F0F11] rounded-lg border border-white/5">
-                                    <div class="text-[10px] font-heading font-bold text-white/30 uppercase mb-1">Dynamic Mouse Tracking Glow</div>
-                                    <p class="text-xs text-white/40 font-light">A global mousemove listener updates CSS variables (--mouse-x, --mouse-y) for a cursor-following radial gradient without React re-renders.</p>
-                                </li>
-                                <li class="p-3 bg-[#0F0F11] rounded-lg border border-white/5">
-                                    <div class="text-[10px] font-heading font-bold text-white/30 uppercase mb-1">Glassmorphism & Depth</div>
-                                    <p class="text-xs text-white/40 font-light">Extensive use of backdrop-blur-xl and translucent backgrounds (bg-white/85) creates physical depth against dark underlays.</p>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- SECTION: SYSTEM COMPONENTS -->
-            <section id="system-map" class="hidden space-y-8 animate-glitch">
-                <div class="p-6 border border-white/10 bg-white/[0.02] backdrop-blur-md rounded-xl">
-                    <p class="mb-6 text-white/60 font-light max-w-3xl">The component architecture is monolithic by design, contained within App.tsx to ensure portability. It imports a singular icon library to keep bundle sizes minimal.</p>
-
-                    <!-- Block Diagram -->
-                    <div class="relative bg-[#0A0A0C] p-8 rounded-xl border border-white/10 overflow-hidden" style="min-height: 360px;">
-                        <div class="absolute inset-0 opacity-5" style="background-image: radial-gradient(rgba(100,244,245,0.4) 1px, transparent 1px); background-size: 20px 20px;"></div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-                            <!-- Content Model -->
-                            <div class="bg-[#121214] border border-white/10 rounded-lg p-5 hover:border-[#C74601]/40 transition-colors">
-                                <div class="text-center mb-4">
-                                    <div class="text-3xl mb-2">📄</div>
-                                    <h4 class="font-heading font-semibold text-white text-sm">Content Model</h4>
-                                    <p class="text-[10px] text-white/30 mt-1">Static JSON Array</p>
-                                </div>
-                                <div class="space-y-2 font-mono text-[10px]">
-                                    <div class="code-block !p-2 !text-[#64F4F5]">const cards = [{...}]</div>
-                                    <div class="code-block !p-2 !text-white/40">- title, section</div>
-                                    <div class="code-block !p-2 !text-white/40">- objective, bullets</div>
-                                    <div class="code-block !p-2 !text-white/40">- additional, challenge</div>
-                                </div>
-                            </div>
-
-                            <!-- React Engine -->
-                            <div class="bg-[#121214] border-2 border-[#64F4F5]/40 rounded-lg p-5 shadow-[0_0_30px_rgba(100,244,245,0.1)] pulse-glow">
-                                <div class="text-center mb-4">
-                                    <div class="text-3xl mb-1">⚛️</div>
-                                    <h4 class="font-heading font-semibold text-white text-sm">React State Engine</h4>
-                                    <p class="text-[10px] text-white/30 mt-1">App.tsx</p>
-                                </div>
-                                <div class="space-y-2 font-mono text-[10px]">
-                                    <div class="code-block !p-2 !text-[#64F4F5]">useState(cardIndex)</div>
-                                    <div class="code-block !p-2 !text-[#64F4F5]">useState(panelMode)</div>
-                                    <div class="code-block !p-2 !text-white/40">Awaiting Interaction...</div>
-                                </div>
-                            </div>
-
-                            <!-- Render Layer -->
-                            <div class="bg-[#121214] border border-white/10 rounded-lg p-5 hover:border-[#007970]/40 transition-colors">
-                                <div class="text-center mb-4">
-                                    <div class="text-3xl mb-2">🎨</div>
-                                    <h4 class="font-heading font-semibold text-white text-sm">Virtual DOM</h4>
-                                    <p class="text-[10px] text-white/30 mt-1">Lucide + Tailwind</p>
-                                </div>
-                                <div class="space-y-2 font-mono text-[10px]">
-                                    <div class="code-block !p-2 !text-white/40">&lt;Header /&gt;</div>
-                                    <div class="code-block !p-2 !text-white/40">&lt;MainPanel mode={…} /&gt;</div>
-                                    <div class="code-block !p-2 !text-white/40">&lt;FooterControls /&gt;</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Dependencies & State Vars -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="p-6 border border-white/10 bg-[#0F0F11] rounded-xl">
-                        <h4 class="font-heading font-semibold text-white mb-4 text-sm uppercase tracking-wider">Core Dependencies</h4>
-                        <ul class="space-y-3">
-                            <li class="flex items-center justify-between p-3 bg-[#0A0A0C] rounded-lg border border-white/5">
-                                <span class="text-sm text-white/70">UI Library</span>
-                                <span class="text-[10px] font-mono text-[#64F4F5] px-2 py-1 bg-[#64F4F5]/10 rounded">React 18</span>
-                            </li>
-                            <li class="flex items-center justify-between p-3 bg-[#0A0A0C] rounded-lg border border-white/5">
-                                <span class="text-sm text-white/70">Build Tool</span>
-                                <span class="text-[10px] font-mono text-[#C74601] px-2 py-1 bg-[#C74601]/10 rounded">Vite</span>
-                            </li>
-                            <li class="flex items-center justify-between p-3 bg-[#0A0A0C] rounded-lg border border-white/5">
-                                <span class="text-sm text-white/70">Iconography</span>
-                                <span class="text-[10px] font-mono text-white/50 px-2 py-1 bg-white/5 rounded">lucide-react</span>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="p-6 border border-white/10 bg-[#0F0F11] rounded-xl">
-                        <h4 class="font-heading font-semibold text-white mb-4 text-sm uppercase tracking-wider">State Variables</h4>
-                        <ul class="space-y-3">
-                            <li class="flex items-center justify-between p-3 bg-[#0A0A0C] rounded-lg border border-white/5">
-                                <code class="text-sm text-[#64F4F5]">cardIndex</code>
-                                <span class="text-xs text-white/40">Tracks current module array index</span>
-                            </li>
-                            <li class="flex items-center justify-between p-3 bg-[#0A0A0C] rounded-lg border border-white/5">
-                                <code class="text-sm text-[#64F4F5]">panelMode</code>
-                                <span class="text-xs text-white/40">'main' | 'additional' | 'challenge'</span>
-                            </li>
-                            <li class="flex items-center justify-between p-3 bg-[#0A0A0C] rounded-lg border border-white/5">
-                                <code class="text-sm text-[#64F4F5]">isSubmitted</code>
-                                <span class="text-xs text-white/40">Locks challenge UI for feedback</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
-
-            <!-- SECTION: STATE & DATA FLOW -->
-            <section id="runtime" class="hidden space-y-8 animate-glitch">
-                <div class="p-6 border border-white/10 bg-white/[0.02] backdrop-blur-md rounded-xl">
-                    <h3 class="text-lg font-heading font-semibold text-white mb-2">Runtime Sequence: The Tri-Panel Flow</h3>
-                    <p class="text-sm text-white/40 mb-8 font-light">How data flows from initial load to challenge validation.</p>
-
-                    <div class="relative pl-8 border-l border-[#007970]/40 space-y-8">
-                        <!-- Step 1 -->
-                        <div class="relative cursor-pointer group" onclick="toggleStep('s1')">
-                            <div class="absolute -left-[29px] bg-[#007970] text-white w-7 h-7 rounded-full flex items-center justify-center font-heading font-bold text-xs shadow-[0_0_12px_rgba(0,121,112,0.4)] z-10">1</div>
-                            <div class="bg-[#0F0F11] border border-white/10 hover:border-[#64F4F5]/30 p-5 rounded-xl transition-all">
-                                <div class="flex justify-between items-center">
-                                    <h4 class="font-heading font-semibold text-white text-sm">Initial Render (Main Mode)</h4>
-                                    <span class="text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-1 bg-[#007970]/20 text-[#64F4F5] rounded">Mount</span>
-                                </div>
-                                <p class="text-sm text-white/50 mt-2 font-light">App mounts. cardIndex is 0. panelMode is 'main'. Virtual DOM renders the Learning Objective and Key Points grid.</p>
-                                <div id="s1" class="hidden mt-4 pt-4 border-t border-white/5 code-block">
-                                    const card = cards[cardIndex];<br>
-                                    // Renders main block<br>
-                                    {panelMode === 'main' && ( ... )}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Step 2 -->
-                        <div class="relative cursor-pointer group" onclick="toggleStep('s2')">
-                            <div class="absolute -left-[29px] bg-[#121214] border-2 border-[#007970] text-[#64F4F5] w-7 h-7 rounded-full flex items-center justify-center font-heading font-bold text-xs z-10">2</div>
-                            <div class="bg-[#0F0F11] border border-white/10 hover:border-[#64F4F5]/30 p-5 rounded-xl transition-all">
-                                <div class="flex justify-between items-center">
-                                    <h4 class="font-heading font-semibold text-white text-sm">Internal Navigation</h4>
-                                    <span class="text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-1 bg-white/5 text-white/40 rounded">Update</span>
-                                </div>
-                                <p class="text-sm text-white/50 mt-2 font-light">User clicks "Initialize Audio" or "Enter Challenge". The panelMode state updates, causing an immediate re-render with CSS transition animations.</p>
-                                <div id="s2" class="hidden mt-4 pt-4 border-t border-white/5 code-block">
-                                    setPanelMode('additional');<br>
-                                    setStatusText('System: Playing Audio Protocol');<br>
-                                    // key prop forces remount → .animate-glitch CSS
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Step 3 -->
-                        <div class="relative cursor-pointer group" onclick="toggleStep('s3')">
-                            <div class="absolute -left-[29px] bg-[#121214] border-2 border-[#007970] text-[#64F4F5] w-7 h-7 rounded-full flex items-center justify-center font-heading font-bold text-xs z-10">3</div>
-                            <div class="bg-[#0F0F11] border border-white/10 hover:border-[#64F4F5]/30 p-5 rounded-xl transition-all">
-                                <div class="flex justify-between items-center">
-                                    <h4 class="font-heading font-semibold text-white text-sm">Challenge Validation</h4>
-                                    <span class="text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-1 bg-[#C74601]/15 text-[#C74601] rounded">Action</span>
-                                </div>
-                                <p class="text-sm text-white/50 mt-2 font-light">User selects a quiz radio button. State is held in selectedAnswer. Clicking Execute locks the UI via isSubmitted.</p>
-                                <div id="s3" class="hidden mt-4 pt-4 border-t border-white/5 code-block">
-                                    const submitChallenge = () => {<br>
-                                    &nbsp;&nbsp;if (selectedAnswer !== null) {<br>
-                                    &nbsp;&nbsp;&nbsp;&nbsp;setIsSubmitted(true);<br>
-                                    &nbsp;&nbsp;}<br>
-                                    };
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Step 4 -->
-                        <div class="relative cursor-pointer group" onclick="toggleStep('s4')">
-                            <div class="absolute -left-[29px] bg-[#007970] text-white w-7 h-7 rounded-full flex items-center justify-center font-heading font-bold text-xs shadow-[0_0_12px_rgba(0,121,112,0.4)] z-10">4</div>
-                            <div class="bg-[#0F0F11] border border-white/10 hover:border-[#64F4F5]/30 p-5 rounded-xl transition-all">
-                                <div class="flex justify-between items-center">
-                                    <h4 class="font-heading font-semibold text-white text-sm">Card Advancement</h4>
-                                    <span class="text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-1 bg-[#64F4F5]/10 text-[#64F4F5] rounded">Loop</span>
-                                </div>
-                                <p class="text-sm text-white/50 mt-2 font-light">Clicking "Advance" iterates cardIndex, resets panelMode to main, and clears the challenge data for the next topic.</p>
-                                <div id="s4" class="hidden mt-4 pt-4 border-t border-white/5 code-block">
-                                    setCardIndex(cardIndex + 1);<br>
-                                    setPanelMode('main');<br>
-                                    setSelectedAnswer(null);<br>
-                                    setIsSubmitted(false);
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- SECTION: DEPLOYMENT & OPS -->
-            <section id="deployment" class="hidden space-y-8 animate-glitch">
-                <div class="p-6 border border-white/10 bg-white/[0.02] backdrop-blur-md rounded-xl">
-                    <h3 class="text-lg font-heading font-semibold text-white mb-3">Deployment Environments</h3>
-                    <p class="text-white/50 font-light mb-8 text-sm">Because this is a pure client-side application without a Node.js backend, it supports frictionless static hosting.</p>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div class="border border-[#64F4F5]/20 rounded-xl p-6 bg-[#0F0F11] hover:border-[#64F4F5]/50 transition-colors shadow-[0_0_20px_rgba(100,244,245,0.05)]">
-                            <div class="flex items-center gap-3 mb-4">
-                                <span class="text-2xl">🌍</span>
-                                <h4 class="font-heading font-semibold text-white">Vercel / Netlify Edge</h4>
-                            </div>
-                            <div class="text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-1 bg-[#64F4F5]/10 text-[#64F4F5] rounded inline-block mb-4">Current Implementation</div>
-                            <ul class="space-y-2 text-sm text-white/60 font-light mb-4">
-                                <li>✅ Zero-config deployment via <code class="text-[#64F4F5]">npm run build</code></li>
-                                <li>✅ Edge caching for sub-second global loads</li>
-                                <li>✅ Perfect for staging, QA, and rapid iteration</li>
-                                <li class="text-[#C74601]/70">✗ No persistent tracking database out of the box</li>
-                            </ul>
-                            <div class="text-[10px] text-white/20 border-t border-white/5 pt-2">Build Output: Static HTML/JS/CSS</div>
-                        </div>
-
-                        <div class="border border-white/10 rounded-xl p-6 bg-[#0F0F11] hover:border-[#C74601]/30 transition-colors">
-                            <div class="flex items-center gap-3 mb-4">
-                                <span class="text-2xl">📦</span>
-                                <h4 class="font-heading font-semibold text-white">LMS / SCORM Wrapper</h4>
-                            </div>
-                            <div class="text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-1 bg-[#C74601]/15 text-[#C74601] rounded inline-block mb-4">Production</div>
-                            <ul class="space-y-2 text-sm text-white/50 font-light mb-4">
-                                <li>Monolithic file structure wraps easily in SCORM iframe</li>
-                                <li>State transitions wired to API.LMSSetValue() for tracking</li>
-                                <li>SCORM 1.2 suspend_data for resume capability</li>
-                            </ul>
-                            <div class="text-[10px] text-white/20 border-t border-white/5 pt-2">Requirements: SCORM API Bridge Script</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
         </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-8 py-12 space-y-20 relative z-10">
+
+        <!-- SECTION 1: EXECUTIVE SUMMARY -->
+        <section class="animate-glitch">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-2 p-8 border border-white/10 bg-white/[0.02] backdrop-blur-md rounded-xl relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-[#64F4F5] shadow-[0_0_15px_#64F4F5]"></div>
+                    <h2 class="text-2xl font-heading font-semibold text-white mb-4">What is this system?</h2>
+                    <p class="text-white/60 leading-relaxed font-light mb-4">
+                        The <strong class="text-[#64F4F5]">CI eLearner</strong> is a highly interactive, state-driven React Single Page Application (SPA). It replaces legacy static slide decks with an immersive, "neo-brutalist meets glassmorphism" learning experience.
+                    </p>
+                    <p class="text-white/50 leading-relaxed font-light text-sm">
+                        It parses complex regulatory requirements (Conditions of Participation, Homebound Status) into a 3-stage interactive flow: <strong class="text-white/80">Foundation</strong> &rarr; <strong class="text-white/80">Expanded Context</strong> &rarr; <strong class="text-white/80">Validation Challenge</strong>.
+                    </p>
+                </div>
+
+                <div class="p-6 bg-[#0F0F11] border border-white/10 rounded-xl relative overflow-hidden flex flex-col justify-between hover:border-[#C74601]/40 transition-colors">
+                    <div class="absolute -right-8 -top-8 w-28 h-28 bg-[#C74601]/20 rounded-full blur-3xl"></div>
+                    <div class="relative z-10">
+                        <h3 class="text-lg font-heading font-semibold text-white mb-2">Core Philosophy</h3>
+                        <p class="text-white/50 text-sm font-light leading-relaxed">Maximize learner retention through high-contrast UI, immediate validation feedback, and frictionless performance.</p>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-white/5 relative z-10">
+                        <span class="text-[10px] font-heading uppercase tracking-wider text-white/30">Architecture</span>
+                        <div class="font-heading font-bold text-[#64F4F5]">Client-Side SPA</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tech Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+                <div class="stat-card">
+                    <span class="block text-2xl font-heading font-bold text-[#64F4F5]">60fps</span>
+                    <span class="text-[10px] font-heading uppercase tracking-wider text-white/30 mt-1">Interaction Speed</span>
+                </div>
+                <div class="stat-card">
+                    <span class="block text-2xl font-heading font-bold text-[#C74601]">0</span>
+                    <span class="text-[10px] font-heading uppercase tracking-wider text-white/30 mt-1">Server Round-Trips</span>
+                </div>
+                <div class="stat-card">
+                    <span class="block text-2xl font-heading font-bold text-white/80">36</span>
+                    <span class="text-[10px] font-heading uppercase tracking-wider text-white/30 mt-1">Training Modules</span>
+                </div>
+                <div class="stat-card">
+                    <span class="block text-2xl font-heading font-bold text-[#A78BFA]">3-Stage</span>
+                    <span class="text-[10px] font-heading uppercase tracking-wider text-white/30 mt-1">Learning Flow</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: APPLICATION STATE VS PERSISTENCE -->
+        <section>
+            <div class="p-8 border border-white/10 bg-white/[0.02] backdrop-blur-md rounded-xl">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <div class="inline-flex items-center gap-3 mb-4">
+                            <div class="w-8 h-px bg-[#C74601]"></div>
+                            <span class="text-[10px] font-heading font-semibold uppercase tracking-[0.2em] text-[#C74601]">Data Architecture</span>
+                        </div>
+                        <h2 class="text-3xl font-heading font-bold text-white mb-4">Application State vs Persistence</h2>
+                        <p class="text-white/60 font-light mb-4 leading-relaxed">
+                            The application operates entirely in-memory using React's virtual DOM. State changes (like advancing cards or answering quizzes) are instantaneous and require zero server round-trips.
+                        </p>
+                        <p class="text-white/50 text-sm mb-6 font-light leading-relaxed">
+                            If deployed as a standalone web app (Vercel/Netlify), session data is transient. If deployed within an LMS wrapper (SCORM), terminal states are passed to the LMS API via JavaScript bridges.
+                        </p>
+                        <div class="p-4 bg-[#007970]/10 border border-[#007970]/30 rounded-lg">
+                            <p class="text-sm"><strong class="text-[#64F4F5]">Performance Win:</strong> <span class="text-white/60 font-light">By decoupling UI state from database constraints, interactions run at 60fps without loading spinners.</span></p>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="responsibilityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: UI/UX ARCHITECTURE -->
+        <section>
+            <div class="text-center mb-12">
+                <div class="inline-flex items-center gap-3 mb-4">
+                    <div class="w-8 h-px bg-[#64F4F5]"></div>
+                    <span class="text-[10px] font-heading font-semibold uppercase tracking-[0.2em] text-[#64F4F5]">Design System</span>
+                    <div class="w-8 h-px bg-[#64F4F5]"></div>
+                </div>
+                <h2 class="text-3xl font-heading font-bold text-white">UI/UX Architecture</h2>
+                <p class="text-white/40 max-w-2xl mx-auto mt-3 font-light">The design system powering the nightmode learning experience. Tailwind JIT, custom CSS variables, and high-contrast glassmorphism.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Tailwind Config -->
+                <div class="p-6 bg-[#0F0F11] border-l-4 border-[#64F4F5] rounded-lg">
+                    <h4 class="font-heading font-semibold text-white text-sm mb-3">Tailwind JIT Configuration</h4>
+                    <p class="text-sm text-white/50 mb-4 font-light">Utility classes with arbitrary values for exact brand-kit matching without bloating the config file.</p>
+                    <div class="space-y-2">
+                        <div class="p-3 bg-[#0A0A0C] rounded-lg border border-white/5">
+                            <div class="text-[10px] font-heading font-bold text-white/30 uppercase mb-1">Brand Palette</div>
+                            <div class="code-block text-xs">bg-[#007970] | text-[#C74601] | border-[#1F1C1B]</div>
+                        </div>
+                        <div class="p-3 bg-[#0A0A0C] rounded-lg border border-white/5">
+                            <div class="text-[10px] font-heading font-bold text-white/30 uppercase mb-1">Typography</div>
+                            <div class="text-sm text-white/60 font-light"><strong class="text-[#64F4F5]">Montserrat</strong> (headings) &middot; <strong class="text-[#C74601]">Roboto</strong> (body)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mouse Tracking -->
+                <div class="p-6 bg-[#0F0F11] border-l-4 border-[#007970] rounded-lg">
+                    <h4 class="font-heading font-semibold text-white text-sm mb-3">Dynamic Mouse Tracking Glow</h4>
+                    <p class="text-sm text-white/50 mb-4 font-light">A global mousemove listener updates CSS variables (--mouse-x, --mouse-y) for a cursor-following radial gradient without React re-renders.</p>
+                    <div class="code-block text-xs">document.addEventListener('mousemove', (e) =&gt; {<br>&nbsp;&nbsp;root.style.setProperty('--mouse-x', e.clientX + 'px');<br>&nbsp;&nbsp;root.style.setProperty('--mouse-y', e.clientY + 'px');<br>});</div>
+                </div>
+
+                <!-- Glassmorphism -->
+                <div class="p-6 bg-[#0F0F11] border-l-4 border-[#C74601] rounded-lg">
+                    <h4 class="font-heading font-semibold text-white text-sm mb-3">Glassmorphism &amp; Depth</h4>
+                    <p class="text-sm text-white/50 font-light">Extensive use of backdrop-blur-xl and translucent backgrounds (bg-white/85) creates physical depth against dark underlays. Combined with noise texture overlays for tactile authenticity.</p>
+                </div>
+
+                <!-- Animations -->
+                <div class="p-6 bg-[#0F0F11] border-l-4 border-[#A78BFA] rounded-lg">
+                    <h4 class="font-heading font-semibold text-white text-sm mb-3">Entrance Animations</h4>
+                    <p class="text-sm text-white/50 font-light mb-3">Custom keyframes provide smooth slide-up reveals with blur-to-sharp transitions on every panel change.</p>
+                    <div class="code-block text-xs">@keyframes glitch-slide {<br>&nbsp;&nbsp;0% { opacity:0; transform:translateY(20px); filter:blur(3px); }<br>&nbsp;&nbsp;100% { opacity:1; transform:translateY(0); filter:blur(0); }<br>}</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: SYSTEM COMPONENTS -->
+        <section class="bg-[#0F0F11] border border-white/10 rounded-2xl p-8 md:p-12 overflow-hidden">
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center gap-3 mb-4">
+                    <div class="w-8 h-px bg-[#007970]"></div>
+                    <span class="text-[10px] font-heading font-semibold uppercase tracking-[0.2em] text-[#007970]">Architecture</span>
+                    <div class="w-8 h-px bg-[#007970]"></div>
+                </div>
+                <h2 class="text-3xl font-heading font-bold text-white">System Components</h2>
+                <p class="text-white/40 max-w-2xl mx-auto mt-3 font-light">The component architecture is monolithic by design, contained within App.tsx to ensure portability.</p>
+            </div>
+
+            <!-- Block Diagram as Flow Steps -->
+            <div class="flex flex-col md:flex-row justify-center items-center gap-4 mb-12">
+                <div class="flow-step w-full md:w-1/3">
+                    <div class="text-3xl mb-3">&#128196;</div>
+                    <h4 class="font-heading font-semibold text-white text-sm mb-1">Content Model</h4>
+                    <p class="text-[10px] text-white/30 mb-2">Static JSON Array</p>
+                    <div class="code-block !p-2 !text-[10px]">const cards = [{...}]</div>
+                    <p class="text-[11px] text-white/40 font-light mt-2">title, section, objective, bullets, additional, challenge</p>
+                </div>
+
+                <div class="text-white/20 text-2xl hidden md:block">&rarr;</div>
+                <div class="text-white/20 text-2xl md:hidden">&darr;</div>
+
+                <div class="flow-step w-full md:w-1/3 !border-[#64F4F5]/40 pulse-glow">
+                    <div class="text-3xl mb-3">&#9883;&#65039;</div>
+                    <h4 class="font-heading font-semibold text-[#64F4F5] text-sm mb-1">React State Engine</h4>
+                    <p class="text-[10px] text-white/30 mb-2">App.tsx</p>
+                    <div class="code-block !p-2 !text-[10px]">useState(cardIndex)<br>useState(panelMode)</div>
+                </div>
+
+                <div class="text-white/20 text-2xl hidden md:block">&rarr;</div>
+                <div class="text-white/20 text-2xl md:hidden">&darr;</div>
+
+                <div class="flow-step w-full md:w-1/3">
+                    <div class="text-3xl mb-3">&#127912;</div>
+                    <h4 class="font-heading font-semibold text-white text-sm mb-1">Virtual DOM</h4>
+                    <p class="text-[10px] text-white/30 mb-2">Lucide + Tailwind</p>
+                    <div class="code-block !p-2 !text-[10px]">&lt;Header /&gt;<br>&lt;MainPanel mode={} /&gt;<br>&lt;FooterControls /&gt;</div>
+                </div>
+            </div>
+
+            <!-- Dependencies + State Vars side by side -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="p-6 border border-white/10 bg-[#0A0A0C] rounded-xl">
+                    <h4 class="font-heading font-semibold text-white mb-4 text-sm uppercase tracking-wider">Core Dependencies</h4>
+                    <ul class="space-y-3">
+                        <li class="flex items-center justify-between p-3 bg-[#0F0F11] rounded-lg border border-white/5">
+                            <span class="text-sm text-white/70">UI Library</span>
+                            <span class="text-[10px] font-mono text-[#64F4F5] px-2 py-1 bg-[#64F4F5]/10 rounded">React 18</span>
+                        </li>
+                        <li class="flex items-center justify-between p-3 bg-[#0F0F11] rounded-lg border border-white/5">
+                            <span class="text-sm text-white/70">Build Tool</span>
+                            <span class="text-[10px] font-mono text-[#C74601] px-2 py-1 bg-[#C74601]/10 rounded">Vite</span>
+                        </li>
+                        <li class="flex items-center justify-between p-3 bg-[#0F0F11] rounded-lg border border-white/5">
+                            <span class="text-sm text-white/70">Iconography</span>
+                            <span class="text-[10px] font-mono text-white/50 px-2 py-1 bg-white/5 rounded">lucide-react</span>
+                        </li>
+                        <li class="flex items-center justify-between p-3 bg-[#0F0F11] rounded-lg border border-white/5">
+                            <span class="text-sm text-white/70">Type System</span>
+                            <span class="text-[10px] font-mono text-[#A78BFA] px-2 py-1 bg-[#A78BFA]/10 rounded">TypeScript</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="p-6 border border-white/10 bg-[#0A0A0C] rounded-xl">
+                    <h4 class="font-heading font-semibold text-white mb-4 text-sm uppercase tracking-wider">State Variables</h4>
+                    <ul class="space-y-3">
+                        <li class="flex items-center justify-between p-3 bg-[#0F0F11] rounded-lg border border-white/5">
+                            <code class="text-sm text-[#64F4F5]">cardIndex</code>
+                            <span class="text-xs text-white/40">Current module array index</span>
+                        </li>
+                        <li class="flex items-center justify-between p-3 bg-[#0F0F11] rounded-lg border border-white/5">
+                            <code class="text-sm text-[#64F4F5]">panelMode</code>
+                            <span class="text-xs text-white/40">'main' | 'additional' | 'challenge'</span>
+                        </li>
+                        <li class="flex items-center justify-between p-3 bg-[#0F0F11] rounded-lg border border-white/5">
+                            <code class="text-sm text-[#64F4F5]">isSubmitted</code>
+                            <span class="text-xs text-white/40">Locks challenge UI for feedback</span>
+                        </li>
+                        <li class="flex items-center justify-between p-3 bg-[#0F0F11] rounded-lg border border-white/5">
+                            <code class="text-sm text-[#64F4F5]">selectedAnswer</code>
+                            <span class="text-xs text-white/40">Quiz radio selection state</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: STATE & DATA FLOW (TIMELINE) -->
+        <section>
+            <div class="text-center mb-12">
+                <div class="inline-flex items-center gap-3 mb-4">
+                    <div class="w-8 h-px bg-[#C74601]"></div>
+                    <span class="text-[10px] font-heading font-semibold uppercase tracking-[0.2em] text-[#C74601]">Runtime</span>
+                    <div class="w-8 h-px bg-[#C74601]"></div>
+                </div>
+                <h2 class="text-3xl font-heading font-bold text-white">The Tri-Panel Flow</h2>
+                <p class="text-white/40 max-w-2xl mx-auto mt-3 font-light">How data flows from initial load through challenge validation. Each state transition triggers an immediate re-render.</p>
+            </div>
+
+            <div class="relative max-w-3xl mx-auto space-y-0">
+                <!-- Vertical line -->
+                <div class="absolute left-[27px] top-0 bottom-0 w-px bg-gradient-to-b from-[#007970] via-[#64F4F5] to-[#C74601]"></div>
+
+                <!-- Step 1: Mount -->
+                <div class="relative flex items-start gap-6 pb-12">
+                    <div class="timeline-dot bg-[#007970] text-white shadow-[0_0_20px_rgba(0,121,112,0.4)]">1</div>
+                    <div class="flex-1 p-6 bg-[#0F0F11] border border-white/10 rounded-xl hover:border-[#007970]/40 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-heading font-semibold text-white">Initial Render (Main Mode)</h3>
+                            <span class="text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-1 bg-[#007970]/20 text-[#64F4F5] rounded">Mount</span>
+                        </div>
+                        <p class="text-sm text-white/50 font-light mb-3">App mounts. cardIndex is 0. panelMode is 'main'. Virtual DOM renders the Learning Objective and Key Points grid.</p>
+                        <div class="code-block text-xs">const card = cards[cardIndex];<br>// Renders main block<br>{panelMode === 'main' &amp;&amp; ( ... )}</div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Navigate -->
+                <div class="relative flex items-start gap-6 pb-12">
+                    <div class="timeline-dot bg-[#64F4F5] text-[#0A0A0C] shadow-[0_0_20px_rgba(100,244,245,0.3)]">2</div>
+                    <div class="flex-1 p-6 bg-[#0F0F11] border border-white/10 rounded-xl hover:border-[#64F4F5]/40 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-heading font-semibold text-white">Internal Navigation</h3>
+                            <span class="text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-1 bg-white/5 text-white/40 rounded">Update</span>
+                        </div>
+                        <p class="text-sm text-white/50 font-light mb-3">User clicks "Initialize Audio" or "Enter Challenge". panelMode state updates, causing immediate re-render with CSS transitions.</p>
+                        <div class="code-block text-xs">setPanelMode('additional');<br>setStatusText('System: Playing Audio Protocol');<br>// key prop forces remount &rarr; .animate-glitch CSS</div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Validate -->
+                <div class="relative flex items-start gap-6 pb-12">
+                    <div class="timeline-dot bg-[#C74601] text-white shadow-[0_0_20px_rgba(199,70,1,0.4)]">3</div>
+                    <div class="flex-1 p-6 bg-[#0F0F11] border border-white/10 rounded-xl hover:border-[#C74601]/40 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-heading font-semibold text-white">Challenge Validation</h3>
+                            <span class="text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-1 bg-[#C74601]/15 text-[#C74601] rounded">Action</span>
+                        </div>
+                        <p class="text-sm text-white/50 font-light mb-3">User selects a quiz radio button. State held in selectedAnswer. Clicking Execute locks UI via isSubmitted.</p>
+                        <div class="code-block text-xs">const submitChallenge = () =&gt; {<br>&nbsp;&nbsp;if (selectedAnswer !== null) {<br>&nbsp;&nbsp;&nbsp;&nbsp;setIsSubmitted(true);<br>&nbsp;&nbsp;}<br>};</div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Advance -->
+                <div class="relative flex items-start gap-6">
+                    <div class="timeline-dot bg-[#007970] text-white shadow-[0_0_20px_rgba(0,121,112,0.4)]">4</div>
+                    <div class="flex-1 p-6 bg-[#0F0F11] border border-white/10 rounded-xl hover:border-[#007970]/40 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-heading font-semibold text-white">Card Advancement</h3>
+                            <span class="text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-1 bg-[#64F4F5]/10 text-[#64F4F5] rounded">Loop</span>
+                        </div>
+                        <p class="text-sm text-white/50 font-light mb-3">Clicking "Advance" iterates cardIndex, resets panelMode to main, and clears the challenge data for the next topic.</p>
+                        <div class="code-block text-xs">setCardIndex(cardIndex + 1);<br>setPanelMode('main');<br>setSelectedAnswer(null);<br>setIsSubmitted(false);</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 6: DEPLOYMENT COMPARISON -->
+        <section>
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center gap-3 mb-4">
+                    <div class="w-8 h-px bg-[#64F4F5]"></div>
+                    <span class="text-[10px] font-heading font-semibold uppercase tracking-[0.2em] text-[#64F4F5]">Infrastructure</span>
+                    <div class="w-8 h-px bg-[#64F4F5]"></div>
+                </div>
+                <h2 class="text-3xl font-heading font-bold text-white">Deployment Strategy</h2>
+                <p class="text-white/40 max-w-2xl mx-auto mt-3 font-light">Pure client-side architecture supports frictionless static hosting. Two deployment paths for different operational needs.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Vercel/Netlify -->
+                <div class="p-6 border border-[#64F4F5]/20 bg-[#64F4F5]/5 rounded-xl">
+                    <h3 class="font-heading font-semibold text-[#64F4F5] mb-4 text-sm uppercase tracking-wider flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-[#64F4F5]"></span> Vercel / Netlify Edge
+                    </h3>
+                    <div class="text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-1 bg-[#64F4F5]/10 text-[#64F4F5] rounded inline-block mb-4">Current Implementation</div>
+                    <ul class="space-y-3 text-sm text-white/60 font-light">
+                        <li class="flex gap-3"><span class="text-[#64F4F5] shrink-0">&#10003;</span> Zero-config deployment via npm run build</li>
+                        <li class="flex gap-3"><span class="text-[#64F4F5] shrink-0">&#10003;</span> Edge caching for sub-second global loads</li>
+                        <li class="flex gap-3"><span class="text-[#64F4F5] shrink-0">&#10003;</span> Perfect for staging, QA, and rapid iteration</li>
+                        <li class="flex gap-3"><span class="text-[#C74601] shrink-0">&#10007;</span> No persistent tracking database out of the box</li>
+                    </ul>
+                    <p class="text-[10px] text-white/20 mt-4 pt-2 border-t border-white/5">Build Output: Static HTML/JS/CSS</p>
+                </div>
+
+                <!-- LMS/SCORM -->
+                <div class="p-6 border border-[#C74601]/20 bg-[#C74601]/5 rounded-xl">
+                    <h3 class="font-heading font-semibold text-[#C74601] mb-4 text-sm uppercase tracking-wider flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-[#C74601]"></span> LMS / SCORM Wrapper
+                    </h3>
+                    <div class="text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-1 bg-[#C74601]/15 text-[#C74601] rounded inline-block mb-4">Production</div>
+                    <ul class="space-y-3 text-sm text-white/60 font-light">
+                        <li class="flex gap-3"><span class="text-[#C74601] shrink-0">&#128230;</span> Monolithic file structure wraps easily in SCORM iframe</li>
+                        <li class="flex gap-3"><span class="text-[#C74601] shrink-0">&#128230;</span> State transitions wired to API.LMSSetValue() for tracking</li>
+                        <li class="flex gap-3"><span class="text-[#C74601] shrink-0">&#128230;</span> SCORM 1.2 suspend_data for resume capability</li>
+                    </ul>
+                    <p class="text-[10px] text-white/20 mt-4 pt-2 border-t border-white/5">Requirements: SCORM API Bridge Script</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 7: BUNDLE ARCHITECTURE -->
+        <section>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                <div class="md:col-span-2">
+                    <div class="p-6 bg-[#0F0F11] border border-white/10 rounded-xl">
+                        <h3 class="font-heading font-semibold text-white mb-4 text-center text-sm uppercase tracking-wider">Runtime Responsibility Distribution</h3>
+                        <div class="chart-container">
+                            <canvas id="bundleChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 border border-white/10 bg-white/[0.02] backdrop-blur-md rounded-xl">
+                    <h3 class="font-heading font-semibold text-[#64F4F5] mb-3 text-sm">The Zero-Backend Model</h3>
+                    <p class="text-sm text-white/50 font-light mb-4 leading-relaxed">
+                        React's Virtual DOM drives all interactive state. The browser CSS engine handles GPU-accelerated transitions. Static assets (JSON card data) consume minimal overhead.
+                    </p>
+                    <div class="space-y-2 text-sm text-white/40 font-light">
+                        <p class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#64F4F5] shrink-0"></span> React Virtual DOM &mdash; 60% of runtime</p>
+                        <p class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#7C3AED] shrink-0"></span> Browser CSS Engine &mdash; 30%</p>
+                        <p class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#C74601] shrink-0"></span> Static JSON Assets &mdash; 10%</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 8: FOUR PILLARS -->
+        <section>
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center gap-3 mb-4">
+                    <div class="w-8 h-px bg-[#007970]"></div>
+                    <span class="text-[10px] font-heading font-semibold uppercase tracking-[0.2em] text-[#007970]">Principles</span>
+                    <div class="w-8 h-px bg-[#007970]"></div>
+                </div>
+                <h2 class="text-3xl font-heading font-bold text-white">Four Design Pillars</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="p-6 bg-[#0F0F11] border border-[#64F4F5]/20 rounded-xl text-center hover:border-[#64F4F5]/50 transition-colors">
+                    <div class="w-12 h-12 rounded-full bg-[#64F4F5]/10 flex items-center justify-center mx-auto mb-3">
+                        <span class="text-xl">&#9889;</span>
+                    </div>
+                    <h4 class="font-heading font-semibold text-[#64F4F5] text-sm mb-2">Performance</h4>
+                    <p class="text-xs text-white/40 font-light">60fps interactions with zero server round-trips and instant panel transitions</p>
+                </div>
+                <div class="p-6 bg-[#0F0F11] border border-[#007970]/20 rounded-xl text-center hover:border-[#007970]/50 transition-colors">
+                    <div class="w-12 h-12 rounded-full bg-[#007970]/10 flex items-center justify-center mx-auto mb-3">
+                        <span class="text-xl">&#128274;</span>
+                    </div>
+                    <h4 class="font-heading font-semibold text-[#007970] text-sm mb-2">Portability</h4>
+                    <p class="text-xs text-white/40 font-light">Static build deploys to any CDN, iframe, or SCORM wrapper with zero config</p>
+                </div>
+                <div class="p-6 bg-[#0F0F11] border border-[#C74601]/20 rounded-xl text-center hover:border-[#C74601]/50 transition-colors">
+                    <div class="w-12 h-12 rounded-full bg-[#C74601]/10 flex items-center justify-center mx-auto mb-3">
+                        <span class="text-xl">&#127912;</span>
+                    </div>
+                    <h4 class="font-heading font-semibold text-[#C74601] text-sm mb-2">Immersion</h4>
+                    <p class="text-xs text-white/40 font-light">Neo-brutalist glassmorphism with dynamic mouse tracking and animated transitions</p>
+                </div>
+                <div class="p-6 bg-[#0F0F11] border border-[#A78BFA]/20 rounded-xl text-center hover:border-[#A78BFA]/50 transition-colors">
+                    <div class="w-12 h-12 rounded-full bg-[#A78BFA]/10 flex items-center justify-center mx-auto mb-3">
+                        <span class="text-xl">&#128218;</span>
+                    </div>
+                    <h4 class="font-heading font-semibold text-[#A78BFA] text-sm mb-2">Validation</h4>
+                    <p class="text-xs text-white/40 font-light">Built-in quiz challenges with immediate feedback lock and scoring</p>
+                </div>
+            </div>
+        </section>
+
     </main>
 
+    <!-- Footer -->
+    <footer class="border-t border-white/5 bg-[#0A0A0C]/80 py-8 text-center">
+        <p class="text-[10px] text-white/20 font-heading uppercase tracking-[0.2em]">Care Indeed Home Health &middot; CI eLearner Architecture Documentation</p>
+        <p class="text-[9px] text-white/10 mt-1 font-heading">Systems architecture reference &middot; React 18 + Vite + Tailwind JIT</p>
+    </footer>
+
     <script>
-        function navTo(sectionId) {
-            document.querySelectorAll('#content-area > section').forEach(el => el.classList.add('hidden'));
-            const target = document.getElementById(sectionId);
-            target.classList.remove('hidden');
+        Chart.defaults.color = 'rgba(255,255,255,0.35)';
+        Chart.defaults.font.family = 'Roboto';
 
-            if (sectionId === 'dashboard' && !Chart.getChart('responsibilityChart')) {
-                initChart();
+        // Responsibility Distribution Doughnut
+        new Chart(document.getElementById('responsibilityChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['React Virtual DOM (UI/State)', 'Browser Engine (CSS GPU)', 'Static Assets (JSON)'],
+                datasets: [{
+                    data: [60, 30, 10],
+                    backgroundColor: ['#64F4F5', '#7C3AED', '#C74601'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, padding: 16 } } }
             }
+        });
 
-            const titles = {
-                'dashboard': ['Executive Summary', 'High-level overview of the CI eLearner Application.'],
-                'ui-ux': ['UI/UX Architecture', 'Design systems, styling engines, and CSS variables.'],
-                'system-map': ['System Components', 'React architecture and component breakdown.'],
-                'runtime': ['State & Data Flow', 'React state hooks and render lifecycles.'],
-                'deployment': ['Deployment & Ops', 'Hosting environments and build artifacts.']
-            };
-            document.getElementById('page-title').innerText = titles[sectionId][0];
-            document.getElementById('page-desc').innerText = titles[sectionId][1];
-
-            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
-            event.currentTarget.classList.add('active');
-        }
-
-        function initChart() {
-            const ctx = document.getElementById('responsibilityChart').getContext('2d');
-            Chart.defaults.color = 'rgba(255,255,255,0.4)';
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['React Virtual DOM (UI/State)', 'Browser Engine (CSS GPU)', 'Static Assets (JSON)'],
-                    datasets: [{
-                        data: [60, 30, 10],
-                        backgroundColor: ['#64F4F5', '#7C3AED', '#C74601'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10, family: 'Roboto' }, color: 'rgba(255,255,255,0.4)' } }
-                    },
-                    cutout: '75%'
+        // Bundle Chart - Horizontal Bar
+        new Chart(document.getElementById('bundleChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['React + ReactDOM', 'Lucide Icons', 'Tailwind (JIT)', 'App Code (TSX)', 'Static Data (JSON)'],
+                datasets: [{
+                    label: 'Bundle Weight (%)',
+                    data: [35, 15, 20, 20, 10],
+                    backgroundColor: '#64F4F5',
+                    borderRadius: 4,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { font: { size: 10 } } },
+                    y: { grid: { display: false }, ticks: { font: { size: 10 } } }
                 }
-            });
-        }
-
-        function toggleStep(id) {
-            const el = document.getElementById(id);
-            el.classList.toggle('hidden');
-        }
-
-        window.addEventListener('DOMContentLoaded', initChart);
+            }
+        });
     </script>
 </body>
 </html>

@@ -1,0 +1,446 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CMS-485 FAQ Hub | Care Indeed Home Health</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{--bg:#09090b;--card:#0F0F11;--surface:#121214;--teal:#007970;--orange:#C74601;--cyan:#64F4F5;--purple:#A78BFA}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Roboto',sans-serif;background:var(--bg);color:#e5e7eb;min-height:100vh;overflow-x:hidden}
+  h1,h2,h3,h4{font-family:'Montserrat',sans-serif}
+  .noise{position:fixed;inset:0;pointer-events:none;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  .glass{background:rgba(15,15,17,.85);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.06)}
+  .card-enter{animation:cardIn .4s cubic-bezier(.22,1,.36,1) forwards;opacity:0;transform:translateY(12px)}
+  @keyframes cardIn{to{opacity:1;transform:translateY(0)}}
+  @keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(100,244,245,.4)}70%{box-shadow:0 0 0 10px rgba(100,244,245,0)}100%{box-shadow:0 0 0 0 rgba(100,244,245,0)}}
+  .pulse-badge{animation:pulse-ring 2s infinite}
+  .accordion-body{max-height:0;overflow:hidden;transition:max-height .35s cubic-bezier(.22,1,.36,1),padding .25s ease}
+  .accordion-body.open{max-height:600px;padding-top:12px;padding-bottom:4px}
+  .chevron{transition:transform .3s ease}
+  .chevron.rotated{transform:rotate(180deg)}
+  .search-glow:focus{box-shadow:0 0 20px rgba(100,244,245,.15)}
+  .filter-active{background:var(--teal);color:white;border-color:var(--teal)}
+  .quiz-btn{transition:all .2s ease}
+  .quiz-btn:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(100,244,245,.2)}
+  .quiz-btn.correct{background:rgba(0,121,112,.3)!important;border-color:var(--teal)!important}
+  .quiz-btn.wrong{background:rgba(215,1,1,.2)!important;border-color:#D70101!important}
+  .confetti{position:fixed;pointer-events:none;z-index:999}
+  .streak-fire{animation:fire .6s ease-out}
+  @keyframes fire{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+  ::-webkit-scrollbar{width:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:3px}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.15)}
+</style>
+</head>
+<body>
+<div class="noise"></div>
+
+<!-- Header -->
+<header class="sticky top-0 z-50 glass border-b border-white/5">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#007970] to-[#64F4F5] flex items-center justify-center">
+        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold tracking-wide text-white">CMS-485 FAQ Hub</h1>
+        <p class="text-xs text-white/50">108 Questions  36 Topics  Interactive Quiz Mode</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div id="streak-display" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#C74601]/40 bg-[#C74601]/10 text-sm">
+        <span class="streak-fire"></span>
+        <span id="streak-count" class="font-bold text-[#FFB27F]">0</span>
+      </div>
+      <div id="score-display" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#64F4F5]/20 bg-[#007970]/10 text-sm">
+        <span class="text-[#64F4F5] font-bold" id="score-num">0</span>
+        <span class="text-white/50">/</span>
+        <span class="text-white/40" id="score-total">108</span>
+      </div>
+      <button id="quiz-toggle" onclick="toggleQuizMode()" class="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider border border-[#64F4F5]/30 text-[#64F4F5] hover:bg-[#64F4F5]/10 transition-all">
+        Quiz Mode
+      </button>
+      <button onclick="resetAll()" class="px-3 py-2 rounded-lg text-xs font-semibold tracking-wider border border-white/10 text-white/50 hover:text-white hover:border-white/20 transition-all">
+        Reset
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Search + Filters -->
+<div class="sticky top-[73px] z-40 glass border-b border-white/5">
+  <div class="max-w-7xl mx-auto px-6 py-3">
+    <div class="flex items-center gap-4 mb-3">
+      <div class="relative flex-1 max-w-md">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input id="search-input" type="text" placeholder="Search questions..." oninput="filterFAQs()" class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#64F4F5]/40 search-glow transition-all" />
+      </div>
+      <button onclick="expandAll()" class="text-xs text-white/40 hover:text-white/70 transition-colors">Expand All</button>
+      <button onclick="collapseAll()" class="text-xs text-white/40 hover:text-white/70 transition-colors">Collapse All</button>
+    </div>
+    <div id="filter-bar" class="flex flex-wrap gap-2"></div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<main class="max-w-7xl mx-auto px-6 py-8">
+  <div id="faq-container" class="space-y-6"></div>
+  <div id="empty-state" class="hidden text-center py-20">
+    <div class="text-6xl mb-4"></div>
+    <p class="text-white/40 text-lg">No matching questions found</p>
+    <p class="text-white/25 text-sm mt-1">Try a different search term or filter</p>
+  </div>
+</main>
+
+<!-- Completion Banner -->
+<div id="completion-banner" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-8 py-4 rounded-2xl glass border border-[#007970]/40 bg-gradient-to-r from-[#007970]/20 to-[#64F4F5]/10 text-center">
+  <p class="text-lg font-bold text-[#64F4F5]"> All questions answered correctly!</p>
+  <p class="text-sm text-white/60 mt-1">You've mastered CMS-485 compliance knowledge</p>
+</div>
+
+<script>
+const SECTIONS = [
+  {id:1,title:"What CMS-485 Is and Why It Matters",color:"#64F4F5",icon:""},
+  {id:2,title:"Why Documentation Quality Drives Outcomes",color:"#00C9B7",icon:""},
+  {id:3,title:"CoPs Authority for the Plan of Care",color:"#FF8D4D",icon:""},
+  {id:4,title:"Required POC Content Elements",color:"#A78BFA",icon:""},
+  {id:5,title:"Certification vs Recertification",color:"#34D399",icon:""},
+  {id:6,title:"Recertification Drift Risk",color:"#FB7185",icon:""},
+  {id:7,title:"Physician Orders: Required Specificity",color:"#FB923C",icon:""},
+  {id:8,title:"Signature Timing and Dating Rules",color:"#38BDF8",icon:""},
+  {id:9,title:"Acceptable Signature Methods",color:"#E879F9",icon:""},
+  {id:10,title:"Homebound Criteria: Core Standard",color:"#64F4F5",icon:""},
+  {id:11,title:"Homebound Defensibility Examples",color:"#00C9B7",icon:""},
+  {id:12,title:"Skilled Need Requirements",color:"#FF8D4D",icon:""},
+  {id:13,title:"Qualifying Skilled Service Patterns",color:"#A78BFA",icon:""},
+  {id:14,title:"Medical Necessity Standards",color:"#34D399",icon:""},
+  {id:15,title:"Top Denial Drivers and Controls",color:"#FB7185",icon:""},
+  {id:16,title:"OASIS to Plan of Care Alignment",color:"#FB923C",icon:""},
+  {id:17,title:"Maintaining OASIS-POC Continuity",color:"#38BDF8",icon:""},
+  {id:18,title:"Diagnosis and PDGM Relevance",color:"#E879F9",icon:""},
+  {id:19,title:"Diagnosis Integrity Safeguards",color:"#64F4F5",icon:""},
+  {id:20,title:"Visit Frequency and Duration",color:"#00C9B7",icon:""},
+  {id:21,title:"Discipline Planning and Coordination",color:"#FF8D4D",icon:""},
+  {id:22,title:"Verbal and Telephone Orders",color:"#A78BFA",icon:""},
+  {id:23,title:"Interim Order Governance",color:"#34D399",icon:""},
+  {id:24,title:"Survey Deficiency: Incomplete Plans",color:"#FB7185",icon:""},
+  {id:25,title:"Survey Deficiency: Weak Coordination",color:"#FB923C",icon:""},
+  {id:26,title:"Survey Deficiency: Safety Gaps",color:"#38BDF8",icon:""},
+  {id:27,title:"Audit Trigger: Timeline Conflicts",color:"#E879F9",icon:""},
+  {id:28,title:"Audit Trigger: Storyline Inconsistency",color:"#64F4F5",icon:""},
+  {id:29,title:"Defensibility Checklist: Pre-Bill",color:"#00C9B7",icon:""},
+  {id:30,title:"Skilled Narrative: Good vs Bad",color:"#FF8D4D",icon:""},
+  {id:31,title:"Homebound Support: Good vs Bad",color:"#A78BFA",icon:""},
+  {id:32,title:"Goal Quality: Good vs Bad",color:"#34D399",icon:""},
+  {id:33,title:"Order Specificity: Good vs Bad",color:"#FB7185",icon:""},
+  {id:34,title:"Daily Documentation Habits",color:"#FB923C",icon:""},
+  {id:35,title:"Leadership Controls",color:"#38BDF8",icon:""},
+  {id:36,title:"Key Takeaways and Next Actions",color:"#E879F9",icon:""}
+];
+
+const FAQS=[
+  {s:1,q:"Is the CMS-485 just an internal care planning document?",a:"No. It is the legally binding physician-authorized plan that supports Medicare certification and reimbursement. If it is incomplete or inconsistent with care delivered, the claim is vulnerable."},
+  {s:1,q:"Who primarily uses the CMS-485  clinicians or billing?",a:"Both. Clinicians use it to guide care delivery. Billing relies on it to validate medical necessity and episode authorization. Auditors use it to determine if payment was appropriate."},
+  {s:1,q:"What happens if the CMS-485 does not match visit documentation?",a:"That disconnect is one of the fastest paths to denial. Auditors look for one consistent clinical story from certification through final claim."},
+  {s:2,q:"How does documentation quality affect ADRs?",a:"Clear, complete documentation reduces ADR volume because payers can validate medical necessity without requesting additional records."},
+  {s:2,q:"Does better documentation really improve patient care?",a:"Yes. A well-written Plan of Care improves interdisciplinary clarity, reduces duplication, and strengthens goal execution."},
+  {s:2,q:"Is documentation primarily a compliance tool?",a:"It is both a compliance control and a care-quality control. Weak documentation affects reimbursement and clinical outcomes."},
+  {s:3,q:"Are the Conditions of Participation optional guidelines?",a:"No. They are federal regulatory requirements for Medicare-certified agencies."},
+  {s:3,q:"Can we use standardized template language to satisfy CoPs?",a:"Templates help with structure, but the content must be patient-specific and assessment-driven."},
+  {s:3,q:"What is the most common CoP violation related to the Plan of Care?",a:"Generic, non-individualized plans that do not reflect the current assessment."},
+  {s:4,q:"What elements must always be included in the POC?",a:"Diagnoses, measurable goals, specific interventions, disciplines, frequency, duration, and safety considerations."},
+  {s:4,q:"What happens if one required element is missing?",a:"The medical necessity narrative weakens, and billing may be delayed or denied."},
+  {s:4,q:"Why are measurable goals so important?",a:"Because progress cannot be validated without measurable targets."},
+  {s:5,q:"What is the key difference between certification and recertification?",a:"Certification establishes eligibility. Recertification proves ongoing skilled need."},
+  {s:5,q:"Can we copy forward the original certification language?",a:"No. Recertification must reflect updated clinical findings."},
+  {s:5,q:"What is the biggest recertification risk?",a:"Failing to demonstrate continued medical necessity."},
+  {s:6,q:"What is recertification drift?",a:"Repeated use of unchanged goals and rationales across episodes."},
+  {s:6,q:"Why do unchanged goals trigger denials?",a:"They suggest lack of reassessment or absence of skilled progression."},
+  {s:6,q:"What must be shown if the patient is not progressing?",a:"Documented barriers and modified interventions."},
+  {s:7,q:"What makes an order defensible?",a:"Specific discipline, intervention, frequency, duration, and purpose."},
+  {s:7,q:"Are PRN-only orders acceptable?",a:"Only if clearly defined with parameters and clinical intent."},
+  {s:7,q:"Why is vague language dangerous in orders?",a:"It implies lack of physician oversight."},
+  {s:8,q:"Can we bill before physician signature is obtained?",a:"No. Billing without required signatures creates objective denial risk."},
+  {s:8,q:"Are late signatures fixable after billing?",a:"Post-payment reviews frequently deny for late signatures."},
+  {s:8,q:"What is the safest signature timing control?",a:"A billing hard-stop preventing claim release without completed signatures."},
+  {s:9,q:"Are electronic signatures acceptable?",a:"Yes, if identity authentication and audit trails are maintained."},
+  {s:9,q:"What must we produce if signature validity is questioned?",a:"The authentication audit trail."},
+  {s:9,q:"Is physician onboarding important for signature validation?",a:"Yes. Authentication controls should be verified upfront."},
+  {s:10,q:"What two elements must be documented for homebound status?",a:"Taxing effort and condition-related limitations."},
+  {s:10,q:"Are generic statements like 'homebound due to weakness' sufficient?",a:"No. They lack objective detail."},
+  {s:10,q:"What creates risk in homebound documentation?",a:"Contradictions between therapy progress and stated limitations."},
+  {s:11,q:"What makes a homebound statement strong?",a:"Specific functional limitations, assistive needs, and symptom burden."},
+  {s:11,q:"Must homebound status be updated each episode?",a:"Yes, especially if functional status changes."},
+  {s:11,q:"What weakens homebound defensibility most often?",a:"Lack of objective measurements."},
+  {s:12,q:"What defines a skilled service?",a:"Active clinical judgment, assessment, and intervention requiring licensed expertise."},
+  {s:12,q:"Why do task-only visits fail audits?",a:"They do not demonstrate clinical necessity."},
+  {s:12,q:"How should skilled care be documented?",a:"Link intervention to risk and measurable outcome."},
+  {s:13,q:"What three elements must each skilled note include?",a:"Assessment, Intervention, Response."},
+  {s:13,q:"Can prior documentation justify current visits?",a:"No. Each visit must independently demonstrate skilled need."},
+  {s:13,q:"What is a common skilled documentation failure?",a:"Missing patient response."},
+  {s:14,q:"Does diagnosis alone prove medical necessity?",a:"No. Services must be reasonable and necessary."},
+  {s:14,q:"What should visit frequency reflect?",a:"Current risk acuity and monitoring needs."},
+  {s:14,q:"What weakens medical necessity arguments?",a:"Describing tasks without explaining clinical reasoning."},
+  {s:15,q:"What are the top denial drivers?",a:"Late signatures, weak skilled rationale, timeline inconsistencies."},
+  {s:15,q:"What is the best denial prevention method?",a:"Pre-bill chart controls."},
+  {s:15,q:"Why track denial themes monthly?",a:"To implement targeted corrective training."},
+  {s:16,q:"Must every POC intervention map to OASIS findings?",a:"Yes."},
+  {s:16,q:"What is a red flag for surveyors regarding alignment?",a:"Mismatch between assessed deficits and interventions."},
+  {s:16,q:"Is alignment required only at Start of Care?",a:"No. It must be maintained across recertifications."},
+  {s:17,q:"When should the Plan of Care be revised?",a:"Immediately when condition changes."},
+  {s:17,q:"What supports OASIS-POC continuity?",a:"Interdisciplinary case conferences."},
+  {s:17,q:"Should billing proceed if documentation is inconsistent?",a:"No. Reconcile first."},
+  {s:18,q:"What should the principal diagnosis represent?",a:"The primary reason for skilled home health services."},
+  {s:18,q:"Why are secondary diagnoses important?",a:"They support complexity and risk burden."},
+  {s:18,q:"What happens if diagnosis and care mismatch?",a:"Medical necessity is undermined."},
+  {s:19,q:"Should diagnoses be reused from prior episodes automatically?",a:"No. Validate against current clinical status."},
+  {s:19,q:"What must be documented if principal diagnosis changes?",a:"Clear clinical rationale."},
+  {s:19,q:"What reduces coding risk?",a:"Pre-bill logic validation."},
+  {s:20,q:"What should drive visit frequency?",a:"Patient acuity and intervention complexity."},
+  {s:20,q:"Why are generic frequency patterns risky?",a:"They suggest non-individualized care."},
+  {s:20,q:"Should frequency taper as patient stabilizes?",a:"Yes."},
+  {s:21,q:"What creates duplication risk in discipline planning?",a:"Multiple disciplines documenting identical interventions without distinction."},
+  {s:21,q:"How is coordination demonstrated?",a:"Clear role delineation and communication logs tied to care changes."},
+  {s:21,q:"Why is duplication dangerous?",a:"It raises necessity concerns."},
+  {s:22,q:"What must be documented for verbal orders?",a:"Exact order, date/time received, clinician, context."},
+  {s:22,q:"When is a verbal order complete?",a:"When authenticated by practitioner."},
+  {s:22,q:"Can unsigned verbal orders remain open at billing?",a:"No."},
+  {s:23,q:"Must interim orders update the Plan of Care?",a:"Yes."},
+  {s:23,q:"Why are aging interim orders dangerous?",a:"They represent unresolved compliance risk."},
+  {s:23,q:"Should interim orders be visible across systems?",a:"Absolutely."},
+  {s:24,q:"What defines an incomplete Plan of Care?",a:"Missing measurable goals or patient-specific detail."},
+  {s:24,q:"Are checklists enough to complete a plan?",a:"No. Clinical judgment must validate content."},
+  {s:24,q:"Who should confirm plan completeness?",a:"Supervisory or QA review."},
+  {s:25,q:"What does weak coordination look like?",a:"Poorly defined discipline roles and minimal communication evidence."},
+  {s:25,q:"Are simple communication notes sufficient?",a:"No. They must reflect clinical decision-making."},
+  {s:25,q:"Why does coordination matter in surveys?",a:"It reflects patient safety and care quality."},
+  {s:26,q:"What must safety documentation include?",a:"Risk trigger, intervention, follow-up accountability."},
+  {s:26,q:"Are generic safety statements acceptable?",a:"No."},
+  {s:26,q:"Why emphasize readmission prevention?",a:"Surveyors scrutinize hospitalization avoidance efforts."},
+  {s:27,q:"What are common timeline conflicts?",a:"Order dates after SOC, overlapping certification periods."},
+  {s:27,q:"Why are date errors so serious?",a:"They are objective defects."},
+  {s:27,q:"What prevents timeline conflicts?",a:"Pre-bill reconciliation checks."},
+  {s:28,q:"What is storyline inconsistency?",a:"Mismatch between POC, visit notes, and claim narrative."},
+  {s:28,q:"Why is consistency critical in documentation?",a:"Auditors require one coherent story."},
+  {s:28,q:"What control helps detect inconsistency?",a:"Trace checks from diagnosis to final bill."},
+  {s:29,q:"What must be verified before billing?",a:"Signatures, complete POC, skilled and homebound rationale."},
+  {s:29,q:"Should billing proceed if any element is missing?",a:"No."},
+  {s:29,q:"Why use a pre-bill checklist?",a:"It converts audit defense into daily prevention."},
+  {s:30,q:"What makes 'routine visit completed' non-defensible?",a:"It lacks assessment and clinical reasoning."},
+  {s:30,q:"What structure strengthens skilled notes?",a:"Assessment, Action, Clinical Consequence."},
+  {s:30,q:"Why must every note justify skilled need?",a:"Because each visit stands on its own during audit."},
+  {s:31,q:"What weakens homebound statements?",a:"Subjective or generalized wording."},
+  {s:31,q:"What strengthens homebound statements?",a:"Objective functional detail."},
+  {s:31,q:"Must homebound align with therapy documentation?",a:"Yes."},
+  {s:32,q:"What makes a goal measurable?",a:"Specific distance, device, timeframe, and outcome."},
+  {s:32,q:"Why are vague goals risky?",a:"Progress cannot be objectively verified."},
+  {s:32,q:"How does goal quality affect recertification?",a:"It determines whether continued need can be proven."},
+  {s:33,q:"What makes an order vague?",a:"Missing intervention detail or frequency."},
+  {s:33,q:"What must every order include?",a:"Discipline, intervention, frequency, duration, purpose."},
+  {s:33,q:"Why does order precision matter operationally?",a:"It ensures consistent execution."},
+  {s:34,q:"What should every visit note contain?",a:"Skilled rationale, intervention, response."},
+  {s:34,q:"When should documentation discrepancies be addressed?",a:"Immediately."},
+  {s:34,q:"Why perform self-audits?",a:"To catch vulnerabilities before external review."},
+  {s:35,q:"What should leadership monitor regularly?",a:"Denial trends, signature timeliness, order aging."},
+  {s:35,q:"How should compliance trends be addressed?",a:"Targeted retraining, not generic reminders."},
+  {s:35,q:"Why maintain a single source of truth?",a:"To ensure regulatory updates are implemented consistently."},
+  {s:36,q:"What is the core compliance standard?",a:"Clear, complete, clinically coherent documentation."},
+  {s:36,q:"Why is consistency more important than perfection?",a:"Because repeatable systems prevent systemic failure."},
+  {s:36,q:"What is the clinician's immediate next action?",a:"Apply defensibility principles to every episode milestone."}
+];
+
+let quizMode = false;
+let answeredCorrectly = new Set();
+let streak = 0;
+let maxStreak = 0;
+let activeFilter = 'all';
+let expandedAccordions = new Set();
+
+function getSection(id){ return SECTIONS.find(s=>s.id===id) }
+
+function toggleQuizMode(){
+  quizMode = !quizMode;
+  const btn = document.getElementById('quiz-toggle');
+  if(quizMode){
+    btn.classList.add('filter-active');
+    btn.textContent = 'Reading Mode';
+  } else {
+    btn.classList.remove('filter-active');
+    btn.textContent = 'Quiz Mode';
+  }
+  renderFAQs();
+}
+
+function resetAll(){
+  answeredCorrectly = new Set();
+  streak = 0; maxStreak = 0;
+  expandedAccordions = new Set();
+  updateScore();
+  renderFAQs();
+}
+
+function updateScore(){
+  document.getElementById('score-num').textContent = answeredCorrectly.size;
+  document.getElementById('streak-count').textContent = streak;
+  const sd = document.getElementById('streak-display');
+  sd.style.display = streak > 1 ? 'flex' : 'none';
+  if(streak > 0 && streak > maxStreak){ maxStreak = streak; }
+  if(answeredCorrectly.size === FAQS.length){
+    document.getElementById('completion-banner').classList.remove('hidden');
+    launchConfetti();
+  }
+}
+
+function toggleAccordion(faqIndex){
+  if(expandedAccordions.has(faqIndex)) expandedAccordions.delete(faqIndex);
+  else expandedAccordions.add(faqIndex);
+  const body = document.getElementById('acc-body-'+faqIndex);
+  const chev = document.getElementById('chev-'+faqIndex);
+  if(body){
+    body.classList.toggle('open');
+    chev?.classList.toggle('rotated');
+  }
+}
+
+function revealAnswer(faqIndex){
+  answeredCorrectly.add(faqIndex);
+  streak++;
+  updateScore();
+  if(!expandedAccordions.has(faqIndex)) toggleAccordion(faqIndex);
+  const revealBtn = document.getElementById('reveal-'+faqIndex);
+  if(revealBtn) revealBtn.style.display = 'none';
+  const ansDiv = document.getElementById('ans-'+faqIndex);
+  if(ansDiv) ansDiv.style.opacity = '1';
+}
+
+function expandAll(){
+  const filtered = getFilteredFAQs();
+  filtered.forEach((_,i)=>{ const idx = FAQS.indexOf(_); if(!expandedAccordions.has(idx)) toggleAccordion(idx); });
+}
+function collapseAll(){
+  [...expandedAccordions].forEach(idx => toggleAccordion(idx));
+}
+
+function getFilteredFAQs(){
+  const query = document.getElementById('search-input')?.value.toLowerCase().trim() || '';
+  return FAQS.filter((faq,i)=>{
+    if(activeFilter !== 'all' && faq.s !== parseInt(activeFilter)) return false;
+    if(query && !faq.q.toLowerCase().includes(query) && !faq.a.toLowerCase().includes(query) && !getSection(faq.s).title.toLowerCase().includes(query)) return false;
+    return true;
+  });
+}
+
+function filterFAQs(){ renderFAQs(); }
+function setFilter(id){
+  activeFilter = id;
+  document.querySelectorAll('.filter-pill').forEach(el=>{
+    el.classList.toggle('filter-active', el.dataset.filter === String(id));
+  });
+  renderFAQs();
+}
+
+function renderFAQs(){
+  const container = document.getElementById('faq-container');
+  const filtered = getFilteredFAQs();
+  const empty = document.getElementById('empty-state');
+
+  if(filtered.length === 0){
+    container.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  const grouped = {};
+  filtered.forEach(faq=>{
+    if(!grouped[faq.s]) grouped[faq.s] = [];
+    grouped[faq.s].push(faq);
+  });
+
+  let html = '';
+  Object.keys(grouped).sort((a,b)=>a-b).forEach((sectionId,si)=>{
+    const section = getSection(parseInt(sectionId));
+    const faqs = grouped[sectionId];
+    html += `<div class="card-enter" style="animation-delay:${si*60}ms">
+      <div class="glass rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-white/5 flex items-center gap-3">
+          <span class="text-2xl">${section.icon}</span>
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-widest" style="color:${section.color}">Section ${section.id}</span>
+              <span class="w-1 h-1 rounded-full bg-white/20"></span>
+              <span class="text-xs text-white/40">${faqs.length} questions</span>
+            </div>
+            <h3 class="text-base font-bold text-white mt-0.5">${section.title}</h3>
+          </div>
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background:${section.color}20;color:${section.color};border:1px solid ${section.color}30">
+            ${faqs.filter(f=>answeredCorrectly.has(FAQS.indexOf(f))).length}/${faqs.length}
+          </div>
+        </div>
+        <div class="divide-y divide-white/5">`;
+
+    faqs.forEach((faq,qi)=>{
+      const globalIdx = FAQS.indexOf(faq);
+      const isOpen = expandedAccordions.has(globalIdx);
+      const isAnswered = answeredCorrectly.has(globalIdx);
+
+      html += `<div class="px-6">
+        <button onclick="toggleAccordion(${globalIdx})" class="w-full flex items-center gap-3 py-4 text-left group">
+          <span class="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${isAnswered ? 'bg-[#007970]/25 text-[#64F4F5]' : 'bg-white/5 text-white/40'}">
+            ${isAnswered ? '' : 'Q'+(qi+1)}
+          </span>
+          <span class="flex-1 text-sm ${isAnswered ? 'text-white/70' : 'text-white/90'} group-hover:text-white transition-colors">${faq.q}</span>
+          <svg id="chev-${globalIdx}" class="chevron w-4 h-4 text-white/30 flex-shrink-0 ${isOpen?'rotated':''}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div id="acc-body-${globalIdx}" class="accordion-body ${isOpen?'open':''}">
+          ${quizMode && !isAnswered ?
+            `<div class="pb-4">
+              <div id="ans-${globalIdx}" class="text-sm text-white/75 leading-relaxed mb-3" style="opacity:0;filter:blur(6px);transition:all .4s ease">${faq.a}</div>
+              <button id="reveal-${globalIdx}" onclick="event.stopPropagation();revealAnswer(${globalIdx})" class="quiz-btn px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider border border-[#64F4F5]/30 text-[#64F4F5] hover:bg-[#64F4F5]/10">
+                Reveal Answer
+              </button>
+            </div>` :
+            `<div class="pb-4 text-sm text-white/75 leading-relaxed">${faq.a}</div>`
+          }
+        </div>
+      </div>`;
+    });
+
+    html += `</div></div></div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function renderFilters(){
+  const bar = document.getElementById('filter-bar');
+  let html = `<button class="filter-pill px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wider border border-white/10 text-white/60 hover:text-white hover:border-white/20 transition-all ${activeFilter==='all'?'filter-active':''}" data-filter="all" onclick="setFilter('all')">All</button>`;
+  SECTIONS.forEach(s=>{
+    html += `<button class="filter-pill px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wider border transition-all" data-filter="${s.id}" onclick="setFilter('${s.id}')" style="border-color:${s.color}30;color:${s.color}90" onmouseenter="this.style.borderColor='${s.color}';this.style.color='${s.color}'" onmouseleave="if(!this.classList.contains('filter-active')){this.style.borderColor='${s.color}30';this.style.color='${s.color}90'}">${s.icon} ${s.id}</button>`;
+  });
+  bar.innerHTML = html;
+}
+
+function launchConfetti(){
+  for(let i=0;i<60;i++){
+    const c = document.createElement('div');
+    c.className='confetti';
+    c.style.cssText=`left:${Math.random()*100}vw;top:-10px;width:${6+Math.random()*6}px;height:${6+Math.random()*6}px;background:${['#64F4F5','#C74601','#007970','#A78BFA','#FF8D4D','#34D399'][Math.floor(Math.random()*6)]};border-radius:${Math.random()>.5?'50%':'2px'};animation:fall ${2+Math.random()*3}s linear forwards`;
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),5000);
+  }
+  const style = document.createElement('style');
+  style.textContent='@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}';
+  document.head.appendChild(style);
+}
+
+renderFilters();
+renderFAQs();
+updateScore();
+</script>
+</body>
+</html>

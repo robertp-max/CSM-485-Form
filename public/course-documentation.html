@@ -1,0 +1,221 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI eLearner  Course Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap');
+        .font-heading { font-family: 'Montserrat', sans-serif; }
+        .font-body   { font-family: 'Roboto', sans-serif; }
+
+        .bg-noise { position: relative; }
+        .bg-noise::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0F0F11; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+        @keyframes glitch-slide {
+            0% { opacity: 0; transform: translateY(20px); filter: blur(3px); }
+            100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+        .animate-glitch { animation: glitch-slide 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        .section-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            padding: 4px 12px;
+            border-radius: 4px;
+            border: 1px solid;
+        }
+
+        .card-row:hover { border-color: rgba(100, 244, 245, 0.3) !important; }
+        .card-row { transition: border-color 0.3s, background-color 0.3s; }
+
+        .filter-btn.active {
+            background: rgba(100, 244, 245, 0.12);
+            color: #64F4F5;
+            border-color: rgba(100, 244, 245, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-[#09090b] text-white font-body min-h-screen bg-noise">
+
+    <!-- Fixed Background Glows -->
+    <div class="fixed top-[-15%] left-[5%] w-[600px] h-[600px] bg-[#007970]/8 rounded-full blur-[160px] pointer-events-none"></div>
+    <div class="fixed bottom-[-15%] right-[5%] w-[500px] h-[500px] bg-[#C74601]/6 rounded-full blur-[140px] pointer-events-none"></div>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-30 bg-[#121214]/95 backdrop-blur-xl border-b border-white/5">
+        <div class="max-w-6xl mx-auto px-8 py-5 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <img
+                    src="https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png"
+                    alt="CareIndeed"
+                    class="h-7 w-auto object-contain opacity-90"
+                />
+                <div>
+                    <h1 class="text-lg font-heading font-semibold text-white tracking-tight">Course Documentation</h1>
+                    <p class="text-[10px] text-white/30 uppercase tracking-[0.2em] font-heading">CMS-485 Compliance Manual &middot; Clinician Training</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="card-count" class="text-sm font-heading font-medium text-white/40">38 cards</span>
+                <div class="text-xl font-heading font-medium tracking-widest text-white/30 bg-black/50 px-4 py-1.5 border border-white/10 rounded">
+                    <span class="text-[#64F4F5]" id="section-count">9</span> <span class="text-white/20">sections</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Filter Bar -->
+    <div class="sticky top-[73px] z-20 bg-[#0F0F11]/95 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-6xl mx-auto px-8 py-3 flex items-center gap-2 overflow-x-auto">
+            <button onclick="filterSection('all')" class="filter-btn active shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">All</button>
+            <button onclick="filterSection('Executive Summary')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Executive</button>
+            <button onclick="filterSection('Regulatory Foundation')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Regulatory</button>
+            <button onclick="filterSection('Anatomy of CMS-485')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Anatomy</button>
+            <button onclick="filterSection('Medical Necessity')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Medical Necessity</button>
+            <button onclick="filterSection('Homebound & OASIS')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Homebound</button>
+            <button onclick="filterSection('Orders & Findings')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Orders</button>
+            <button onclick="filterSection('Defensibility')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Defensibility</button>
+            <button onclick="filterSection('Case Studies')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Cases</button>
+            <button onclick="filterSection('Implementation')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Implementation</button>
+        </div>
+    </div>
+
+    <!-- Cards Grid -->
+    <main class="max-w-6xl mx-auto px-8 py-10 relative z-10">
+        <div id="cards-grid" class="space-y-4"></div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/5 bg-[#0A0A0C]/80 py-6 text-center">
+        <p class="text-[10px] text-white/20 font-heading uppercase tracking-[0.2em]">Care Indeed Home Health &middot; CMS-485 Compliance Manual</p>
+        <p class="text-[9px] text-white/10 mt-1 font-heading">Based on CMS regulatory guidelines &middot; For educational purposes</p>
+    </footer>
+
+    <script>
+        const cards = [
+            { id: 1, title: "Why the CMS-485 Matters", section: "Executive Summary", objective: "Understand the CMS-485 as the highest-leverage clinical document your agency produces.", bullets: ["The CMS-485 form is simultaneously a care roadmap, survey compliance artifact, and the backbone of reimbursement defensibility.", "For FY 2024, CMS reported home health improper payments of 6.7% (~$1.1B) with 51.4% attributed to insufficient documentation.", "HHS OIG reported Medicare paid ~$16B for home health to ~2.8M people with a 7.7% improper payment error rate (~$1.2B)."], audit: "The POC converts regulatory requirements into payment eligibility." },
+            { id: 2, title: "What This Curriculum Trains Clinicians To Do", section: "Executive Summary", objective: "Define the five core competency standards this course builds toward.", bullets: ["Regulation-complete: contains every required element under the CoPs and coverage rules.", "Reimbursement-aligned: supports PDGM grouping and accurate billing eligibility.", "Audit-defensible: structured to withstand MAC/RAC/CERT review and OIG scrutiny."] },
+            { id: 3, title: "How To Use This Manual", section: "Executive Summary", objective: "Establish the manual as an operational training and audit-readiness tool.", bullets: ["Treat this as a master training document for onboarding and annual competency validation.", "Implement the included defensibility checklist and supervisor review workflow as standardized internal controls.", "Use the case studies as live-charting drills and audit simulations."] },
+            { id: 4, title: "Core Legal/Regulatory Pillars", section: "Regulatory Foundation", objective: "Connect home health coverage to the dual regulatory framework of coverage rules and CoPs.", bullets: ["Medicare home health services are covered only under an individualized plan of care meeting both coverage rules and CoP requirements.", "Coverage/payment rules: 42 CFR Part 409 Subpart E and 42 CFR 424.22 (certification/recertification).", "Quality/operations (CoPs): 42 CFR Part 484, especially 484.60 (POC), 484.55 (assessment), 484.110 (records)."], audit: "Missing POC elements is regularly framed as noncompliance with CoPs." },
+            { id: 5, title: "Plan of Care Content Requirements", section: "Regulatory Foundation", objective: "Identify the minimum data elements required by CoPs in every Plan of Care.", bullets: ["Must include diagnoses, mental/psychosocial/cognitive status, services/supplies/equipment, visit frequency/duration, and prognosis.", "Must address safety measures, ED/hospital readmission risk with interventions, and patient education for discharge.", "All patient care orders including verbal orders must be recorded in the plan of care."], audit: "Surveyors treat this as a minimum completeness checklist." },
+            { id: 6, title: "Physician Ordering & Signatures", section: "Regulatory Foundation", objective: "Apply correct ordering and signature rules to prevent billing defects.", bullets: ["Plans may be signed by a physician or allowed practitioner (PA, NP, CNS) acting within scope.", "POC must be signed and dated before the claim for each 30-day period is submitted.", "Verbal orders must be written, signed/dated by receiving RN, then countersigned by physician before billing."], audit: "Late signatures are denial catalysts because they are objective failures." },
+            { id: 7, title: "Certification & Face-to-Face Requirements", section: "Regulatory Foundation", objective: "Ensure certification timelines and F2F encounters meet regulatory requirements.", bullets: ["Face-to-face encounter must occur within 90 days prior to SOC or within 30 days after SOC.", "POC content must be consistent with the F2F narrative and physician record.", "Build an internal FTF/Cert alignment check during SOC/ROC QA review."], audit: "Missing or clinically inconsistent F2F narrative is a medical necessity denial driver." },
+            { id: 8, title: "Legal Implications of Inaccurate Documentation", section: "Regulatory Foundation", objective: "Understand civil and criminal liability for documentation deficiencies.", bullets: ["The CMS-485 warns that misrepresenting or falsifying information for federal payment may result in fine, imprisonment, or civil penalty.", "False Claims Act liability includes treble damages and per-claim penalties for submitting knowingly false claims.", "Bad documentation becomes false documentation when patterns show recklessness or systemic disregard of requirements."] },
+            { id: 9, title: "How Surveyors Test POC Compliance", section: "Regulatory Foundation", objective: "Prepare for surveyor methodology when reviewing plan of care records.", bullets: ["Surveyors use patient-focused, outcome-oriented surveys with observations, record reviews, and interviews.", "Common surveyor question: Show me where the POC addresses this identified risk, then cross-reference OASIS and visit notes.", "Train clinicians to chart with a survey trace mindset: every assessed risk must appear on the POC with interventions and goals."] },
+            { id: 10, title: "The CMS-485 Is a Format, Not the Law", section: "Anatomy of CMS-485", objective: "Distinguish the form format from the underlying regulatory requirements it captures.", bullets: ["CMS describes Form CMS-485 as a convenient way to present POC and certification, but any signed/dated document with all required elements is acceptable.", "Clinicians should treat each CMS-485 box as an audit hook where reviewers anchor questions about medical necessity and coverage.", "Your EHR-generated POC must print/export as complete to 484.60(a)(2) and consistent with 409.43 coverage rules."], audit: "If the form is relied on but incomplete, it becomes a high-risk audit target." },
+            { id: 11, title: "Patient Identifiers & Certification Periods", section: "Anatomy of CMS-485", objective: "Correctly document SOC dates and certification periods to anchor eligibility windows.", bullets: ["SOC date anchors eligibility windows (F2F timing, assessment completion) and drives the certification timeline.", "Certification periods remain 60 days even though PDGM payment periods are 30 days.", "Audit red flags: POC dates inconsistent across POC, OASIS, and claim; missing 60-day review signature."] },
+            { id: 12, title: "Diagnoses & Clinical Grouping Fields", section: "Anatomy of CMS-485", objective: "Apply diagnosis selection rules that support both clinical care and PDGM grouping.", bullets: ["Principal diagnosis must be the condition most related to the current plan of care and drive the skilled services.", "Sequence position affects PDGM clinical group assignment and payment determination.", "Common mistakes: listing diagnoses in historical order rather than clinical priority; ICD-10 codes not matching OASIS."], audit: "Diagnosis-to-care mismatch weakens coding integrity and medical necessity support." },
+            { id: 13, title: "Medications, Treatments & Safety Fields", section: "Anatomy of CMS-485", objective: "Complete medication, treatment, and safety documentation that meets CoP requirements.", bullets: ["Must include a complete list of all medications (Rx and OTC) and specific treatments/supplies ordered.", "Safety measures must be patient-specific: fall precautions, infection control, dietary restrictions.", "DME and nutritional requirements must be addressed when applicable to the patient condition."] },
+            { id: 14, title: "Medicare's Skilled Services Standard", section: "Medical Necessity", objective: "Define the four eligibility pillars Medicare requires for home health coverage.", bullets: ["Patient must be confined to home, under care of a physician, receiving services under a POC, and need skilled care.", "Medical review separates denials into eligibility failures (not homebound, not skilled) and documentation failures (insufficient evidence).", "Write every skilled visit as clinical decision-making rather than task completion and ensure the POC forecasts that need logically."] },
+            { id: 15, title: "Custodial vs Skilled: Drawing the Line", section: "Medical Necessity", objective: "Differentiate custodial care from skilled services using regulatory criteria.", bullets: ["Custodial: help with ADLs, routine assistance, stable tasks safely done by non-medical caregivers without skilled judgment.", "Skilled: requires professional judgment to assess, manage, or teach due to complexity, instability, or risk of adverse outcomes.", "Use a structured skilled need paragraph: condition + instability/risk + skilled action + expected clinical decision/response."] },
+            { id: 16, title: "Skilled Nursing: Observation & Assessment", section: "Medical Necessity", objective: "Document observation and assessment that demonstrates skilled decision-making.", bullets: ["Observation is covered when there is reasonable potential that skilled observation will result in treatment changes.", "Monitor VS is not skilled unless monitoring detects meaningful change and drives action, escalation, or provider communication.", "Document the decision hinge: what you are watching for, why now, and what action you took or would take."], audit: "Observation without documented treatment changes is the most common medical necessity denial." },
+            { id: 17, title: "Care Plan Management & Evaluation", section: "Medical Necessity", objective: "Demonstrate proper care plan revision when patient conditions change.", bullets: ["The POC must be revised based on updated assessment and progress toward measurable outcomes.", "If nurses identify new risks but the POC is not updated, surveyors see an interdisciplinary care planning failure.", "Use a Change-in-Condition to POC update trigger list and require documented physician communication when triggers occur."] },
+            { id: 18, title: "Teaching & Training vs Reinforcement", section: "Medical Necessity", objective: "Apply teaching documentation rules that withstand audit scrutiny.", bullets: ["Teaching is covered when it requires skilled nursing personnel and is reasonable and necessary.", "Auditors often deny teaching when the patient has long prior experience and there is no new barrier documented.", "Document: prior baseline knowledge, the new barrier or regimen complexity, teach-back results, and next-step plan."] },
+            { id: 19, title: "Therapy: Restorative vs Maintenance", section: "Medical Necessity", objective: "Differentiate restorative and maintenance therapy justifications.", bullets: ["Lack of restorative potential alone cannot be the sole basis for denying skilled therapy when maintenance requires skill.", "Auditors look for measurable goals OR maintenance justification supported by complexity and skilled judgment need.", "Differentiate restorative goals (improvement expected) vs maintenance goals (prevent decline/maintain function) with skilled narrative."] },
+            { id: 20, title: "Risk-Based Documentation Framework", section: "Medical Necessity", objective: "Apply the five-question defensibility test to every skilled visit.", bullets: ["Why is the patient skilled today? Why does it require this discipline? Why this frequency today?", "What would happen without skilled care? What measurable outcome is expected?", "Use Condition + Risk + Skilled Intervention + Response structure aligned in both POC forecast and visit note evidence."], audit: "Coverage decisions must be based on individualized clinical evidence, not general inferences." },
+            { id: 21, title: "Homebound: The Two-Prong Test", section: "Homebound & OASIS", objective: "Define homebound status using the operational two-criterion framework.", bullets: ["Criterion 1: need supportive devices, special transportation, or assistance of another person to leave home, or leaving is medically contraindicated.", "Criterion 2: normal inability to leave home and leaving requires considerable and taxing effort.", "Homebound is not never leaves home; it is leaving is rare and requires significant effort or assistance."], audit: "Phrases alone are insufficient; longitudinal clinical information is typically needed." },
+            { id: 22, title: "Homebound Defensibility Examples", section: "Homebound & OASIS", objective: "Compare strong vs weak homebound documentation with regulatory citations.", bullets: ["Strong: Patient requires FWW and caregiver assistance for 3 steps; SOB at minimal exertion due to COPD/O2; leaves only 1x/month for MD.", "Weak: Patient is homebound. Taxing effort. (Explicitly flagged by CMS guidance as insufficient alone.)", "Force specifics in every narrative: which devices, which person assists, what happens physiologically when leaving."] },
+            { id: 23, title: "POC vs OASIS Alignment", section: "Homebound & OASIS", objective: "Ensure internal consistency across OASIS assessments, POC, and visit documentation.", bullets: ["Reviewers cross-reference OASIS (what you assessed), POC (what you planned/ordered), and visit notes (what you did and why).", "The POC must be based on the comprehensive assessment and revised to reflect updated assessment and progress.", "Use an internal OASIS-to-POC crosswalk during SOC QA and recert QA to catch mismatches before billing."], audit: "OASIS-POC contradictions create review flags for internal consistency." },
+            { id: 24, title: "PDGM Impact: How Mismatches Become Money", section: "Homebound & OASIS", objective: "Connect OASIS-POC alignment to PDGM payment accuracy and medical review risk.", bullets: ["PDGM places 30-day periods into case-mix groups using diagnosis, functional level, and clinical characteristics.", "When OASIS diagnoses and POC narrative do not support the claim principal diagnosis, agencies face payment mis-grouping risk.", "At SOC and recert, supervisors should confirm: principal diagnosis is clinically dominant and consistently referenced in notes."] },
+            { id: 25, title: "Skilled Nursing Frequency Justification", section: "Orders & Findings", objective: "Write frequency orders as clinical hypotheses that withstand utilization review.", bullets: ["Frequency must map to instability, new diagnosis, changed medication, complex wound care, or patient training need.", "Write frequency as a clinical hypothesis: 2w2 then 1w4 because wound burden and risk expected to reduce after skilled management.", "Overly generic frequency orders are high-risk in utilization review."], audit: "POC must specify visit frequency/duration necessary per comprehensive assessment." },
+            { id: 26, title: "PRN Orders: Rules & Best Practices", section: "Orders & Findings", objective: "Apply PRN order requirements that prevent audit exposure.", bullets: ["PRN orders must include signs/symptoms that would occasion the visit and a specific limit on number of PRN visits.", "PRN must never be a loophole. Use for clear clinical contingencies only.", "Example: PRN x2 for BG <70 or >300 with symptoms; provide assessment and physician notification."] },
+            { id: 27, title: "Verbal Orders & Physician Signatures", section: "Orders & Findings", objective: "Standardize verbal order capture and signature tracking workflow.", bullets: ["Oral orders must be written, signed/dated with date of receipt by RN, and countersigned by physician before billing.", "CoP requires verbal orders documented, signed, dated, timed, and authenticated per state law and HHA policy.", "Standardize documentation: date/time received, exact order, clinical reason, who received, and immediate submission for signature."] },
+            { id: 28, title: "Common Survey & Audit Findings", section: "Orders & Findings", objective: "Identify the five most frequent deficiency and denial clusters related to CMS-485.", bullets: ["POC missing required elements (especially goals, frequency rationale, therapies).", "Late/missing signatures or invalid verbal orders; homebound rationale templated/inconsistent.", "Adopt a three-document rule: OASIS, POC, and first skilled visit note must tell the same eligibility story."], audit: "Skilled services described as tasks without skilled judgment are a top denial driver." },
+            { id: 29, title: "Denial Management: Appeal-Ready Records", section: "Orders & Findings", objective: "Build records that support successful appeals through contemporaneous documentation.", bullets: ["Most appeals fail because agencies defend with new arguments rather than pointing to contemporaneous documentation.", "If it is not in the record, it did not happen is the audit reality.", "Train clinicians to write visit notes as if read months later by a reviewer who never met the patient."] },
+            { id: 30, title: "Condition + Risk + Skilled Intervention Formula", section: "Defensibility", objective: "Apply the core defensibility formula to every POC entry and visit note.", bullets: ["Condition: Recent hospitalization for ___ with residual ___.", "Risk: High risk for ___ due to ___ (objective findings). Skilled intervention: Skilled RN required to assess, interpret, adjust.", "Response: Findings prompted ___ (MD notified, meds adjusted, wound regimen changed, therapy progressed)."], audit: "A reviewer approves when they can trace condition to risk to skilled action to outcome." },
+            { id: 31, title: "Measurable Goal Standards", section: "Defensibility", objective: "Write goals that contain metric, timeframe, and safety threshold.", bullets: ["Strong: No falls for 30 days while ambulating household distances with FWW and supervision.", "Weak: Prevent falls. (No metric, no timeframe, no safety context.)", "Each goal must be realistic, patient-specific, and verifiable with objective measurement."] },
+            { id: 32, title: "Documentation Phrases: Strengthen vs Weaken", section: "Defensibility", objective: "Use language patterns that build defensibility and avoid audit red flags.", bullets: ["Strengthen: Skilled assessment required to determine whether ___ indicates decompensation or requires treatment change.", "Weaken: Patient stable. Continue plan. (No evidence of why skilled still needed.)", "Weaken: Homebound - taxing effort. (Explicitly insufficient alone per CMS guidance.)"], audit: "Copy/paste producing identical narratives across patients is an audit red flag." },
+            { id: 33, title: "Change-in-Condition Trigger List", section: "Defensibility", objective: "Use standardized triggers for POC revision and physician communication.", bullets: ["New/worsening SOB, edema, weight gain, hypotension/hypertension changes (CHF/COPD).", "Wound deterioration: increased drainage, odor, erythema, systemic symptoms; medication changes or suspected ADEs.", "Falls, near-falls, new cognitive/behavioral safety issues; rehospitalization/ED visit events require updated risk interventions."] },
+            { id: 34, title: "Case: CHF Exacerbation with Med Changes", section: "Case Studies", objective: "Apply compliant POC documentation to a complex CHF post-discharge scenario.", bullets: ["Dx: CHF exacerbation (principal), CKD, HTN. SN 2w2 then 1w4; PRN x2 for weight gain >2 lbs/24h or SOB increase.", "Goals: weight stable within individualized parameter; no ED visits; medication teach-back accuracy.", "Vulnerability: Monitoring without showing treatment changes or physician communication is the top audit failure."] },
+            { id: 35, title: "Case: Post-Hospital Wound Infection", section: "Case Studies", objective: "Document wound care with skilled assessment evidence that prevents taskwork denial.", bullets: ["Dx: post-op wound infection (principal). SN 3w2 then 2w2; PRN for increased drainage or fever.", "Goals: wound measures improve by X over 14 days; no systemic infection signs.", "Vulnerability: wound care described as routine task without documenting skilled assessment and decision-making."] },
+            { id: 36, title: "Case: Diabetic Neuropathy & Fall Risk", section: "Case Studies", objective: "Justify teaching as skilled when insulin regimen is new and patient requires education.", bullets: ["Orders: SN teaching for insulin and hypoglycemia management; PT for balance/gait training; safety measures and DME.", "SN 1w3 then PRN x2 for hypo/hyperglycemia; PT 2w3. Goals: correct insulin technique, improved balance score.", "Vulnerability: teaching billed when patient has long history of insulin self-injection with no new barrier documented."] },
+            { id: 37, title: "Case: COPD with O2 Dependency", section: "Case Studies", objective: "Support skilled observation during unstable respiratory conditions and medical gas regimens.", bullets: ["SN for respiratory assessment and inhaler teaching; PT for endurance conditioning; oxygen safety documentation.", "Skilled need: observation required until condition or regimen stabilized; initial medical gas phases require skilled teaching.", "Vulnerability: oxygen safety education not documented; homebound statement not supported by functional findings."] },
+            { id: 38, title: "Financial & Legal Impact Analysis", section: "Implementation", objective: "Quantify the financial exposure of unsigned POCs and documentation failures.", bullets: ["Standard 30-day payment rates: ~$2,038 (CY2024), ~$2,057 (CY2025). A single unsigned POC risks the full period payment.", "OIG audits estimate overpayments by extrapolation from samples; systemic failures multiply exposure exponentially.", "Treat every OIG finding category as an internal audit category, especially for high-risk clinicians and diagnoses."], audit: "Quantify exposure: Unsigned POC count x standard rate x denial probability." },
+            { id: 39, title: "Three-Tier Internal Audit Process", section: "Implementation", objective: "Implement a structured QA workflow that catches deficiencies before billing.", bullets: ["Tier 1 (SOC QA, 48-72 hours): OASIS-POC alignment, homebound/skilled narrative, orders, frequencies, measurable goals.", "Tier 2 (Pre-bill QA, each 30-day period): signed/dated POC on file, all verbal orders countersigned, visit notes support skilled need.", "Tier 3 (Quarterly risk-based): target high-risk diagnoses, high-volume signers, high LUPA rates, and high denial categories."] },
+            { id: 40, title: "Training & Competency Cadence", section: "Implementation", objective: "Establish a sustainable training schedule for compliance performance.", bullets: ["Onboarding (first 30 days): complete manual + case study charting drills + competency validation.", "Quarterly refreshers: denial trend updates, signature/order controls, homebound revalidation training.", "Annual competency: audit simulation using 5 complex cases and a mock CERT request packet."], audit: "Compliance-ready documentation protects clinicians, patients, and agency financial integrity." }
+        ];
+
+        const sectionColors = {
+            "Executive Summary":    { bg: "rgba(100,244,245,0.08)", text: "#64F4F5", border: "rgba(100,244,245,0.3)" },
+            "Regulatory Foundation":{ bg: "rgba(0,121,112,0.12)",   text: "#00C9B7", border: "rgba(0,121,112,0.4)" },
+            "Anatomy of CMS-485":   { bg: "rgba(199,70,1,0.10)",    text: "#FF8D4D", border: "rgba(199,70,1,0.35)" },
+            "Medical Necessity":    { bg: "rgba(124,58,237,0.10)",  text: "#A78BFA", border: "rgba(124,58,237,0.35)" },
+            "Homebound & OASIS":    { bg: "rgba(16,185,129,0.10)",  text: "#34D399", border: "rgba(16,185,129,0.35)" },
+            "Orders & Findings":    { bg: "rgba(244,63,94,0.10)",   text: "#FB7185", border: "rgba(244,63,94,0.35)" },
+            "Defensibility":        { bg: "rgba(251,146,60,0.10)",  text: "#FB923C", border: "rgba(251,146,60,0.35)" },
+            "Case Studies":         { bg: "rgba(56,189,248,0.10)",  text: "#38BDF8", border: "rgba(56,189,248,0.35)" },
+            "Implementation":       { bg: "rgba(232,121,249,0.10)", text: "#E879F9", border: "rgba(232,121,249,0.35)" }
+        };
+
+        function getColor(section) {
+            return sectionColors[section] || { bg: "rgba(255,255,255,0.05)", text: "#fff", border: "rgba(255,255,255,0.2)" };
+        }
+
+        function renderCards(filteredCards) {
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = '';
+            document.getElementById('card-count').textContent = filteredCards.length + ' cards';
+
+            filteredCards.forEach((card, idx) => {
+                const c = getColor(card.section);
+                const delay = Math.min(idx * 40, 600);
+
+                const auditHtml = card.audit
+                    ? '<div style="margin-top:12px;padding:10px 14px;background:rgba(199,70,1,0.08);border:1px solid rgba(199,70,1,0.25);border-radius:8px;"><span style="font-family:Montserrat;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#C74601;">Audit Focus</span><p style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:4px;font-weight:300;">' + card.audit + '</p></div>'
+                    : '';
+
+                const bulletsHtml = card.bullets.map((b, i) =>
+                    '<li style="display:flex;gap:10px;align-items:flex-start;"><span style="color:' + c.text + ';font-family:Montserrat;font-weight:600;font-size:11px;margin-top:2px;flex-shrink:0;">0' + (i+1) + '</span><span style="color:rgba(255,255,255,0.6);font-size:14px;font-weight:300;line-height:1.6;">' + b + '</span></li>'
+                ).join('');
+
+                grid.innerHTML += '<div class="card-row animate-glitch" style="animation-delay:' + delay + 'ms;opacity:0;padding:24px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.01);backdrop-filter:blur(12px);border-radius:12px;position:relative;overflow:hidden;">' +
+                    '<div style="position:absolute;top:0;left:0;width:3px;height:100%;background:' + c.text + ';box-shadow:0 0 12px ' + c.text + ';"></div>' +
+                    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
+                        '<div style="display:flex;align-items:center;gap:12px;">' +
+                            '<span style="font-family:Montserrat;font-weight:700;font-size:20px;color:rgba(255,255,255,0.12);">' + String(card.id).padStart(2,'0') + '</span>' +
+                            '<div class="section-chip" style="background:' + c.bg + ';color:' + c.text + ';border-color:' + c.border + ';">' +
+                                '<div style="width:6px;height:6px;border-radius:50%;background:' + c.text + ';"></div>' +
+                                card.section +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<h3 style="font-family:Montserrat;font-weight:600;font-size:18px;color:white;margin-bottom:8px;">' + card.title + '</h3>' +
+                    '<p style="font-size:14px;color:rgba(255,255,255,0.45);font-weight:300;margin-bottom:16px;padding-left:16px;border-left:2px solid ' + c.border + ';">' + card.objective + '</p>' +
+                    '<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;">' + bulletsHtml + '</ul>' +
+                    auditHtml +
+                '</div>';
+            });
+        }
+
+        let currentFilter = 'all';
+        function filterSection(section) {
+            currentFilter = section;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            const filtered = section === 'all' ? cards : cards.filter(c => c.section === section);
+            renderCards(filtered);
+        }
+
+        renderCards(cards);
+    </script>
+</body>
+</html>
