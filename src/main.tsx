@@ -4,6 +4,12 @@ import { createRoot } from 'react-dom/client'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
+import { applyTheme, getStoredTheme } from './theme'
+import { GlossaryProvider } from './components/GlossaryProvider'
+import { GlossaryDebugPanel } from './components/GlossaryDebugPanel'
+
+// Apply persisted or system-preferred theme before mounting the app
+applyTheme(getStoredTheme())
 
 const LearningProfessional = lazy(() => import('./LearningProfessional.tsx'))
 
@@ -49,14 +55,17 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <HashRouter>
-        <Suspense fallback={<div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#FAFBF8' }}><p style={{ color: '#524048', fontFamily: 'Roboto, sans-serif' }}>Loading…</p></div>}>
-          <Routes>
-            <Route path="/" element={<App />} />
-            <Route path="/learning" element={<LearningProfessional />} />
-          </Routes>
-        </Suspense>
-      </HashRouter>
+      <GlossaryProvider>
+        <HashRouter>
+          <Suspense fallback={<div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#FAFBF8' }}><p style={{ color: '#524048', fontFamily: 'Roboto, sans-serif' }}>Loading…</p></div>}>
+            <Routes>
+              <Route path="/" element={<App />} />
+              <Route path="/learning" element={<LearningProfessional />} />
+            </Routes>
+          </Suspense>
+        </HashRouter>
+        <GlossaryDebugPanel />
+      </GlossaryProvider>
     </ErrorBoundary>
   </StrictMode>,
 )

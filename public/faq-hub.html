@@ -4,20 +4,32 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>CMS-485 FAQ Hub | Care Indeed Home Health</title>
+<script>
+  (function(){
+    const KEY='cihh.theme';
+    const stored=localStorage.getItem(KEY);
+    const prefersDark=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initial=stored==='light'||stored==='night'?stored:(prefersDark?'night':'light');
+    const apply=(mode)=>{document.documentElement.dataset.theme=mode;document.documentElement.style.colorScheme=mode==='night'?'dark':'light';localStorage.setItem(KEY,mode);};
+    apply(initial);
+    window.__cihhTheme={toggle:()=>apply(document.documentElement.dataset.theme==='night'?'light':'night'),get:()=>document.documentElement.dataset.theme==='light'?'light':'night',apply};
+  })();
+</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
 <style>
-  :root{--bg:#09090b;--card:#0F0F11;--surface:#121214;--teal:#007970;--orange:#C74601;--cyan:#64F4F5;--purple:#A78BFA}
+  :root{--bg:#09090b;--card:#0F0F11;--surface:#121214;--teal:#007970;--orange:#C74601;--cyan:#64F4F5;--purple:#A78BFA;--text:#e5e7eb;--muted:rgba(229,231,235,0.7);--border:rgba(255,255,255,0.08);--input:rgba(255,255,255,0.05)}
+  :root[data-theme="light"]{--bg:#FAFBF8;--card:#ffffff;--surface:#ffffff;--teal:#007970;--orange:#C74601;--cyan:#00a7a0;--purple:#7c3aed;--text:#1F1C1B;--muted:#524048;--border:#E5E4E3;--input:#ffffff}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Roboto',sans-serif;background:var(--bg);color:#e5e7eb;min-height:100vh;overflow-x:hidden}
+  body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background-color .2s ease,color .2s ease}
   h1,h2,h3,h4{font-family:'Montserrat',sans-serif}
   .noise{position:fixed;inset:0;pointer-events:none;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-  .glass{background:rgba(15,15,17,.85);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.06)}
+  .glass{background:var(--surface);backdrop-filter:blur(16px);border:1px solid var(--border)}
   .card-enter{animation:cardIn .4s cubic-bezier(.22,1,.36,1) forwards;opacity:0;transform:translateY(12px)}
   @keyframes cardIn{to{opacity:1;transform:translateY(0)}}
   @keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(100,244,245,.4)}70%{box-shadow:0 0 0 10px rgba(100,244,245,0)}100%{box-shadow:0 0 0 0 rgba(100,244,245,0)}}
   .pulse-badge{animation:pulse-ring 2s infinite}
-  .accordion-body{max-height:0;overflow:hidden;transition:max-height .35s cubic-bezier(.22,1,.36,1),padding .25s ease}
+  .accordion-body{max-height:0;overflow:hidden;transition:max-height .35s cubic-bezier(.22,1,.36,1),padding .25s ease; color: var(--muted)}
   .accordion-body.open{max-height:600px;padding-top:12px;padding-bottom:4px}
   .chevron{transition:transform .3s ease}
   .chevron.rotated{transform:rotate(180deg)}
@@ -52,6 +64,9 @@
       </div>
     </div>
     <div class="flex items-center gap-3">
+      <button id="faq-theme-toggle" class="px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider border" style="border-color: var(--border); color: var(--text); background: var(--input);">
+        Toggle Theme
+      </button>
       <div id="streak-display" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#C74601]/40 bg-[#C74601]/10 text-sm">
         <span class="streak-fire"></span>
         <span id="streak-count" class="font-bold text-[#FFB27F]">0</span>
@@ -438,9 +453,24 @@ function launchConfetti(){
   document.head.appendChild(style);
 }
 
+const themeButton = document.getElementById('faq-theme-toggle');
+const syncFaqThemeLabel = () => {
+  const mode = (window.__cihhTheme && window.__cihhTheme.get && window.__cihhTheme.get()) || 'night';
+  if (themeButton) themeButton.textContent = mode === 'night' ? 'Light Mode' : 'Night Mode';
+};
+
+if (themeButton) {
+  themeButton.addEventListener('click', () => {
+    if (window.__cihhTheme && window.__cihhTheme.toggle) window.__cihhTheme.toggle();
+    syncFaqThemeLabel();
+  });
+  syncFaqThemeLabel();
+}
+
 renderFilters();
 renderFAQs();
 updateScore();
 </script>
+<script src="glossary-static.js"></script>
 </body>
 </html>

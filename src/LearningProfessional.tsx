@@ -20,7 +20,6 @@ import {
   GraduationCap,
   Award,
   LayoutGrid,
-  Monitor,
 } from 'lucide-react'
 import { Dock } from './components/Dock'
 import type { DockItem } from './components/Dock'
@@ -28,12 +27,15 @@ import { SettingsPanel } from './components/SettingsPanel'
 import type { SettingsState } from './components/SettingsPanel'
 import { PlanOfCareFocusPanel } from './components/PlanOfCareFocusPanel'
 import { Cms485VirtualForm } from './components/Cms485VirtualForm'
+import { TermHighlighter } from './components/TermHighlighter'
+import { useGlossary } from './components/GlossaryProvider'
 import titleMedia from './assets/CI Home Health Logo_White.png'
 import headerLogoGray from './assets/CI Home Health Logo_Gray.png'
 import introVideo from './assets/CMS-485 Form (jake).mp4'
 import additionalContentRaw from './assets/Additional Content.txt?raw'
 import { TRAINING_CARDS } from './data/trainingCards'
 import { CARD_METADATA } from './data/cardMetadata'
+import { applyTheme, getStoredTheme, type ThemeAppearance } from './theme'
 
 /* ─── URL Constants ─── */
 const SYSTEMS_DOC_URL = import.meta.env.BASE_URL + 'systems-documentation.html'
@@ -249,6 +251,7 @@ const LEARNER_HELP_SECTIONS: HelpSection[] = [
 
 /* ─── Professional Learning Page ─── */
 export default function LearningProfessional() {
+  const { resetClaims } = useGlossary()
   const metadataByTitle = useMemo(() => new Map(CARD_METADATA.map(item => [item.title, item])), [])
 
   const cards = useMemo<FlowCardItem[]>(() => [
@@ -281,17 +284,21 @@ export default function LearningProfessional() {
   const [finalTestAnswers, setFinalTestAnswers] = useState<Record<string, number>>({})
   const [liveStatus, setLiveStatus] = useState('')
   const [showVirtualForm, setShowVirtualForm] = useState(false)
-  const [settings, setSettings] = useState<SettingsState>({
-    appearance: 'light',
+  const [settings, setSettings] = useState<SettingsState>(() => ({
+    appearance: getStoredTheme(),
     reducedMotion: false,
     interactiveEffects: true,
-  })
+  }))
   const audioElementRef = useRef<HTMLAudioElement | null>(null)
   const touchStartXRef = useRef<number | null>(null)
 
   const isDarkMode = settings.appearance === 'night'
   const isDebugMode = true // QA mode on by default in professional view
   const reducedMotion = settings.reducedMotion
+
+  useEffect(() => {
+    applyTheme(settings.appearance as ThemeAppearance)
+  }, [settings.appearance])
 
   /* ─── Derived ─── */
   const currentCard = cards[currentIndex]
@@ -430,6 +437,7 @@ export default function LearningProfessional() {
     setPreviousIndex(currentIndex)
     setCurrentIndex(nextIndex)
     setIsAnimating(true)
+    resetClaims()
   }
 
   const goNext = () => {
@@ -542,7 +550,6 @@ export default function LearningProfessional() {
     { icon: <LayoutGrid className="h-5 w-5" />, label: 'Framework', onClick: () => window.open(COURSE_FRAMEWORK_URL, '_blank') },
     { icon: <GraduationCap className="h-5 w-5" />, label: 'Mastering', onClick: () => window.open(MASTERING_CMS485_URL, '_blank') },
     { icon: <Award className="h-5 w-5" />, label: 'Architect', onClick: () => window.open(SYSTEMS_DOC_URL, '_blank') },
-    { icon: <Monitor className="h-5 w-5" />, label: 'Enter Simulation', onClick: () => setShowVirtualForm(true), isActive: showVirtualForm },
   ]
 
   /* ─── Audio status label ─── */
@@ -590,7 +597,7 @@ export default function LearningProfessional() {
               <Target className={`shrink-0 mt-0.5 h-5 w-5 ${isDarkMode ? 'text-[#64F4F5]' : 'text-[#C4F4F5]'}`} />
               <div>
                 <h3 className={`text-[10px] font-bold uppercase tracking-[0.14em] mb-1 ${isDarkMode ? 'text-[#64F4F5]' : 'text-[#C4F4F5]'}`}>Learning Objective</h3>
-                <p className={`text-sm leading-snug ${isDarkMode ? 'text-white/90' : 'text-white'}`}>{card.objective}</p>
+                <p className={`text-sm leading-snug ${isDarkMode ? 'text-white/90' : 'text-white'}`}><TermHighlighter text={card.objective} /></p>
               </div>
             </div>
           </div>
@@ -620,7 +627,7 @@ export default function LearningProfessional() {
                   {card.bullets.map((item, index) => (
                     <li key={item} className="flex items-start gap-2">
                       <span className={`text-xs font-bold mt-0.5 ${isDarkMode ? 'text-[#007970]' : 'text-[#007970]'}`}>{`0${index + 1}`}</span>
-                      <span className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/70' : 'text-[#524048]'}`}>{item}</span>
+                      <span className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/70' : 'text-[#524048]'}`}><TermHighlighter text={item} /></span>
                     </li>
                   ))}
                 </ul>
@@ -643,7 +650,7 @@ export default function LearningProfessional() {
                   Clinical Lens
                 </h3>
                 <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/70' : 'text-[#524048]'}`}>
-                  {card.auditFocus || 'Translate this concept into clear, patient-specific, defensible documentation language that aligns directly with organizational standards.'}
+                  <TermHighlighter text={card.auditFocus || 'Translate this concept into clear, patient-specific, defensible documentation language that aligns directly with organizational standards.'} />
                 </p>
               </div>
             </div>
@@ -661,7 +668,7 @@ export default function LearningProfessional() {
                     <AlertCircle className="h-3.5 w-3.5" /> Expanded Context
                   </h3>
                   <p className={`text-base leading-relaxed ${isDarkMode ? 'text-white/90 font-light' : 'text-[#1F1C1B]'}`}>
-                    {additionalContent ?? 'No additional content available for this section.'}
+                    <TermHighlighter text={additionalContent ?? 'No additional content available for this section.'} />
                   </p>
                 </div>
               )}
@@ -1221,7 +1228,7 @@ function ChallengeView({ title, challengeData, challengeResult, isDarkMode, inte
   )
 }
 
-function FinalTestSection({ isDarkMode, pageIndex, answers, interactiveEffects, onAnswer }: {
+function FinalTestSection({ isDarkMode, pageIndex, answers, interactiveEffects: _interactiveEffects, onAnswer }: {
   isDarkMode: boolean
   pageIndex: number
   answers: Record<string, number>
@@ -1247,12 +1254,12 @@ function FinalTestSection({ isDarkMode, pageIndex, answers, interactiveEffects, 
           <h2 className="mt-3 text-2xl font-semibold" style={{ fontFamily: 'Montserrat, sans-serif' }}>{FINAL_TEST_TITLE}</h2>
         </div>
         <div className="grid flex-1 min-h-0 gap-3 md:grid-cols-2">
-          <div className="p-4"><h3 className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#007970]">Objective</h3><p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>{FINAL_TEST_OBJECTIVE}</p></div>
-          <div className="p-4"><h3 className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#007970]">Clinical Lens</h3><p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>{FINAL_TEST_CLINICAL_LENS}</p></div>
+          <div className="p-4"><h3 className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#007970]">Objective</h3><p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}><TermHighlighter text={FINAL_TEST_OBJECTIVE} /></p></div>
+          <div className="p-4"><h3 className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#007970]">Clinical Lens</h3><p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}><TermHighlighter text={FINAL_TEST_CLINICAL_LENS} /></p></div>
           <div className="p-4 md:col-span-2">
             <h3 className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#007970]">Key Points</h3>
             <ul className="space-y-1.5">
-              {FINAL_TEST_KEY_POINTS.map((p,i) => <li key={p} className="flex items-start gap-2"><span className="text-xs font-bold text-[#C74601] mt-0.5">0{i+1}</span><span className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>{p}</span></li>)}
+              {FINAL_TEST_KEY_POINTS.map((p,i) => <li key={p} className="flex items-start gap-2"><span className="text-xs font-bold text-[#C74601] mt-0.5">0{i+1}</span><span className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}><TermHighlighter text={p} /></span></li>)}
             </ul>
             <p className={`mt-2 text-xs uppercase tracking-[0.12em] ${isDarkMode ? 'text-gray-500' : 'text-[#747474]'}`}>
               Use Advance to begin Question 1 of {totalQ}

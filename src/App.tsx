@@ -22,6 +22,8 @@ import { CardFlowLayout } from './components/CardFlowLayout'
 import { RevealSection } from './components/RevealSection'
 import { Button } from './components/ui/Button'
 import { Card } from './components/ui/Card'
+import { TermHighlighter } from './components/TermHighlighter'
+import { useGlossary } from './components/GlossaryProvider'
 import { PlanOfCareFocusPanel } from './components/PlanOfCareFocusPanel'
 import { CIArchitectureCard } from './components/CIArchitectureCard'
 import { Cms485VirtualForm } from './components/Cms485VirtualForm'
@@ -821,7 +823,7 @@ const TrainingSection = ({
           {bullets.map((item, index) => (
             <li key={item} className="flex items-start gap-2 group/item">
               <span className={`font-medium text-xs mt-0.5 transition-transform group-hover/item:translate-x-1 ${isDarkMode ? 'text-[#007970]' : 'text-[#007970] font-bold'}`}>{`0${index + 1}`}</span>
-              <span className={`text-xs md:text-sm leading-relaxed ${isDarkMode ? 'text-white/70 font-light' : 'text-[#524048]'}`}>{item}</span>
+              <span className={`text-xs md:text-sm leading-relaxed ${isDarkMode ? 'text-white/70 font-light' : 'text-[#524048]'}`}><TermHighlighter text={item} /></span>
             </li>
           ))}
         </ul>
@@ -845,7 +847,7 @@ const TrainingSection = ({
           Clinical Lens
         </h3>
         <p className={`text-xs md:text-sm leading-relaxed ${isDarkMode ? 'text-white/70 font-light' : 'text-[#524048]'}`}>
-          {auditFocus || 'Translate this concept into clear, patient-specific, defensible documentation language that aligns directly with organizational standards.'}
+          <TermHighlighter text={auditFocus || 'Translate this concept into clear, patient-specific, defensible documentation language that aligns directly with organizational standards.'} />
         </p>
       </Card>
     </div>
@@ -986,7 +988,7 @@ const TrainingSection = ({
               className={`hide-scrollbar min-h-0 flex-1 overflow-y-auto pr-1 ${isDarkMode ? 'font-light text-white/90' : 'font-light text-[#1F1C1B]'}`}
               style={additionalContentTypography}
             >
-              {additionalContent ?? 'No additional content available for this section.'}
+              <TermHighlighter text={additionalContent ?? 'No additional content available for this section.'} />
             </p>
           </Card>
         )}
@@ -1066,7 +1068,7 @@ const TrainingSection = ({
                   <Target className="shrink-0 mt-1 text-[#64F4F5] h-7 w-7" strokeWidth={1.5} />
                   <div>
                     <h3 className="text-xs font-medium uppercase tracking-[0.15em] mb-2 text-white/50">Learning Objective</h3>
-                    <p className="text-xl font-light leading-snug text-white/90">{objective}</p>
+                    <p className="text-xl font-light leading-snug text-white/90"><TermHighlighter text={objective} /></p>
                   </div>
                 </div>
               </div>
@@ -1076,7 +1078,7 @@ const TrainingSection = ({
                   <Target className="shrink-0 mt-0.5 text-[#64F4F5] h-5 w-5" strokeWidth={2} />
                   <div>
                     <h3 className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1 text-[#C4F4F5]">Learning Objective</h3>
-                    <p className="text-sm font-normal leading-snug text-white">{objective}</p>
+                    <p className="text-sm font-normal leading-snug text-white"><TermHighlighter text={objective} /></p>
                   </div>
                 </div>
               </div>
@@ -1154,12 +1156,12 @@ const FinalTestCard = ({
         <div className="grid flex-1 min-h-0 gap-3 md:grid-cols-2">
           <div className={`h-full p-4 ${isDarkMode ? 'bg-transparent border-none rounded-none' : 'bg-white border-none rounded-none'}`}>
             <h3 className={`mb-2 text-sm font-semibold uppercase tracking-[0.12em] ${isDarkMode ? 'text-[#64F4F5]' : 'text-[#007970]'}`}>Objective</h3>
-            <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>{FINAL_TEST_OBJECTIVE}</p>
+            <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}><TermHighlighter text={FINAL_TEST_OBJECTIVE} /></p>
           </div>
 
           <div className={`h-full p-4 ${isDarkMode ? 'bg-transparent border-none rounded-none' : 'bg-white border-none rounded-none'}`}>
             <h3 className={`mb-2 text-sm font-semibold uppercase tracking-[0.12em] ${isDarkMode ? 'text-[#64F4F5]' : 'text-[#007970]'}`}>Clinical Lens</h3>
-            <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}>{FINAL_TEST_CLINICAL_LENS}</p>
+            <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-white/80' : 'text-[#524048]'}`}><TermHighlighter text={FINAL_TEST_CLINICAL_LENS} /></p>
           </div>
 
           <div className={`h-full p-4 md:col-span-2 ${isDarkMode ? 'bg-transparent border-none rounded-none' : 'bg-white border-none rounded-none'}`}>
@@ -1283,6 +1285,7 @@ const FlowCards = ({
   onToggleDarkMode: () => void
   onToggleDebugMode: () => void
 }) => {
+  const { resetClaims } = useGlossary()
   const metadataByTitle = useMemo(() => {
     return new Map(CARD_METADATA.map((item) => [item.title, item]))
   }, [])
@@ -1608,6 +1611,7 @@ const FlowCards = ({
     setPreviousIndex(currentIndex)
     setCurrentIndex(nextIndex)
     setIsAnimating(true)
+    resetClaims()
   }
 
   const goNext = () => {

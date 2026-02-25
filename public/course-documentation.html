@@ -3,56 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CI eLearner  Course Documentation</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap');
-        .font-heading { font-family: 'Montserrat', sans-serif; }
-        .font-body   { font-family: 'Roboto', sans-serif; }
+        <title>CI eLearner  Course Documentation</title>
+        <script>
+            (function() {
+                const KEY = 'cihh.theme'
+                const stored = localStorage.getItem(KEY)
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+                const initial = stored === 'light' || stored === 'night' ? stored : (prefersDark ? 'night' : 'light')
+                const apply = (mode) => {
+                    document.documentElement.dataset.theme = mode
+                    document.documentElement.style.colorScheme = mode === 'night' ? 'dark' : 'light'
+                    localStorage.setItem(KEY, mode)
+                }
+                apply(initial)
+                window.__cihhTheme = {
+                    toggle: () => apply(document.documentElement.dataset.theme === 'night' ? 'light' : 'night'),
+                    get: () => (document.documentElement.dataset.theme === 'light' ? 'light' : 'night'),
+                    apply,
+                }
+            })()
+        </script>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+                @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap');
 
-        .bg-noise { position: relative; }
-        .bg-noise::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-            pointer-events: none;
-            z-index: 5;
-        }
+                :root {
+                    --bg: #09090b;
+                    --surface: #0f0f11;
+                    --surface-strong: #121214;
+                    --text: #f8fafc;
+                    --muted: rgba(255, 255, 255, 0.62);
+                    --muted-strong: rgba(255, 255, 255, 0.82);
+                    --border: rgba(255, 255, 255, 0.08);
+                    --card-bg: rgba(255, 255, 255, 0.02);
+                    --card-border: rgba(255, 255, 255, 0.08);
+                    --card-number: rgba(255, 255, 255, 0.2);
+                    --objective: rgba(255, 255, 255, 0.5);
+                    --chip-bg: rgba(100, 244, 245, 0.08);
+                    --chip-text: #64F4F5;
+                    --chip-border: rgba(100, 244, 245, 0.4);
+                    --footer: #0a0a0c;
+                    --shadow: 0 14px 36px rgba(15, 23, 40, 0.24);
+                }
 
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0F0F11; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+                :root[data-theme="light"] {
+                    --bg: #fafbf8;
+                    --surface: #ffffff;
+                    --surface-strong: #ffffff;
+                    --text: #1f1c1b;
+                    --muted: #524048;
+                    --muted-strong: #1f1c1b;
+                    --border: #e5e4e3;
+                    --card-bg: #ffffff;
+                    --card-border: #e5e4e3;
+                    --card-number: #d9d6d5;
+                    --objective: #524048;
+                    --chip-bg: #e5feff;
+                    --chip-text: #007970;
+                    --chip-border: #c8eded;
+                    --footer: #f2f2f1;
+                    --shadow: 0 16px 34px rgba(31, 28, 27, 0.12);
+                }
 
-        @keyframes glitch-slide {
-            0% { opacity: 0; transform: translateY(20px); filter: blur(3px); }
-            100% { opacity: 1; transform: translateY(0); filter: blur(0); }
-        }
-        .animate-glitch { animation: glitch-slide 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .font-heading { font-family: 'Montserrat', sans-serif; }
+                .font-body   { font-family: 'Roboto', sans-serif; }
 
-        .section-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 10px;
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            padding: 4px 12px;
-            border-radius: 4px;
-            border: 1px solid;
-        }
+                body {
+                    margin: 0;
+                    font-family: 'Roboto', sans-serif;
+                    background: var(--bg) !important;
+                    color: var(--text) !important;
+                    transition: background-color 200ms ease, color 200ms ease;
+                }
 
-        .card-row:hover { border-color: rgba(100, 244, 245, 0.3) !important; }
-        .card-row { transition: border-color 0.3s, background-color 0.3s; }
+                .bg-noise { position: relative; }
+                .bg-noise::before {
+                        content: "";
+                        position: absolute;
+                        inset: 0;
+                        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+                        pointer-events: none;
+                        z-index: 5;
+                }
 
-        .filter-btn.active {
-            background: rgba(100, 244, 245, 0.12);
-            color: #64F4F5;
-            border-color: rgba(100, 244, 245, 0.4);
-        }
-    </style>
+                ::-webkit-scrollbar { width: 6px; }
+                ::-webkit-scrollbar-track { background: var(--surface); }
+                ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+                @keyframes glitch-slide {
+                        0% { opacity: 0; transform: translateY(20px); filter: blur(3px); }
+                        100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+                }
+                .animate-glitch { animation: glitch-slide 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+                .section-chip {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-size: 10px;
+                        font-family: 'Montserrat', sans-serif;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.15em;
+                        padding: 4px 12px;
+                        border-radius: 4px;
+                        border: 1px solid var(--chip-border);
+                        background: var(--chip-bg);
+                        color: var(--chip-text);
+                }
+
+                .card-row { transition: border-color 0.3s, background-color 0.3s, box-shadow 0.3s; background: var(--card-bg) !important; border-color: var(--card-border) !important; box-shadow: var(--shadow); }
+                .card-row:hover { border-color: var(--chip-border) !important; }
+                .card-row h3 { color: var(--text) !important; }
+                .card-row p { color: var(--objective) !important; }
+                .card-row li span:last-child { color: var(--muted) !important; }
+                .card-row .section-chip div { background: var(--chip-text); }
+
+                .filter-btn { background: transparent; color: var(--muted); border-color: var(--border); }
+                .filter-btn.active {
+                        background: var(--chip-bg);
+                        color: var(--chip-text);
+                        border-color: var(--chip-border);
+                }
+
+                .themed-surface { background: var(--surface-strong) !important; border-color: var(--border) !important; color: var(--text) !important; }
+                .metric-pill { color: var(--muted) !important; border-color: var(--border) !important; }
+                footer { background: var(--footer) !important; color: var(--muted); border-color: var(--border) !important; }
+        </style>
 </head>
 <body class="bg-[#09090b] text-white font-body min-h-screen bg-noise">
 
@@ -61,7 +138,7 @@
     <div class="fixed bottom-[-15%] right-[5%] w-[500px] h-[500px] bg-[#C74601]/6 rounded-full blur-[140px] pointer-events-none"></div>
 
     <!-- Header -->
-    <header class="sticky top-0 z-30 bg-[#121214]/95 backdrop-blur-xl border-b border-white/5">
+    <header class="sticky top-0 z-30 bg-[#121214]/95 backdrop-blur-xl border-b border-white/5 themed-surface">
         <div class="max-w-6xl mx-auto px-8 py-5 flex items-center justify-between">
             <div class="flex items-center gap-6">
                 <img
@@ -74,9 +151,12 @@
                     <p class="text-[10px] text-white/30 uppercase tracking-[0.2em] font-heading">CMS-485 Compliance Manual &middot; Clinician Training</p>
                 </div>
             </div>
-            <div class="flex items-center gap-4">
-                <span id="card-count" class="text-sm font-heading font-medium text-white/40">38 cards</span>
-                <div class="text-xl font-heading font-medium tracking-widest text-white/30 bg-black/50 px-4 py-1.5 border border-white/10 rounded">
+            <div class="flex items-center gap-3">
+                <button id="theme-toggle" class="px-3 py-2 rounded-lg text-[11px] font-heading font-semibold uppercase tracking-[0.14em] border metric-pill">
+                    Toggle Theme
+                </button>
+                <span id="card-count" class="text-sm font-heading font-medium text-white/40 metric-pill">38 cards</span>
+                <div class="text-xl font-heading font-medium tracking-widest text-white/30 bg-black/50 px-4 py-1.5 border border-white/10 rounded metric-pill">
                     <span class="text-[#64F4F5]" id="section-count">9</span> <span class="text-white/20">sections</span>
                 </div>
             </div>
@@ -84,7 +164,7 @@
     </header>
 
     <!-- Filter Bar -->
-    <div class="sticky top-[73px] z-20 bg-[#0F0F11]/95 backdrop-blur-md border-b border-white/5">
+    <div class="sticky top-[73px] z-20 bg-[#0F0F11]/95 backdrop-blur-md border-b border-white/5 themed-surface">
         <div class="max-w-6xl mx-auto px-8 py-3 flex items-center gap-2 overflow-x-auto">
             <button onclick="filterSection('all')" class="filter-btn active shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">All</button>
             <button onclick="filterSection('Executive Summary')" class="filter-btn shrink-0 px-3 py-1.5 text-[10px] font-heading font-semibold uppercase tracking-wider border border-white/10 rounded text-white/50 hover:text-white transition-all">Executive</button>
@@ -103,6 +183,31 @@
     <main class="max-w-6xl mx-auto px-8 py-10 relative z-10">
         <div id="cards-grid" class="space-y-4"></div>
     </main>
+
+    <section class="max-w-6xl mx-auto px-8 pb-12 relative z-10">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+                <div class="section-chip"><div></div>References</div>
+                <h2 class="text-xl font-heading font-semibold" style="color: var(--text);">Primary guidance used in this course</h2>
+            </div>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
+            <div class="p-4 rounded-xl border" style="border-color: var(--card-border); background: var(--card-bg);">
+                <ul class="list-disc pl-5 space-y-2" style="color: var(--muted);">
+                    <li><a href="https://www.cms.gov/regulations-and-guidance/guidance/transmittals/downloads/r23pim.pdf" target="_blank" rel="noreferrer" style="color: var(--chip-text); font-weight: 600;">CMS Program Integrity Manual, Ch. 3 (R23)</a></li>
+                    <li><a href="https://www.cms.gov/files/document/r219soma.pdf" target="_blank" rel="noreferrer" style="color: var(--chip-text); font-weight: 600;">CMS State Operations Manual, Appendix B &mdash; Home Health</a></li>
+                    <li><a href="https://www.cms.gov/training-education/medicare-learning-networkr-mln/compliance/medicare-provider-compliance-tips/home-health-services" target="_blank" rel="noreferrer" style="color: var(--chip-text); font-weight: 600;">Medicare Learning Network: Home Health Services Provider Compliance Tips</a></li>
+                </ul>
+            </div>
+            <div class="p-4 rounded-xl border" style="border-color: var(--card-border); background: var(--card-bg);">
+                <ul class="list-disc pl-5 space-y-2" style="color: var(--muted);">
+                    <li><a href="https://www.cms.gov/files/document/oasis-e-guidance-manual51622.pdf" target="_blank" rel="noreferrer" style="color: var(--chip-text); font-weight: 600;">OASIS-E Guidance Manual</a></li>
+                    <li><a href="https://www.cms.gov/medicare/payment/prospective-payment-systems/home-health" target="_blank" rel="noreferrer" style="color: var(--chip-text); font-weight: 600;">Home Health Prospective Payment System (PDGM)</a></li>
+                    <li><a href="https://www.cms.gov/medicare/enrollment-renewal/providers-suppliers/chain-ownership-system-pecos/ordering-certifying" target="_blank" rel="noreferrer" style="color: var(--chip-text); font-weight: 600;">Ordering/Certifying Practitioner Enrollment Guidance</a></li>
+                </ul>
+            </div>
+        </div>
+    </section>
 
     <!-- Footer -->
     <footer class="border-t border-white/5 bg-[#0A0A0C]/80 py-6 text-center">
@@ -216,6 +321,23 @@
         }
 
         renderCards(cards);
+
+        const themeToggle = document.getElementById('theme-toggle');
+        const syncThemeLabel = () => {
+            const mode = (window.__cihhTheme && window.__cihhTheme.get && window.__cihhTheme.get()) || 'night';
+            themeToggle.textContent = mode === 'night' ? 'Light Mode' : 'Night Mode';
+        };
+
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                if (window.__cihhTheme && window.__cihhTheme.toggle) {
+                    window.__cihhTheme.toggle();
+                    syncThemeLabel();
+                }
+            });
+            syncThemeLabel();
+        }
     </script>
+    <script src="glossary-static.js"></script>
 </body>
 </html>

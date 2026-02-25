@@ -446,3 +446,202 @@ h1, h2, h3, h4, h5, h6 {
     transform: none;
   }
 }
+
+/* ── Glossary Hovercard System ──────────────────────────────── */
+
+/* Inline underline: unseen term (first-occurrence eligible) */
+.glossary-term-unseen {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: rgba(0, 121, 112, 0.55);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+  cursor: help;
+  transition: text-decoration-color 180ms ease, text-decoration-style 180ms ease;
+}
+
+.glossary-term-unseen:hover,
+.glossary-term-unseen:focus-visible {
+  text-decoration-style: solid;
+  text-decoration-color: rgba(0, 121, 112, 0.85);
+  text-shadow: 0 0 8px rgba(0, 121, 112, 0.12);
+}
+
+/* Inline underline: previously seen term (no hovercard) */
+.glossary-term-seen {
+  text-decoration: none;
+  cursor: default;
+}
+
+/* Trigger button reset */
+.glossary-term-trigger {
+  all: unset;
+  display: inline;
+  font: inherit;
+  color: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+}
+
+.glossary-term-inline {
+  display: inline;
+}
+
+/* Hovercard (portal, fixed position) */
+.glossary-hovercard {
+  position: fixed;
+  z-index: 9999;
+  width: 320px;
+  max-width: calc(100vw - 16px);
+  padding: 16px 18px 14px;
+  border-radius: 12px;
+  font-family: 'Roboto', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.55;
+  pointer-events: auto;
+  animation: glossaryFadeIn 160ms ease-out;
+
+  /* Night mode (default for dark backgrounds) */
+  background: linear-gradient(135deg, #1a2436 0%, #162030 100%);
+  border: 1px solid rgba(100, 244, 245, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(100, 244, 245, 0.06);
+  color: #e2e8f0;
+}
+
+/* Light mode */
+[data-theme="light"] .glossary-hovercard {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
+  border: 1px solid rgba(0, 121, 112, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.10), 0 0 0 1px rgba(0, 121, 112, 0.06);
+  color: #1f1c1b;
+}
+
+.glossary-hovercard-title {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  margin-bottom: 6px;
+  color: #64f4f5;
+}
+
+[data-theme="light"] .glossary-hovercard-title {
+  color: #007970;
+}
+
+.glossary-hovercard-def {
+  margin: 0 0 8px;
+  color: #cbd5e1;
+}
+
+[data-theme="light"] .glossary-hovercard-def {
+  color: #374151;
+}
+
+.glossary-hovercard-why {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #94a3b8;
+  border-left: 2px solid rgba(197, 160, 89, 0.4);
+  padding-left: 10px;
+}
+
+[data-theme="light"] .glossary-hovercard-why {
+  color: #6b7280;
+  border-left-color: rgba(197, 160, 89, 0.5);
+}
+
+.glossary-hovercard-why-label {
+  font-weight: 600;
+  color: #c5a059;
+}
+
+.glossary-hovercard-gotit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 14px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 6px;
+  border: 1px solid rgba(100, 244, 245, 0.25);
+  background: rgba(100, 244, 245, 0.08);
+  color: #64f4f5;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, transform 120ms ease;
+}
+
+.glossary-hovercard-gotit:hover {
+  background: rgba(100, 244, 245, 0.16);
+  border-color: rgba(100, 244, 245, 0.4);
+  transform: translateY(-1px);
+}
+
+.glossary-hovercard-gotit:active {
+  transform: scale(0.97);
+}
+
+[data-theme="light"] .glossary-hovercard-gotit {
+  border-color: rgba(0, 121, 112, 0.3);
+  background: rgba(0, 121, 112, 0.06);
+  color: #007970;
+}
+
+[data-theme="light"] .glossary-hovercard-gotit:hover {
+  background: rgba(0, 121, 112, 0.12);
+  border-color: rgba(0, 121, 112, 0.45);
+}
+
+/* Light-mode underline color */
+[data-theme="light"] .glossary-term-unseen {
+  text-decoration-color: rgba(0, 121, 112, 0.45);
+}
+
+[data-theme="light"] .glossary-term-unseen:hover,
+[data-theme="light"] .glossary-term-unseen:focus-visible {
+  text-decoration-color: rgba(0, 121, 112, 0.75);
+  text-shadow: 0 0 6px rgba(0, 121, 112, 0.08);
+}
+
+@keyframes glossaryFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Debug panel */
+.glossary-debug-panel {
+  position: fixed;
+  bottom: 8px;
+  right: 8px;
+  z-index: 99999;
+  max-width: 300px;
+  max-height: 200px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 10px;
+  line-height: 1.5;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(100, 244, 245, 0.2);
+  color: #94a3b8;
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+
+.glossary-debug-panel summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #64f4f5;
+  font-size: 11px;
+}
+

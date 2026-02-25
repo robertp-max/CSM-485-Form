@@ -38,11 +38,11 @@ export default defineConfig({
             return 'motion'
           }
 
-          if (id.includes('/src/components/') || id.includes('GlossaryTerm')) {
+          if (id.includes('/src/components/') || id.includes('GlossaryTerm') || id.includes('GlossaryProvider') || id.includes('TermHighlighter') || id.includes('GlossaryDebugPanel')) {
             return 'ui'
           }
 
-          if (id.includes('/src/courseData.ts') || id.includes('/src/glossary.ts')) {
+          if (id.includes('/src/courseData.ts') || id.includes('/src/glossary.ts') || id.includes('/src/scormPersist.ts')) {
             return 'course'
           }
 
