@@ -145,7 +145,7 @@ export default function HendersonChallenge({ onExit }: Props) {
           <div className="text-center mb-10">
             <Trophy className="h-16 w-16 mx-auto text-[#007970] mb-4" />
             <h1 className="font-heading text-4xl font-bold mb-2">CareIndeed Clinical Master</h1>
-            <p className={muted}>You successfully completed the Henderson Challenge with 100% accuracy.</p>
+            <p className={muted}>You successfully completed the Henderon POC with 100% accuracy.</p>
           </div>
 
           <div className="space-y-6">
@@ -168,7 +168,7 @@ export default function HendersonChallenge({ onExit }: Props) {
 
           <div className="flex justify-center gap-4 mt-10">
             <button onClick={handleReset} className="rounded-xl border-2 border-[#007970] bg-[#007970] text-white px-6 py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#006059]">
-              Restart Challenge
+              Restart Henderon POC
             </button>
             {onExit ? (
               <button onClick={onExit} className="rounded-xl border-2 border-[#E5E4E3] px-6 py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#007970]/10">
@@ -202,7 +202,7 @@ export default function HendersonChallenge({ onExit }: Props) {
             )}
             <div className={`h-5 w-px ${isDarkMode ? 'bg-white/15' : 'bg-[#E5E4E3]'}`} />
             <h1 className="font-heading text-base font-bold">
-              Clinical Master Challenge: <span className="text-[#C74601]">Case Henderson</span>
+              Clinical Master POC: <span className="text-[#C74601]">Case Henderon</span>
             </h1>
             <span className={`text-[10px] uppercase tracking-widest ${muted}`}>Level: Expert · CMS-485 Mastery</span>
           </div>

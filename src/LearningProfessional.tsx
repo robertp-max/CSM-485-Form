@@ -36,7 +36,6 @@ import additionalContentRaw from './assets/Additional Content.txt?raw'
 import { TRAINING_CARDS } from './data/trainingCards'
 import { CARD_METADATA } from './data/cardMetadata'
 import { useTheme } from './hooks/useTheme'
-import { ViewModeToggle } from './components/ViewModeToggle'
 
 /* ─── URL Constants ─── */
 const SYSTEMS_DOC_URL = import.meta.env.BASE_URL + 'systems-documentation.html'
@@ -53,11 +52,6 @@ type PanelMode = 'main' | 'additional' | 'challenge' | 'help'
 type ChallengeResult = {
   selectedIndex: number
   isCorrect: boolean
-}
-
-type HelpSection = {
-  title: string
-  body: string[]
 }
 
 type FlowCardKind = 'intro-video' | 'cover' | 'training' | 'final-test' | 'complete'
@@ -240,16 +234,6 @@ const FINAL_TEST_QUESTIONS: FinalTestQuestion[] = [
   { id:'ft-10', prompt:'What final audit standard should guide every chart touchpoint?', options:['Maximum note length','Narrative style preference by reviewer','Clear, complete, and clinically coherent documentation at every step','Template consistency regardless of patient specifics'], correctIndex:2, rationale:'The final audit focus is stated verbatim in the Key Takeaways and Next Actions expanded content.' },
 ]
 
-/* ─── Help Sections ─── */
-const LEARNER_HELP_SECTIONS: HelpSection[] = [
-  { title:'How This Training Works', body:['This learning experience is section-based. Each topic includes a learning objective, key points, clinical lens, additional content, and a challenge check.','Use Next and Back to move through topics.'] },
-  { title:'Navigation Basics', body:['Back returns to the prior state. Next advances in sequence.','You can also use keyboard arrows.'] },
-  { title:'Audio and Additional Content', body:['Select PLAY to open additional content and start narration.','Pause, Stop, and Restart are available while audio is active.'] },
-  { title:'Challenge Rules', body:['Challenge is available once audio is completed.','Each challenge allows one submission per session.'] },
-  { title:'Progress', body:['Your location is retained for continuity.','Challenge state is session-based.'] },
-  { title:'Accessibility', body:['Keyboard navigation and visible focus states are supported.','Reduced motion preferences are respected.'] },
-]
-
 /* ─── Professional Learning Page ─── */
 export default function LearningProfessional() {
   const { resetClaims } = useGlossary()
@@ -366,12 +350,6 @@ export default function LearningProfessional() {
     if (nextMode === 'main') { setAudioModeForTitle(null); setChallengeModeForTitle(null) }
     else if (nextMode === 'additional') { setAudioModeForTitle(currentCardTitle); setChallengeModeForTitle(null) }
     else { setAudioModeForTitle(currentCardTitle); setChallengeModeForTitle(currentCardTitle) }
-  }
-
-  const handleHelpToggle = () => {
-    if (!currentIsTrainingCard) return
-    if (currentPanelMode === 'help') { transitionPanel(helpReturnMode, 'prev'); return }
-    transitionPanel('help', 'prev')
   }
 
   const handleAudioPlayClick = () => {
@@ -700,16 +678,7 @@ export default function LearningProfessional() {
             />
           )}
 
-          {panelMode === 'help' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {LEARNER_HELP_SECTIONS.map(hs => (
-                <div key={hs.title} className={`rounded-lg border p-4 ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-[#E5E4E3] bg-[#FAFBF8]'}`}>
-                  <h4 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#007970]">{hs.title}</h4>
-                  <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-[#524048]'}`}>{hs.body.join(' ')}</p>
-                </div>
-              ))}
-            </div>
-          )}
+
         </div>
       </section>
     )
@@ -790,7 +759,6 @@ export default function LearningProfessional() {
               >
                 {isDarkMode ? '☀ Light' : '🌙 Night'}
               </button>
-              <ViewModeToggle isDarkMode={isDarkMode} />
               <img
                 src={isDarkMode ? titleMedia : headerLogoGray}
                 alt="CareIndeed"
@@ -814,18 +782,8 @@ export default function LearningProfessional() {
               </div>
             </div>
 
-            {/* Right: Help + Settings + Virtual CMS-485 */}
+            {/* Right: Settings + Virtual CMS-485 */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleHelpToggle}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  currentPanelMode === 'help'
-                    ? (isDarkMode ? 'bg-[#007970]/20 text-[#64F4F5]' : 'bg-[#E5FEFF] text-[#007970] border border-[#007970]')
-                    : (isDarkMode ? 'text-white/50 hover:text-white' : 'text-[#747474] hover:text-[#1F1C1B]')
-                }`}
-              >
-                <HelpCircle className="h-3.5 w-3.5" /> Help
-              </button>
               <SettingsPanel settings={settings} onSettingsChange={setSettings} />
               <button
                 onClick={() => setShowVirtualForm(true)}

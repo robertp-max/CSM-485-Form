@@ -24,6 +24,10 @@
         ::-webkit-scrollbar-track { background: #0F0F11; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
 
+        /* Light mode scrollbar */
+        body.light-mode::-webkit-scrollbar-track { background: #FAFBF8; }
+        body.light-mode::-webkit-scrollbar-thumb { background: #D9D6D5; }
+
         @keyframes glitch-slide {
             0% { opacity: 0; transform: translateY(20px); filter: blur(3px); }
             100% { opacity: 1; transform: translateY(0); filter: blur(0); }
@@ -52,26 +56,58 @@
             color: #64F4F5;
             border-color: rgba(100, 244, 245, 0.4);
         }
+
+        /* ── Light Mode Overrides ── */
+        body.light-mode { background: radial-gradient(circle at top right, #FAFBF8 0%, #D9D6D5 100%) !important; color: #1F1C1B !important; }
+        body.light-mode .bg-noise::before { opacity: 0; }
+        body.light-mode .card-row:hover { border-color: rgba(0, 121, 112, 0.4) !important; }
+        body.light-mode .filter-btn.active { background: rgba(0,121,112,0.12); color: #007970; border-color: rgba(0,121,112,0.4); }
+    </style>
+            background: rgba(100, 244, 245, 0.12);
+            color: #64F4F5;
+            border-color: rgba(100, 244, 245, 0.4);
+        }
     </style>
 </head>
-<body class="bg-[#09090b] text-white font-body min-h-screen bg-noise">
+<body class="bg-[#09090b] text-white font-body min-h-screen bg-noise" id="page-body">
+    <script>
+    // Theme bridge: read global theme from localStorage
+    (function() {
+        var theme = localStorage.getItem('cihh.theme') || 'night';
+        var body = document.getElementById('page-body');
+        function applyTheme(t) {
+            if (t === 'light') {
+                body.classList.add('light-mode');
+                body.classList.remove('bg-[#09090b]', 'text-white');
+                body.classList.add('text-[#1F1C1B]');
+            } else {
+                body.classList.remove('light-mode', 'text-[#1F1C1B]');
+                body.classList.add('bg-[#09090b]', 'text-white');
+            }
+        }
+        applyTheme(theme);
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'cihh.theme') applyTheme(e.newValue || 'night');
+        });
+    })();
+    </script>
 
     <!-- Fixed Background Glows -->
-    <div class="fixed top-[-15%] left-[5%] w-[600px] h-[600px] bg-[#007970]/8 rounded-full blur-[160px] pointer-events-none"></div>
-    <div class="fixed bottom-[-15%] right-[5%] w-[500px] h-[500px] bg-[#C74601]/6 rounded-full blur-[140px] pointer-events-none"></div>
+    <div class="fixed top-[-15%] left-[5%] w-[600px] h-[600px] bg-[#007970]/8 rounded-full blur-[160px] pointer-events-none" id="glow-1"></div>
+    <div class="fixed bottom-[-15%] right-[5%] w-[500px] h-[500px] bg-[#C74601]/6 rounded-full blur-[140px] pointer-events-none" id="glow-2"></div>
 
     <!-- Header -->
-    <header class="sticky top-0 z-30 bg-[#121214]/95 backdrop-blur-xl border-b border-white/5">
+    <header id="page-header" class="sticky top-0 z-30 bg-[#121214]/95 backdrop-blur-xl border-b border-white/5">
         <div class="max-w-6xl mx-auto px-8 py-5 flex items-center justify-between">
             <div class="flex items-center gap-6">
-                <img 
+                <img id="header-logo"
                     src="https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png" 
                     alt="CareIndeed" 
                     class="h-7 w-auto object-contain opacity-90"
                 />
                 <div>
-                    <h1 class="text-lg font-heading font-semibold text-white tracking-tight">Course Framework</h1>
-                    <p class="text-[10px] text-white/30 uppercase tracking-[0.2em] font-heading">36 Training Cards · CMS-485 Compliance</p>
+                    <h1 id="header-title" class="text-lg font-heading font-semibold text-white tracking-tight">Course Framework</h1>
+                    <p id="header-subtitle" class="text-[10px] text-white/30 uppercase tracking-[0.2em] font-heading">36 Training Cards · CMS-485 Compliance</p>
                 </div>
             </div>
             <div class="flex items-center gap-4">
@@ -111,7 +147,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="border-t border-white/5 bg-[#0A0A0C]/80 py-6 text-center">
+    <footer id="page-footer" class="border-t border-white/5 bg-[#0A0A0C]/80 py-6 text-center">
         <p class="text-[10px] text-white/20 font-heading uppercase tracking-[0.2em]">Care Indeed Home Health · CMS-485 Training Framework</p>
     </footer>
 
@@ -177,36 +213,70 @@
             return sectionColors[section] || { bg: "rgba(255,255,255,0.05)", text: "#fff", border: "rgba(255,255,255,0.2)" };
         }
 
+        function isLightMode() {
+            return document.body.classList.contains('light-mode');
+        }
+
         function renderCards(filteredCards) {
             const grid = document.getElementById('cards-grid');
             grid.innerHTML = '';
             document.getElementById('card-count').textContent = filteredCards.length + ' cards';
+            const light = isLightMode();
+
+            // Also update header/footer/filter bar for theme
+            var header = document.getElementById('page-header');
+            var headerTitle = document.getElementById('header-title');
+            var headerSub = document.getElementById('header-subtitle');
+            var headerLogo = document.getElementById('header-logo');
+            if (light) {
+                header.className = 'sticky top-0 z-30 bg-white/95 backdrop-blur-xl border-b border-[#E5E4E3]';
+                headerTitle.className = 'text-lg font-heading font-semibold text-[#1F1C1B] tracking-tight';
+                headerSub.className = 'text-[10px] text-[#747474] uppercase tracking-[0.2em] font-heading';
+                headerLogo.src = 'https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_Gray.png';
+                document.getElementById('glow-1').style.display = 'none';
+                document.getElementById('glow-2').style.display = 'none';
+            } else {
+                header.className = 'sticky top-0 z-30 bg-[#121214]/95 backdrop-blur-xl border-b border-white/5';
+                headerTitle.className = 'text-lg font-heading font-semibold text-white tracking-tight';
+                headerSub.className = 'text-[10px] text-white/30 uppercase tracking-[0.2em] font-heading';
+                headerLogo.src = 'https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png';
+                document.getElementById('glow-1').style.display = '';
+                document.getElementById('glow-2').style.display = '';
+            }
 
             filteredCards.forEach((card, idx) => {
                 const c = getColor(card.section);
                 const delay = Math.min(idx * 40, 600);
-                
+
+                const cardBg = light ? 'background:white;border:1px solid #E5E4E3;' : 'border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.01);backdrop-filter:blur(12px);';
+                const titleColor = light ? '#1F1C1B' : 'white';
+                const objColor = light ? '#524048' : 'rgba(255,255,255,0.45)';
+                const bulletColor = light ? '#524048' : 'rgba(255,255,255,0.6)';
+                const numColor = light ? 'rgba(31,28,27,0.15)' : 'rgba(255,255,255,0.12)';
+                const auditBg = light ? 'background:#FFEEE5;border:1px solid #FFD5BF;' : 'background:rgba(199,70,1,0.08);border:1px solid rgba(199,70,1,0.25);';
+                const auditTextColor = light ? '#524048' : 'rgba(255,255,255,0.5)';
+
                 const auditHtml = card.audit 
-                    ? `<div style="margin-top:12px;padding:10px 14px;background:rgba(199,70,1,0.08);border:1px solid rgba(199,70,1,0.25);border-radius:8px;">
+                    ? `<div style="margin-top:12px;padding:10px 14px;${auditBg}border-radius:8px;">
                         <span style="font-family:'Montserrat';font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#C74601;">Audit Focus</span>
-                        <p style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:4px;font-weight:300;">${card.audit}</p>
+                        <p style="font-size:13px;color:${auditTextColor};margin-top:4px;font-weight:300;">${card.audit}</p>
                        </div>`
                     : '';
 
                 const bulletsHtml = card.bullets.map((b, i) => 
                     `<li style="display:flex;gap:10px;align-items:flex-start;">
-                        <span style="color:${c.text};font-family:'Montserrat';font-weight:600;font-size:11px;margin-top:2px;flex-shrink:0;">0${i+1}</span>
-                        <span style="color:rgba(255,255,255,0.6);font-size:14px;font-weight:300;line-height:1.6;">${b}</span>
+                        <span style="color:${light ? '#007970' : c.text};font-family:'Montserrat';font-weight:600;font-size:11px;margin-top:2px;flex-shrink:0;">0${i+1}</span>
+                        <span style="color:${bulletColor};font-size:14px;font-weight:300;line-height:1.6;">${b}</span>
                     </li>`
                 ).join('');
 
                 grid.innerHTML += `
-                    <div class="card-row animate-glitch" style="animation-delay:${delay}ms;opacity:0;padding:24px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.01);backdrop-filter:blur(12px);border-radius:12px;position:relative;overflow:hidden;">
-                        <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${c.text};box-shadow:0 0 12px ${c.text};"></div>
+                    <div class="card-row animate-glitch" style="animation-delay:${delay}ms;opacity:0;padding:24px;${cardBg}border-radius:12px;position:relative;overflow:hidden;">
+                        <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:${light ? '#007970' : c.text};box-shadow:0 0 12px ${light ? '#007970' : c.text};"></div>
                         
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                             <div style="display:flex;align-items:center;gap:12px;">
-                                <span style="font-family:'Montserrat';font-weight:700;font-size:20px;color:rgba(255,255,255,0.12);">${String(card.id).padStart(2,'0')}</span>
+                                <span style="font-family:'Montserrat';font-weight:700;font-size:20px;color:${numColor};">${String(card.id).padStart(2,'0')}</span>
                                 <div class="section-chip" style="background:${c.bg};color:${c.text};border-color:${c.border};">
                                     <div style="width:6px;height:6px;border-radius:50%;background:${c.text};"></div>
                                     ${card.section}
@@ -214,9 +284,9 @@
                             </div>
                         </div>
 
-                        <h3 style="font-family:'Montserrat';font-weight:600;font-size:18px;color:white;margin-bottom:8px;">${card.title}</h3>
+                        <h3 style="font-family:'Montserrat';font-weight:600;font-size:18px;color:${titleColor};margin-bottom:8px;">${card.title}</h3>
                         
-                        <p style="font-size:14px;color:rgba(255,255,255,0.45);font-weight:300;margin-bottom:16px;padding-left:16px;border-left:2px solid ${c.border};">${card.objective}</p>
+                        <p style="font-size:14px;color:${objColor};font-weight:300;margin-bottom:16px;padding-left:16px;border-left:2px solid ${c.border};">${card.objective}</p>
 
                         <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;">
                             ${bulletsHtml}

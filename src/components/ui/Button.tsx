@@ -15,7 +15,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   primary:
     'bg-brand-orange text-white border border-brand-orange hover:bg-brand-orange/90 shadow-[0_8px_16px_rgba(199,70,1,0.2)]',
   secondary: 'bg-white/10 text-white border border-white/10 hover:bg-white/20 backdrop-blur-sm',
-  ghost: 'bg-transparent text-white/70 border border-white/10 hover:bg-white/5 hover:text-white',
+  ghost: 'bg-transparent border border-transparent',
 }
 
 export const Button = ({

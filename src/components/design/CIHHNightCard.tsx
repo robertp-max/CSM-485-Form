@@ -1,0 +1,326 @@
+import React, { useState } from 'react';
+import {
+  Play, Pause, Square, RotateCcw, Swords,
+  ArrowRight, ArrowLeft, CheckCircle2, XCircle,
+  ShieldCheck, FileText, Activity, Check
+} from 'lucide-react';
+
+const StyleInjector = () => (
+  <style>
+    {`
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap');
+
+      .font-heading { font-family: 'Montserrat', sans-serif; }
+      .font-body { font-family: 'Roboto', sans-serif; }
+
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: #001A1A; }
+      ::-webkit-scrollbar-thumb { background: #004142; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #007970; }
+
+      .glow-orange { box-shadow: 0 0 24px -4px rgba(199, 70, 1, 0.6); }
+      .glow-teal { box-shadow: 0 0 24px -4px rgba(100, 244, 245, 0.4); }
+
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-slide-up { animation: slideUp 0.4s ease-out forwards; }
+    `}
+  </style>
+);
+
+const debugMode = true;
+import { TRAINING_CARDS } from '../../data/trainingCards';
+
+const mapCardFromTraining = (c: any) => ({
+  title: c.title,
+  section: c.section ?? '',
+  objective: c.objective ?? '',
+  bullets: c.bullets ?? [],
+  additional: c.auditFocus ?? '',
+  challenge: [
+    c.bullets?.[0] ?? c.objective ?? 'Select the most defensible response.',
+    c.bullets?.[1] ?? 'Use a generic template statement without patient-specific details.',
+    c.bullets?.[2] ?? 'Delay documentation updates until episode end.',
+  ],
+});
+
+const cards = [
+  ...TRAINING_CARDS.map(mapCardFromTraining),
+  { title: 'Completion', final: true },
+];
+
+export default function CIHHNightCard() {
+  const [cardIndex, setCardIndex] = useState(0);
+  const [panelMode, setPanelMode] = useState('main');
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('QA mode bypasses locks');
+
+  const card = cards[cardIndex] as any;
+
+  const handleNext = () => {
+    if (!card.final && panelMode === 'main') {
+      setPanelMode('additional');
+    } else if (!card.final && panelMode === 'additional') {
+      setPanelMode('challenge');
+    } else if (cardIndex < cards.length - 1) {
+      setCardIndex(cardIndex + 1);
+      setPanelMode('main');
+      setSelectedAnswer(null);
+      setIsSubmitted(false);
+      setStatusMsg('QA mode bypasses locks');
+    }
+  };
+
+  const handleBack = () => {
+    if (panelMode === 'challenge') {
+      setPanelMode('additional');
+      setIsSubmitted(false);
+      setSelectedAnswer(null);
+    } else if (panelMode === 'additional') {
+      setPanelMode('main');
+    } else if (cardIndex > 0) {
+      setCardIndex(cardIndex - 1);
+      setPanelMode('main');
+      setSelectedAnswer(null);
+      setIsSubmitted(false);
+    }
+  };
+
+  const handleSubmitChallenge = () => {
+    if (selectedAnswer !== null) setIsSubmitted(true);
+  };
+
+  const isCorrect = selectedAnswer === 0;
+
+  return (
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_#004142_0%,_#001A1A_80%)] text-[#FAFBF8] font-body p-4 md:p-8 flex items-center justify-center relative overflow-hidden">
+      <StyleInjector />
+
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#C74601] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.25] animate-pulse pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#E56E2E] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.20] pointer-events-none"></div>
+
+      {debugMode && (
+        <div className="absolute top-6 right-6 flex items-center gap-2 bg-[#C74601]/20 border border-[#C74601]/50 text-[#FFD5BF] px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase backdrop-blur-md shadow-lg z-50">
+          <ShieldCheck className="w-4 h-4" /> QA: ON (Debug)
+        </div>
+      )}
+
+      <div className="w-full max-w-5xl bg-[#031213]/95 backdrop-blur-xl border border-[#007970]/40 rounded-[32px] shadow-[0_24px_60px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col relative z-10">
+        <header className="px-8 pt-8 pb-4 flex justify-between items-end border-b border-[#007970]/30">
+          <div>
+            <p className="text-[#64F4F5] font-bold text-sm tracking-widest uppercase mb-2 flex items-center gap-2">
+              <FileText className="w-4 h-4" /> CMS-485 Designer
+            </p>
+            <div className="font-heading text-4xl font-bold text-white tracking-tight">
+              {cardIndex + 1} <span className="text-[#64F4F5]/60 text-2xl">/ {cards.length}</span>
+            </div>
+          </div>
+          <img
+            className="h-10 w-auto object-contain opacity-90"
+            src="https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png"
+            alt="CareIndeed Logo"
+          />
+        </header>
+
+        <div className="px-8 py-4 flex gap-3">
+          {cards.map((_, i) => (
+            <div
+              key={i}
+              className={`h-2 rounded-full transition-all duration-500 ${
+                i === cardIndex
+                  ? 'w-12 bg-[#C74601] glow-orange'
+                  : i < cardIndex
+                    ? 'w-6 bg-[#C74601]/40'
+                    : 'w-2 bg-[#004142]'
+              }`}
+            />
+          ))}
+        </div>
+
+        <section className="p-8 min-h-[460px] flex flex-col">
+          <div key={`${cardIndex}-${panelMode}`} className="animate-slide-up flex-1 flex flex-col">
+
+            {card.final ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
+                <div className="w-24 h-24 rounded-full bg-[#C74601]/20 flex items-center justify-center glow-orange mb-4">
+                  <Check className="w-12 h-12 text-[#FFD5BF]" />
+                </div>
+                <h1 className="font-heading text-4xl font-bold text-white">Course Complete</h1>
+                <p className="text-[#D9D6D5] max-w-md text-lg font-light">
+                  You have successfully completed the sample flow. Excellent work mastering the CMS-485 foundations.
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="text-[#FFD5BF] text-xs font-bold tracking-widest uppercase mb-3">
+                  {card.section} • {panelMode.toUpperCase()}
+                </p>
+                <h1 className="font-heading text-3xl md:text-4xl font-bold text-white mb-8 leading-tight">
+                  {card.title}
+                </h1>
+
+                {panelMode === 'challenge' ? (
+                  <div className="flex-1 max-w-3xl">
+                    <p className="text-[#D9D6D5] mb-6 text-lg">Which response best aligns with this card's objective?</p>
+                    <div className="space-y-3">
+                      {card.challenge.map((c: string, i: number) => {
+                        const isSelected = selectedAnswer === i;
+                        const showCorrect = isSubmitted && isSelected && isCorrect;
+                        const showWrong = isSubmitted && isSelected && !isCorrect;
+
+                        return (
+                          <button
+                            key={i}
+                            disabled={isSubmitted}
+                            onClick={() => setSelectedAnswer(i)}
+                            className={`w-full text-left p-5 rounded-[16px] border transition-all duration-300 flex items-start gap-4 ${
+                              showCorrect ? 'bg-[#64F4F5]/10 border-[#64F4F5] glow-teal' :
+                              showWrong ? 'bg-[#D70101]/10 border-[#D70101]' :
+                              isSelected ? 'bg-[#007970]/30 border-[#C74601]' :
+                              'bg-[#002B2C]/40 border-[#007970]/30 hover:border-[#64F4F5]/70 hover:bg-[#004142]/60'
+                            }`}
+                          >
+                            <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                              showCorrect ? 'border-[#64F4F5] text-[#64F4F5]' :
+                              showWrong ? 'border-[#D70101] text-[#D70101]' :
+                              isSelected ? 'border-[#C74601] bg-[#C74601]' : 'border-[#64F4F5]/50'
+                            }`}>
+                              {showCorrect && <CheckCircle2 className="w-4 h-4" />}
+                              {showWrong && <XCircle className="w-4 h-4" />}
+                            </div>
+                            <span className={`text-[15px] leading-relaxed ${
+                              showCorrect ? 'text-[#64F4F5] font-medium' :
+                              showWrong ? 'text-[#FBE6E6]' :
+                              isSelected ? 'text-white' : 'text-[#D9D6D5]'
+                            }`}>
+                              {c}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-8 flex items-center justify-between">
+                      <button
+                        onClick={handleSubmitChallenge}
+                        disabled={selectedAnswer === null || isSubmitted}
+                        className={`px-8 py-3 rounded-[12px] font-bold tracking-wide transition-all duration-300 ${
+                          selectedAnswer !== null && !isSubmitted
+                            ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] glow-orange hover:-translate-y-0.5'
+                            : 'bg-[#002B2C] text-[#007970] cursor-not-allowed border border-[#004142]'
+                        }`}
+                      >
+                        Submit Answer
+                      </button>
+
+                      {isSubmitted && (
+                        <p className={`font-bold animate-slide-up flex items-center gap-2 ${isCorrect ? 'text-[#64F4F5]' : 'text-[#FBE6E6]'}`}>
+                          {isCorrect ? <><CheckCircle2 className="w-5 h-5"/> Correct — great job.</> : <><XCircle className="w-5 h-5"/> Try again — focus on defensible actions.</>}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : panelMode === 'additional' ? (
+                  <div className="bg-[#002B2C]/60 border border-[#007970]/40 rounded-[24px] p-8 shadow-inner">
+                    <h2 className="text-[#64F4F5] font-heading font-bold text-xl mb-4 flex items-center gap-2">
+                      <Activity className="w-5 h-5" /> Additional Subject Content
+                    </h2>
+                    <p className="text-[#FAFBF8] text-lg leading-relaxed">{card.additional}</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-6 h-full">
+                    <div className="bg-[#002B2C]/60 border border-[#007970]/40 rounded-[24px] p-6 shadow-inner">
+                      <h2 className="text-[#64F4F5] font-heading font-bold text-lg mb-2">Learning Objective</h2>
+                      <p className="text-white text-lg">{card.objective}</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+                      <div className="bg-[#020C0D] border border-[#007970]/40 rounded-[24px] p-6 shadow-inner">
+                        <h2 className="text-[#64F4F5] font-heading font-bold text-sm uppercase tracking-widest mb-4 border-b border-[#004142] pb-2">Key Points</h2>
+                        <ul className="space-y-3">
+                          {card.bullets.map((b: string, i: number) => (
+                            <li key={i} className="flex items-start gap-3 text-[#FAFBF8]">
+                              <span className="text-[#C74601] mt-1">•</span> {b}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="bg-gradient-to-br from-[#C74601]/10 to-[#020C0D] border border-[#C74601]/40 rounded-[24px] p-6 shadow-inner">
+                        <h2 className="text-[#C74601] font-heading font-bold text-sm uppercase tracking-widest mb-4 border-b border-[#C74601]/20 pb-2">Clinical Lens</h2>
+                        <p className="text-[#FAFBF8] leading-relaxed">Translate this concept into clear, patient-specific, defensible documentation language.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </section>
+
+        <footer className="px-8 py-6 bg-[#010809] border-t border-[#007970]/40 flex flex-wrap gap-4 items-center justify-between">
+
+          <button
+            onClick={handleBack}
+            disabled={cardIndex === 0 && panelMode === 'main'}
+            className="flex items-center gap-2 text-[#D9D6D5] hover:text-white font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" /> Back
+          </button>
+
+          {!card.final && (
+            <div className="flex flex-col items-center">
+              <div className="flex gap-2 p-1.5 bg-[#002B2C]/50 rounded-full border border-[#007970]/40 shadow-inner">
+                {panelMode === 'main' ? (
+                  <button
+                    onClick={() => { setPanelMode('additional'); setStatusMsg('Playing recording (debug)'); }}
+                    className="flex items-center gap-2 px-6 py-2 rounded-full bg-[#031213] text-[#64F4F5] hover:text-[#FFD5BF] border border-[#007970]/50 hover:border-[#C74601] transition-all font-medium text-sm"
+                  >
+                    <Play className="w-4 h-4 fill-current" /> PLAY AUDIO
+                  </button>
+                ) : (
+                  <>
+                    {['Pause', 'Stop', 'Restart'].map(action => {
+                      const Icon = action === 'Pause' ? Pause : action === 'Stop' ? Square : RotateCcw;
+                      return (
+                        <button
+                          key={action}
+                          onClick={() => setStatusMsg(`${action} clicked (debug)`)}
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-[#64F4F5] hover:bg-[#007970] hover:text-white transition-colors"
+                          title={action}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </button>
+                      );
+                    })}
+                    <button
+                      onClick={() => setPanelMode('challenge')}
+                      disabled={!debugMode}
+                      className="flex items-center gap-2 px-4 py-2 ml-2 rounded-full bg-[#C74601]/10 text-[#C74601] hover:bg-[#C74601] hover:text-white border border-[#C74601]/50 transition-all font-medium text-sm disabled:opacity-30"
+                    >
+                      <Swords className="w-4 h-4" /> CHALLENGE
+                    </button>
+                  </>
+                )}
+              </div>
+              <span className="text-[10px] text-[#64F4F5] font-bold tracking-widest uppercase mt-2">
+                {statusMsg}
+              </span>
+            </div>
+          )}
+
+          <button
+            onClick={handleNext}
+            className="flex items-center gap-2 px-6 py-3 bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold rounded-[12px] glow-orange transform hover:-translate-y-0.5 transition-all disabled:opacity-50"
+          >
+            {card.final ? 'Finish' : 'Next'} <ArrowRight className="w-5 h-5" />
+          </button>
+
+        </footer>
+      </div>
+    </div>
+  );
+}

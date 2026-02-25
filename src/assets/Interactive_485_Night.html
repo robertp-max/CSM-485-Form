@@ -1,0 +1,845 @@
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { 
+  AlertTriangle, ArrowLeft, CheckCircle2, 
+  Heart, Home, Info, ShieldAlert, Trophy, X, XCircle, FileText,
+  RotateCcw, BookOpen, Presentation, Search, LayoutTemplate,
+  ChevronRight, Pointer
+} from 'lucide-react';
+
+// --- 1. PREMIUM STYLES & FONTS (NIGHT MODE) ---
+const StyleInjector = () => (
+  <style>
+    {`
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap');
+      
+      .font-heading { font-family: 'Montserrat', sans-serif; }
+      .font-body { font-family: 'Roboto', sans-serif; }
+      
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: #010809; }
+      ::-webkit-scrollbar-thumb { background: #004142; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #007970; }
+
+      .glow-orange { box-shadow: 0 0 24px -4px rgba(199, 70, 1, 0.6); }
+      .glow-teal { box-shadow: 0 0 24px -4px rgba(100, 244, 245, 0.4); }
+      .glow-active-field { box-shadow: 0 0 0 3px rgba(100, 244, 245, 0.3); }
+      
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      
+      /* Form specific resets */
+      .cms-input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        outline: none;
+        resize: none;
+        font-family: 'Roboto', sans-serif;
+        color: #FAFBF8; /* White text for dark mode */
+      }
+      .cms-input:focus { background: rgba(100, 244, 245, 0.05); }
+      
+      /* Standard CMS-485 Borders (Night Mode) */
+      .cms-border { border-color: #004142; }
+    `}
+  </style>
+);
+
+// --- EXPANDABLE CARD COMPONENT (NIGHT MODE) ---
+const ExpandableCard = ({ title, content, defaultOpen = false }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <div className="bg-[#031213] rounded-[12px] border border-[#004142] shadow-sm overflow-hidden transition-all duration-300">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 bg-[#031213] hover:bg-[#002B2C]/50 transition-colors focus:outline-none"
+      >
+        <h4 className="font-heading font-bold text-sm text-[#64F4F5] flex items-center gap-2">
+          <BookOpen className="w-4 h-4" /> {title}
+        </h4>
+        <ChevronRight className={`w-4 h-4 text-[#D9D6D5] transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`} />
+      </button>
+      <div 
+        className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}
+      >
+        <div className="p-4 border-t border-[#004142] bg-[#010809] text-sm text-[#D9D6D5] leading-relaxed font-light">
+          {content}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- 2. CHALLENGE DATA ---
+const HENDERSON_NARRATIVE = {
+  vitals: {
+    bloodSugar: '342 mg/dL',
+    heartRate: '48 bpm (Ashen)',
+    bloodPressure: '158/92',
+    leftLeg: 'Cold, Pulseless'
+  },
+  environmentalRisks: [
+    'Unsecured/loaded firearm on nightstand',
+    'Power is currently out',
+    'Insulin stored in warm temperatures',
+    'Primary caregiver (daughter) has quit'
+  ],
+  sections: [
+    {
+      title: 'Clinical Evaluation Narrative',
+      content: 'Upon arrival for the initial assessment, the clinical environment was immediately compromised by the presence of a loaded handgun on the nightstand, requiring immediate tactical communication to establish a safe perimeter before the secondary stabilization phase could begin. The patient presents as significantly ashen and diaphoretic with a documented bradycardia of HR 48, yet due to profound diabetic peripheral neuropathy, he denies the typical chest pressure associated with myocardial infarction, though the clinical "silent" presentation suggests a 911 transfer is the only viable path forward despite the urgency of the Wagner Grade 3 great toe ulcer which currently probes to the bone.'
+    },
+    {
+      title: 'Physician Coordination',
+      content: 'Regarding the coordination of care and the prospective visit schedule, the primary clinician determined that while the standard stabilization typically requires oversight for the first 72 hours, the daughter’s sudden refusal to provide support necessitates that this initial daily oversight be the top priority for those three days in week one. Following this stabilization, the plan dictates that the clinician will down-regulate to a twice-weekly cadence for the three remaining weeks of the first month to monitor for osteomyelitis. The second month of the certification period is slated to transition to a standard once-weekly frequency for the final four weeks. Physical Therapy remains sidelined by a mandated 48-hour vascular hold pending a consult for the pulseless left leg; thereafter, the therapist\'s intent is to conduct visits twice a week for a duration of three weeks, subsequently tapering to a once-weekly frequency for the final two weeks to finalize the safety and home exercise program.'
+    }
+  ]
+};
+
+// All Contextual Chips + Hidden Remediation Notes
+const ANSWER_CHIPS = [
+  // BOX 11
+  { id: '11-1', boxId: 'box-11', label: 'E11.621 (Type 2 DM w/ foot ulcer)' },
+  { id: '11-2', boxId: 'box-11', label: 'L97.511 (Non-pressure chronic ulcer of right foot, limited to skin)', trapNote: 'Ignores the diabetes.' },
+  { id: '11-3', boxId: 'box-11', label: 'L03.115 (Cellulitis of right lower limb)', trapNote: 'Symptom, not primary cause.' },
+  { id: '11-4', boxId: 'box-11', label: 'I70.202 (Atherosclerosis of native arteries of L leg w/ ulcer)', trapNote: 'Ischemia is a secondary dx here.' },
+  { id: '11-5', boxId: 'box-11', label: 'E11.9 (Type 2 DM without complications)', trapNote: 'Incorrectly labels as uncomplicated.' },
+  { id: '11-6', boxId: 'box-11', label: 'I73.9 (Peripheral vascular disease, unspecified)', trapNote: 'Too vague for high-acuity billing.' },
+  { id: '11-7', boxId: 'box-11', label: 'R00.1 (Bradycardia, unspecified)', trapNote: 'Acute symptom, not home health primary.' },
+  { id: '11-8', boxId: 'box-11', label: 'M86.171 (Other acute osteomyelitis, right ankle and foot)', trapNote: 'Requires clinical confirmation/X-ray first.' },
+  { id: '11-9', boxId: 'box-11', label: 'Z47.89 (Other orthopaedic aftercare)', trapNote: 'Used for post-op, not chronic ulcers.' },
+  { id: '11-10', boxId: 'box-11', label: 'L98.491 (Non-pressure chronic ulcer of skin, unspecified)', trapNote: '"Unspecified" is an audit red flag.' },
+  
+  // BOX 15
+  { id: '15-1', boxId: 'box-15', label: 'Endurance, Ambulation, LOPS (Loss of Protective Sensation)' },
+  { id: '15-2', boxId: 'box-15', label: 'Total Assist for ADLs, Bedbound, Speech Impairment', trapNote: 'Overstates acuity; patient is chair-bound, not bedbound.' },
+  { id: '15-3', boxId: 'box-15', label: 'Legally Blind, Hearing Impairment, Paralysis', trapNote: 'Not supported by the evaluation.' },
+  { id: '15-4', boxId: 'box-15', label: 'Dyspnea with Minimal Exertion, Orthostatic Hypotension', trapNote: 'Clinically true but misses the neurological component.' },
+  { id: '15-5', boxId: 'box-15', label: 'Contracture, Amputation Risk, Bowel/Bladder Incontinence', trapNote: 'Plausible but lacks specific primary evidence.' },
+  { id: '15-6', boxId: 'box-15', label: 'Cognitive Impairment, Memory Loss, Disorientation', trapNote: 'Confusion is secondary to the cardiac/metabolic crisis.' },
+  { id: '15-7', boxId: 'box-15', label: 'Severe Pain, Joint Stiffness, Limited Range of Motion', trapNote: 'Neuropathy often masks pain in Grade 3 ulcers.' },
+  { id: '15-8', boxId: 'box-15', label: 'Fragile Skin, Decubitus Ulcer Risk, Poor Nutritional Status', trapNote: 'General "Catch-all" used incorrectly.' },
+  { id: '15-9', boxId: 'box-15', label: 'Profound Generalized Weakness and Fatigue Only', trapNote: 'Not specific enough for Box 15.' },
+  { id: '15-10', boxId: 'box-15', label: 'Dependent on Oxygen, Wheelchair Bound, Aphasia', trapNote: 'Irrelevant clinical data.' },
+
+  // BOX 18
+  { id: '18-1', boxId: 'box-18', label: 'Cleanse w/ NS, apply Collagen, cover foam; notify MD of Wagner 3 & request X-ray' },
+  { id: '18-2', boxId: 'box-18', label: 'Cleanse w/ Betadine, apply dry sterile dressing, change every 3 days', trapNote: 'Betadine is cytotoxic; too infrequent.' },
+  { id: '18-3', boxId: 'box-18', label: 'Soak foot in Epsom salts 15 mins daily; apply OTC antibiotic ointment', trapNote: 'Soaking is strictly contraindicated for diabetics.' },
+  { id: '18-4', boxId: 'box-18', label: 'Apply Silver Sulfadiazine cream and leave open to air to promote drying', trapNote: 'Wounds need moisture balance, not drying.' },
+  { id: '18-5', boxId: 'box-18', label: 'Cleanse w/ Hydrogen Peroxide and pack with wet-to-dry gauze BID', trapNote: 'Peroxide damages healthy tissue; wet-to-dry is outdated.' },
+  { id: '18-6', boxId: 'box-18', label: 'Apply Hydrogel and instruct patient on autolytic debridement daily', trapNote: 'Too passive for a bone-involved infection.' },
+  { id: '18-7', boxId: 'box-18', label: 'Enforce bedrest; wrap foot in heating pad to increase circulation', trapNote: 'Heating pads cause burns in neuropathy patients.' },
+  { id: '18-8', boxId: 'box-18', label: 'Apply Honey-based dressing and check pulse once weekly', trapNote: 'Pulse must be checked daily in ischemia cases.' },
+  { id: '18-9', boxId: 'box-18', label: 'Irrigate wound with Dakin’s solution and apply pressure dressing', trapNote: 'Too aggressive; Dakin\'s is for specific necrotic cases.' },
+  { id: '18-10', boxId: 'box-18', label: 'Debride yellow slough at bedside with surgical blade; apply gauze', trapNote: 'Debridement requires a specific order/specialist.' },
+
+  // BOX 21
+  { id: '21-1', boxId: 'box-21', label: 'SN: 3w1, 2w3, 1w4 | PT: 2w3, 1w2' },
+  { id: '21-2', boxId: 'box-21', label: 'SN: 7w1, 2w3, 1w4 | PT: 2w3, 1w2', trapNote: 'Interprets "daily oversight" as 7 days.' },
+  { id: '21-3', boxId: 'box-21', label: 'SN: 3w1, 2w7 | PT: 1w5', trapNote: 'Miscalculates the tapering of care.' },
+  { id: '21-4', boxId: 'box-21', label: 'SN: 1w9 | PT: 2w5', trapNote: 'Too low for acute Wagner Grade 3.' },
+  { id: '21-5', boxId: 'box-21', label: 'SN: 5w1, 3w3, 2w5 | PT: 3w2, 1w3', trapNote: 'Over-utilization of resources.' },
+  { id: '21-6', boxId: 'box-21', label: 'SN: 3w1, 2w3, 1w4 | PT: 1w1, 2w4', trapNote: 'Incorrectly adds a standalone Eval week for PT.' },
+  { id: '21-7', boxId: 'box-21', label: 'SN: 7w1, 1w8 | PT: 2w5', trapNote: 'Misses the second-month taper.' },
+  { id: '21-8', boxId: 'box-21', label: 'SN: 3w1, 1w8 | PT: 2w3, 1w2', trapNote: 'Drops to 1w too early in month one.' },
+  { id: '21-9', boxId: 'box-21', label: 'SN: 2w4, 1w5 | PT: 2w4, 1w5', trapNote: 'Standard protocol that ignores the 72h stabilization.' },
+  { id: '21-10', boxId: 'box-21', label: 'SN: 4w1, 2w8 | PT: 2w8', trapNote: 'Random numbers that don\'t match the narrative.' },
+
+  // BOX 24
+  { id: '24-1', boxId: 'box-24', label: 'Establish safe environment: secure firearm, initiate 911 transfer for HR 48' },
+  { id: '24-2', boxId: 'box-24', label: 'Instruct daughter on wound care techniques and dressing changes', trapNote: 'Ignores that the daughter has quit.' },
+  { id: '24-3', boxId: 'box-24', label: 'Provide educational pamphlets on low-sodium diets and foot care', trapNote: '"Fluff" that ignores the cardiac crisis.' },
+  { id: '24-4', boxId: 'box-24', label: 'Install grab bars and non-slip mats in the bathroom immediately', trapNote: 'Good, but not the priority over the heart rate.' },
+  { id: '24-5', boxId: 'box-24', label: 'Arrange for Meals-on-Wheels to address the power outage/nutrition', trapNote: 'Social need, not an emergency action.' },
+  { id: '24-6', boxId: 'box-24', label: 'Request Physical Therapy evaluation for home exercise program', trapNote: 'Already ordered; not an "emergency" action.' },
+  { id: '24-7', boxId: 'box-24', label: 'Obtain consent for diabetic foot care and daily weights', trapNote: 'Basic care, not emergency stabilization.' },
+  { id: '24-8', boxId: 'box-24', label: 'Instruct patient to keep legs elevated at 45 degrees while sleeping', trapNote: 'Dangerous if ischemia is present (reduces flow).' },
+  { id: '24-9', boxId: 'box-24', label: 'Perform medication reconciliation and remove expired pills', trapNote: 'Necessary, but secondary to the 911/Firearm risk.' },
+  { id: '24-10', boxId: 'box-24', label: 'Mark the border of the erythema with a surgical pen and monitor', trapNote: 'Good nursing, but ignores the "Silent MI" risk.' },
+];
+
+const HENDERSON_BOXES = [
+  {
+    id: 'box-11',
+    label: '11. Principal Diagnosis',
+    correctChipId: '11-1',
+    tooltipWhy: 'CMS requires the primary diagnosis to be the root condition requiring oversight, not just the superficial symptom.',
+    validationAffirmation: 'Excellent! You prioritized the metabolic cause over the superficial symptoms. Coding Diabetes with Foot Ulcer justifies high-acuity skilled nursing.'
+  },
+  {
+    id: 'box-15',
+    label: '15. Functional Limitations',
+    correctChipId: '15-1',
+    tooltipWhy: 'Why did the wound get so bad? The patient cannot feel their feet.',
+    validationAffirmation: 'Spot on. Identifying LOPS (Loss of Protective Sensation) justifies the need for advanced skilled teaching on foot inspections.'
+  },
+  {
+    id: 'box-18',
+    label: '18. Skilled Nursing Orders',
+    correctChipId: '18-1',
+    tooltipWhy: 'Probe-to-bone is a major red flag indicating suspected osteomyelitis.',
+    validationAffirmation: 'Critical catch! You didn\'t just "clean a wound"; you identified a medical emergency and escalated for an X-ray to save the limb.'
+  },
+  {
+    id: 'box-21',
+    label: '21. Visit Frequency',
+    correctChipId: '21-1',
+    tooltipWhy: '72 hours = 3 days. Month 1 has 4 weeks. Month 2 has 4 weeks.',
+    validationAffirmation: 'Spot-on calculation! You navigated the "Stabilization Trap" perfectly. 72 hours is 3w1, not 7w1.'
+  },
+  {
+    id: 'box-24',
+    label: '24. Safety / Emergency Actions',
+    correctChipId: '24-1',
+    tooltipWhy: 'Safety and life-stabilization always precede wound healing.',
+    validationAffirmation: 'Master-Level Priority! You recognized that clinical care cannot occur in a vacuum of danger. Safety first.'
+  }
+];
+
+// --- 3. MAIN COMPONENT ---
+export default function InteractiveAppNight() {
+  const [activeTab, setActiveTab] = useState('COVER'); 
+  
+  // Challenge State
+  const [placements, setPlacements] = useState({});
+  const [activeField, setActiveField] = useState(null); // Tracks which box is clicked to show options
+  const [tooltipBox, setTooltipBox] = useState(null);
+  const [submissionResult, setSubmissionResult] = useState(null);
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const [safetyPlacedOrder, setSafetyPlacedOrder] = useState([]);
+  
+  const optionsRef = useRef(null);
+
+  // Derived Data
+  const currentOptions = useMemo(() => {
+    if (!activeField) return [];
+    // Shuffle options for the active field so the answer isn't always top
+    return [...ANSWER_CHIPS.filter(c => c.boxId === activeField)].sort(() => Math.random() - 0.5);
+  }, [activeField]);
+
+  const handleBoxClick = (boxId) => {
+    if (submissionResult) return;
+    setActiveField(boxId);
+    // Smooth scroll to options bank
+    setTimeout(() => {
+      optionsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+  };
+
+  const handleOptionSelect = (chipId) => {
+    setPlacements(prev => ({ ...prev, [activeField]: chipId }));
+    setSafetyPlacedOrder(prev => [...prev.filter(b => b !== activeField), activeField]);
+    setActiveField(null); // Close the option bank after selection
+  };
+
+  const removeChip = useCallback((e, boxId) => {
+    e.stopPropagation();
+    if (submissionResult) return;
+    setPlacements(prev => {
+      const next = { ...prev };
+      delete next[boxId];
+      return next;
+    });
+    setSafetyPlacedOrder(prev => prev.filter(b => b !== boxId));
+    if (activeField === boxId) setActiveField(null);
+  }, [submissionResult, activeField]);
+
+  const handleSubmit = useCallback(() => {
+    const correct = [];
+    const incorrect = [];
+
+    HENDERSON_BOXES.forEach(box => {
+      if (placements[box.id] === box.correctChipId) correct.push(box.id);
+      else incorrect.push(box.id);
+    });
+
+    const safetyIdx = safetyPlacedOrder.indexOf('box-24');
+    const woundIdx = safetyPlacedOrder.indexOf('box-18');
+    const safetyFirst = safetyIdx >= 0 && (woundIdx < 0 || safetyIdx < woundIdx);
+
+    setSubmissionResult({ correct, incorrect, safetyFirst });
+    setActiveField(null);
+    
+    if (correct.length === HENDERSON_BOXES.length && safetyFirst) {
+      setShowBreakdown(true);
+    }
+  }, [placements, safetyPlacedOrder]);
+
+  const handleReset = () => {
+    setPlacements({});
+    setSubmissionResult(null);
+    setShowBreakdown(false);
+    setSafetyPlacedOrder([]);
+    setActiveField(null);
+  };
+
+  const allBoxesFilled = HENDERSON_BOXES.every(b => placements[b.id]);
+  const showCrisisWarning = allBoxesFilled && !placements['box-24'];
+
+  // --- RENDER MODAL ---
+  if (showBreakdown && submissionResult) {
+    return (
+      <div className="min-h-screen bg-[#010809] text-[#FAFBF8] font-body flex items-center justify-center p-6">
+        <StyleInjector />
+        <div className="bg-[#031213] max-w-4xl w-full rounded-[32px] border border-[#004142] shadow-2xl p-10 lg:p-16 animate-slide-up relative overflow-hidden">
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#007970] rounded-full mix-blend-screen filter blur-[120px] opacity-20 pointer-events-none z-0"></div>
+          <div className="relative z-10">
+            <div className="text-center mb-12">
+              <div className="w-24 h-24 rounded-full bg-[#004142] flex items-center justify-center mx-auto mb-6 glow-teal">
+                <Trophy className="h-12 w-12 text-[#64F4F5]" />
+              </div>
+              <h1 className="font-heading text-4xl lg:text-5xl font-bold text-white mb-4">CareIndeed Clinical Master</h1>
+              <p className="text-[#D9D6D5] text-lg">You successfully completed the Henderson Challenge with 100% accuracy.</p>
+            </div>
+
+            <div className="space-y-6">
+              {HENDERSON_BOXES.map((box) => (
+                <div key={box.id} className="rounded-[20px] border border-[#004142] bg-[#010809] p-6 shadow-sm">
+                  <h3 className="font-heading text-lg font-bold text-[#64F4F5] mb-2">{box.label}</h3>
+                  <p className="text-[#FAFBF8] leading-relaxed font-light">{box.validationAffirmation}</p>
+                </div>
+              ))}
+
+              {submissionResult.safetyFirst && (
+                <div className="rounded-[20px] border border-[#C74601] bg-[#C74601]/10 p-8 shadow-md">
+                  <h3 className="font-heading text-xl font-bold text-[#FFD5BF] mb-3 flex items-center gap-2">
+                    <ShieldAlert className="h-6 w-6 text-[#C74601]" /> The Priority Task: 911/Safety First
+                  </h3>
+                  <p className="text-white leading-relaxed font-medium">
+                    Master-Level Priority! You recognized that clinical care cannot occur in a vacuum of danger. By prioritizing the Bradycardia (Silent MI) and the unsecured firearm over the wound care, you demonstrated the most important trait of a CareIndeed clinician: Total Patient Advocacy and Safety First.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-center mt-12">
+              <button onClick={() => { handleReset(); setActiveTab('COVER'); }} className="rounded-[16px] bg-[#C74601] hover:bg-[#E56E2E] text-white px-10 py-4 font-bold text-lg tracking-wide transition-all glow-orange hover:-translate-y-1">
+                Return to Course
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- FORM RENDERER ---
+  const renderForm = () => {
+    const isReview = activeTab === 'REVIEW';
+    const isChallenge = activeTab === 'CHALLENGE';
+
+    const FormContent = ({ label, revVal, defaultVal, className = "" }) => {
+      if (isReview) return <div className={`text-xs mt-1 font-medium text-white ${className}`}>{revVal}</div>;
+      if (isChallenge) return <div className={`text-xs mt-1 text-[#004142] italic ${className}`}>[Focus on highlighted fields]</div>;
+      return <input className={`cms-input mt-1 w-full text-xs ${className}`} defaultValue={defaultVal} placeholder="Type here..." />;
+    };
+
+    const FormContentArea = ({ label, revVal, defaultVal, className = "" }) => {
+      if (isReview) return <div className={`text-xs mt-1 font-medium text-white whitespace-pre-wrap ${className}`}>{revVal}</div>;
+      if (isChallenge) return <div className={`text-xs mt-1 text-[#004142] italic ${className}`}>[Focus on highlighted fields]</div>;
+      return <textarea className={`cms-input mt-1 w-full h-full text-xs flex-1 ${className}`} defaultValue={defaultVal} placeholder="Type here..."></textarea>;
+    };
+
+    // Form Field Interaction Zone
+    const renderInteractiveField = (boxId, heightClass = "min-h-[60px]") => {
+      const box = HENDERSON_BOXES.find(b => b.id === boxId);
+      if (!box) return null;
+
+      const chipId = placements[boxId];
+      const chip = chipId ? ANSWER_CHIPS.find(c => c.id === chipId) : null;
+      
+      const isCorrect = submissionResult?.correct.includes(boxId);
+      const isIncorrect = submissionResult?.incorrect.includes(boxId);
+      const isActive = activeField === boxId;
+
+      return (
+        <div 
+          className={`w-full h-full p-2 transition-all relative flex flex-col cursor-pointer group ${heightClass} ${
+            isCorrect ? 'bg-[#007970]/20' : 
+            isIncorrect ? 'bg-[#D70101]/20' : 
+            isActive ? 'bg-[#004142]/50 border-2 border-[#64F4F5] m-[-2px] glow-active-field z-10' : 
+            'bg-[#010809] border border-[#004142] m-[2px] rounded-lg hover:border-[#007970] hover:bg-[#020C0D]'
+          }`}
+          onClick={() => handleBoxClick(boxId)}
+        >
+          <div className="flex justify-between items-start mb-1 z-10">
+            <span className={`text-[10px] font-bold ${isActive ? 'text-[#64F4F5]' : 'text-[#C74601]'}`}>{box.label}</span>
+            <button 
+              onClick={(e) => { e.stopPropagation(); setTooltipBox(tooltipBox === boxId ? null : boxId); }}
+              className="text-[#64F4F5] opacity-0 group-hover:opacity-100 hover:bg-[#004142] rounded p-0.5 transition-opacity"
+              title="Clinical Logic"
+            >
+              <Info className="h-3 w-3" />
+            </button>
+          </div>
+          
+          <div className="flex-1 flex flex-col justify-center">
+            {chip ? (
+              <div className={`flex items-center justify-between rounded-md px-2 py-1.5 border text-xs shadow-sm mt-1 z-10 ${
+                isCorrect ? 'bg-[#007970] text-white border-[#004142]' :
+                isIncorrect ? 'bg-[#D70101] text-white border-[#8e2f2f]' :
+                'bg-[#002B2C] border-[#007970] text-[#64F4F5] font-medium'
+              }`}>
+                <span className="truncate mr-2">{chip.label}</span>
+                {!submissionResult && (
+                  <button onClick={(e) => removeChip(e, boxId)} className="hover:opacity-70 flex-shrink-0 text-white">
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className={`text-[10px] text-center italic transition-colors ${isActive ? 'text-[#64F4F5] font-bold' : 'text-[#004142] group-hover:text-[#007970]'}`}>
+                {isActive ? 'Select an answer from the bank below' : 'Click to select answer'}
+              </div>
+            )}
+          </div>
+
+          {tooltipBox === boxId && (
+            <div className="absolute top-0 right-0 mt-6 mr-2 w-64 bg-[#031213] text-white text-xs p-3 rounded-lg shadow-2xl z-50 border border-[#004142]">
+              <strong className="text-[#C74601] block mb-1">CareIndeed Clinical Tip:</strong>
+              {box.tooltipWhy}
+            </div>
+          )}
+
+          {isIncorrect && chip && chip.trapNote && (
+            <div className="absolute top-full left-0 w-full mt-1 bg-[#D70101]/20 border border-[#D70101] p-2 rounded-md text-[10px] text-[#FFD5BF] z-40 shadow-lg animate-slide-up backdrop-blur-md">
+               <strong className="text-white">Review:</strong> {chip.trapNote}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    return (
+      <div className="max-w-4xl mx-auto w-full bg-[#020C0D] border-2 cms-border shadow-2xl text-[#FAFBF8] font-body relative mb-12 overflow-hidden">
+        {/* Header */}
+        <div className="bg-[#002B2C] border-b border-[#004142] text-white flex flex-col sm:flex-row justify-between p-3 font-bold">
+          <span className="text-sm md:text-base tracking-wide uppercase">Home Health Certification and Plan of Care</span>
+          <span className="text-xs md:text-sm text-[#64F4F5]">Form CMS-485</span>
+        </div>
+
+        {/* Row 1 */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 border-b cms-border bg-[#010809]">
+          <div className="border-r border-b sm:border-b-0 cms-border p-1.5 col-span-2 sm:col-span-1">
+            <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">1. Patient HI #</span>
+            <FormContent revVal="XXX-XX-XXXX-A" defaultVal="" />
+          </div>
+          <div className="border-r border-b sm:border-b-0 cms-border p-1.5">
+            <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">2. SOC Date</span>
+            <FormContent revVal="02/24/2026" defaultVal="" />
+          </div>
+          <div className="border-r cms-border p-1.5 col-span-2 sm:col-span-1">
+            <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">3. Cert Period</span>
+            <FormContent revVal="02/24/2026 - 04/23/2026" defaultVal="" />
+          </div>
+          <div className="border-r cms-border p-1.5">
+            <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">4. Medical Rec #</span>
+            <FormContent revVal="MR-2026-0485" defaultVal="" />
+          </div>
+          <div className="p-1.5">
+            <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">5. Provider #</span>
+            <FormContent revVal="10-7654" defaultVal="" />
+          </div>
+        </div>
+
+        {/* Row 2 */}
+        <div className="border-b cms-border p-2 bg-[#010809]">
+          <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">6. Patient Name, Address, DOB</span>
+          <FormContent revVal="Jane A. Sample 1234 Elm St, Sacramento, CA 95811 DOB 03/15/1942" defaultVal="" />
+        </div>
+
+        {/* Row 3 - Diagnoses */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 border-b cms-border bg-[#010809]">
+          <div className="border-r border-b sm:border-b-0 cms-border p-2 min-h-[80px]">
+            {isChallenge ? renderInteractiveField('box-11') : (
+              <>
+                <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">11. Principal DX</span>
+                <FormContentArea revVal="I50.9 Heart failure, unspecified" defaultVal="" />
+              </>
+            )}
+          </div>
+          <div className="p-2 min-h-[80px]">
+            <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">12. Other Pertinent DX</span>
+            <FormContentArea revVal={`N18.3 CKD Stage 3\nI10 Essential HTN\nE11.65 T2DM w/ hyperglycemia\nZ87.39 Hx urinary disease`} defaultVal="" />
+          </div>
+        </div>
+
+        {/* Row 4 - Functional Limits */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 border-b cms-border bg-[#010809]">
+          <div className="border-r border-b sm:border-b-0 cms-border p-2 min-h-[70px]">
+            <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">14. DME / Supplies</span>
+            <FormContentArea revVal="Rolling walker, BP cuff, Scale, Compression stockings" defaultVal="" />
+          </div>
+          <div className="border-r border-b sm:border-b-0 cms-border p-2 min-h-[70px]">
+            {isChallenge ? renderInteractiveField('box-15') : (
+              <>
+                <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">15. Functional Limits</span>
+                <FormContentArea revVal="Ambulation, Endurance, Dyspnea, Paralysis" defaultVal="" />
+              </>
+            )}
+          </div>
+          <div className="p-2 min-h-[70px]">
+            <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">16. Mental Status</span>
+            <FormContent revVal="Oriented, Confused, Depressed" defaultVal="" />
+          </div>
+        </div>
+
+        {/* Row 5 - Orders (Big Box) */}
+        <div className="border-b cms-border p-2 min-h-[100px] bg-[#010809]">
+          {isChallenge ? renderInteractiveField('box-18', 'min-h-[100px]') : (
+            <>
+              <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">18. Skilled Nursing Orders</span>
+              <FormContentArea revVal={`SN CHF monitoring, med titration, edema q visit 2x/wk x 3wk then 1x/wk x 3wk\nPT Therapeutic exercise, balance, transfers 2x/wk x 4wk\nMSW Community resources, psychosocial 1x/mo x 2mo`} defaultVal="" />
+            </>
+          )}
+        </div>
+
+        {/* Row 6 - Goals & Frequency */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 border-b cms-border bg-[#010809]">
+          <div className="border-r border-b sm:border-b-0 cms-border p-2 min-h-[80px]">
+            {isChallenge ? renderInteractiveField('box-21') : (
+              <>
+                <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">21. Visit Frequency</span>
+                <FormContentArea revVal="SN 2W31W3 PT 2W4 MSW 1M2 | Total: 19 visits" defaultVal="" />
+              </>
+            )}
+          </div>
+          <div className="p-2 min-h-[80px]">
+            <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">22. Goals / Rehab Potential</span>
+            <FormContentArea revVal={`G1: Pt verbalizes 3 CHF red flags by visit 4\nG2: Daily wt/BP log 2lb variance x 2wk\nRehab: Good D/C when goals met`} defaultVal="" />
+          </div>
+        </div>
+
+        {/* Row 7 - Safety / Behavioral */}
+        <div className="border-b cms-border p-2 min-h-[80px] bg-[#010809]">
+          {isChallenge ? renderInteractiveField('box-24') : (
+            <>
+              <span className="text-[9px] font-bold uppercase block text-[#64F4F5]">24. Safety / Behavioral</span>
+              <FormContentArea revVal="Fall precautions, trip hazards, night lighting, emergency contacts" defaultVal="" />
+            </>
+          )}
+        </div>
+
+        {/* Footer Row */}
+        <div className="grid grid-cols-2 bg-[#020C0D] p-2 text-[10px] text-[#64F4F5] border-t border-[#004142]">
+          <div>26. Signature of Physician: ______________________</div>
+          <div className="text-right">Date: __/__/____</div>
+        </div>
+      </div>
+    );
+  };
+
+  // --- RIGHT SIDEBAR RENDERER (For Review, Learn, Try It) ---
+  const renderRightSidebar = () => {
+    return (
+      <aside className="w-80 bg-[#031213] border-l border-[#004142] p-6 overflow-y-auto flex flex-col gap-6 shadow-[-4px_0_24px_rgba(0,0,0,0.4)] z-10 hidden lg:flex flex-shrink-0">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#747474]" />
+          <input 
+            type="text" 
+            placeholder="Search CMS guidelines..." 
+            className="w-full bg-[#010809] border border-[#004142] text-[#FAFBF8] rounded-[8px] py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-[#007970] focus:ring-1 focus:ring-[#007970] placeholder-[#004142]"
+          />
+        </div>
+
+        <div>
+          <div className="flex justify-between items-end mb-2">
+            <span className="text-xs text-[#D9D6D5] font-medium">Guided progress</span>
+            <span className="text-xs font-bold text-white">12%</span>
+          </div>
+          <div className="flex gap-1.5">
+            <div className="w-4 h-4 rounded-full border-2 border-[#007970] flex items-center justify-center"><div className="w-1.5 h-1.5 bg-[#007970] rounded-full"></div></div>
+            {[1,2,3,4,5,6,7].map(i => <div key={i} className="w-4 h-4 rounded-full border-2 border-[#004142]"></div>)}
+          </div>
+        </div>
+
+        <div className="border-t border-[#004142] pt-6 space-y-4">
+          <h3 className="text-[#64F4F5] font-bold text-sm leading-snug uppercase tracking-wide">Patient Identifiers & Certification Period</h3>
+          <p className="text-xs text-[#D9D6D5]">Confirm patient identity and cert dates exactly match source orders.</p>
+          
+          <div>
+            <h4 className="text-[10px] font-bold text-[#C74601] uppercase tracking-widest mb-1">Why It Matters</h4>
+            <p className="text-xs text-[#D9D6D5] leading-relaxed font-light">Identity/date mismatches break continuity, trigger claim edits, and weaken audit traceability.</p>
+          </div>
+
+          <div>
+            <h4 className="text-[10px] font-bold text-[#007970] uppercase tracking-widest mb-1">How To Complete</h4>
+            <p className="text-xs text-[#D9D6D5] leading-relaxed font-light">Use the referral/order packet and certification dates approved by the physician. Keep identifiers exact across all forms.</p>
+          </div>
+
+          <div className="bg-[#010809] p-3 rounded-lg border border-[#004142]">
+            <h4 className="text-[10px] font-bold text-[#D9D6D5] uppercase tracking-widest mb-2">Common Mistakes</h4>
+            <ul className="text-xs text-[#D9D6D5] space-y-1.5 pl-3 list-disc font-light">
+              <li>Transposed birth date or MRN</li>
+              <li>Certification dates not aligned with episode records</li>
+              <li>Nickname used instead of legal patient name</li>
+            </ul>
+          </div>
+        </div>
+
+        {activeTab === 'TRY_IT' && (
+          <div className="bg-[#C74601]/10 p-4 rounded-[12px] border border-[#C74601]/30 shadow-sm animate-slide-up">
+            <h4 className="text-[#C74601] font-bold text-[10px] uppercase tracking-widest mb-3">Try It Input</h4>
+            <label className="text-xs font-bold text-[#FFD5BF] block mb-1">Certification Start Date</label>
+            <input type="date" className="w-full bg-[#010809] border border-[#C74601]/50 text-[#FAFBF8] rounded-[6px] py-2 px-3 text-sm mb-2 focus:outline-none focus:border-[#C74601]" />
+            <p className="text-[10px] text-[#FFD5BF]/80 leading-relaxed font-light">Use the exact physician-approved certification period start date.</p>
+          </div>
+        )}
+
+        <div className="bg-[#010809] rounded-[12px] border border-[#004142] p-4 mt-auto">
+          <h4 className="font-bold text-[10px] text-[#004142] uppercase tracking-widest mb-3">Review Sections</h4>
+          <ul className="text-xs space-y-1.5 font-medium">
+            <li className="bg-[#007970]/20 text-[#64F4F5] p-2 rounded-[6px] border border-[#007970]/30">1. Patient Identifiers + Certification</li>
+            <li className="p-2 text-[#747474] hover:bg-[#002B2C] hover:text-[#D9D6D5] rounded-[6px] cursor-pointer transition-colors">2. Diagnoses</li>
+            <li className="p-2 text-[#747474] hover:bg-[#002B2C] hover:text-[#D9D6D5] rounded-[6px] cursor-pointer transition-colors">3. Orders / Skilled Services</li>
+            <li className="p-2 text-[#747474] hover:bg-[#002B2C] hover:text-[#D9D6D5] rounded-[6px] cursor-pointer transition-colors">4. Visit Frequency / Duration</li>
+            <li className="p-2 text-[#747474] hover:bg-[#002B2C] hover:text-[#D9D6D5] rounded-[6px] cursor-pointer transition-colors">5. Measurable Goals</li>
+          </ul>
+        </div>
+      </aside>
+    );
+  };
+
+  return (
+    <div className="flex flex-col h-screen w-full bg-[#010809] text-[#FAFBF8] font-body overflow-hidden">
+      <StyleInjector />
+
+      {/* --- TOP NAVBAR WITH TABS --- */}
+      <header className="bg-[#010809] border-b border-[#004142] px-6 pt-4 pb-0 flex-shrink-0 z-20 relative">
+        <div className="flex justify-between items-center mb-4 max-w-[1800px] mx-auto w-full">
+          <div>
+            <h1 className="font-heading font-bold text-xl md:text-2xl text-white leading-tight">Interactive CMS-485 Virtual Form</h1>
+            <p className="text-xs md:text-sm text-[#007970] mt-1 flex items-center gap-2">
+              Page 1 (FAQ #65 sample) <span className="text-[#004142]">|</span> <span className="text-[#D9D6D5]">Guided training + Try It simulation</span>
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-6">
+            <img 
+              className="h-8 md:h-10 w-auto object-contain hidden sm:block opacity-90" 
+              src="https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png" 
+              alt="CareIndeed Logo" 
+            />
+          </div>
+        </div>
+
+        {/* --- THE TABS BAR --- */}
+        <div className="max-w-[1800px] mx-auto w-full flex items-center justify-between border-b-2 border-transparent relative z-10">
+          <div className="flex items-center gap-1 md:gap-2 overflow-x-auto pb-[-2px]">
+            {[
+              { id: 'REVIEW', label: 'Review Mode' },
+              { id: 'LEARN', label: 'Start Learning' },
+              { id: 'TRY_IT', label: 'Try It Mode' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); handleReset(); }}
+                className={`px-4 md:px-6 py-3 text-[10px] md:text-[11px] font-bold tracking-widest uppercase transition-all whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'border-b-2 border-[#C74601] text-[#C74601] bg-[#C74601]/10'
+                    : 'border-b-2 border-transparent text-[#D9D6D5] hover:bg-[#002B2C]/50 hover:text-[#64F4F5]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setActiveTab('CHALLENGE')}
+            className={`px-6 py-2.5 mb-1 ml-4 rounded-t-[8px] text-[11px] font-bold tracking-widest uppercase transition-all flex items-center gap-2 ${
+              activeTab === 'CHALLENGE'
+                ? 'bg-[#C74601] text-white border-b-0 glow-orange'
+                : 'bg-[#031213] border border-[#004142] border-b-0 text-[#C74601] hover:bg-[#C74601]/10 hover:border-[#C74601]'
+            }`}
+          >
+            <Trophy className="w-3.5 h-3.5" /> Henderson Challenge
+          </button>
+        </div>
+      </header>
+
+      {/* --- CONDITIONAL TAB RENDERING --- */}
+      
+      {/* 0. COVER PAGE */}
+      {activeTab === 'COVER' && (
+        <main className="flex-1 overflow-y-auto flex flex-col items-center justify-center bg-[radial-gradient(circle_at_top_right,_#004142_0%,_#001A1A_80%)] animate-slide-up p-6">
+          <div className="text-center max-w-lg relative z-10">
+            <Presentation className="w-24 h-24 text-[#007970] mx-auto mb-8" />
+            <h2 className="font-heading text-4xl font-bold text-white mb-4">Start Learning</h2>
+            <p className="text-[#D9D6D5] text-lg leading-relaxed mb-10 font-light">
+              Follow step-by-step guided training. Learn the specific regulatory compliance requirements for every box on the CMS-485 form.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button 
+                onClick={() => setActiveTab('LEARN')} 
+                className="w-full sm:w-auto px-8 py-3 rounded-[12px] bg-[#007970] text-white font-bold uppercase tracking-widest text-sm hover:bg-[#006059] shadow-md transition-all hover:-translate-y-0.5 glow-teal"
+              >
+                Begin Training
+              </button>
+              <button 
+                onClick={() => setActiveTab('CHALLENGE')} 
+                className="w-full sm:w-auto px-8 py-3 rounded-[12px] bg-[#010809] border border-[#C74601] text-[#C74601] font-bold uppercase tracking-widest text-sm hover:bg-[#C74601]/10 shadow-sm transition-all flex items-center justify-center gap-2"
+              >
+                Take the Challenge <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </main>
+      )}
+
+      {/* 1. REVIEW / LEARN / TRY IT MODES */}
+      {['REVIEW', 'LEARN', 'TRY_IT'].includes(activeTab) && (
+        <div className="flex-1 flex overflow-hidden animate-slide-up bg-[radial-gradient(circle_at_top_right,_#002B2C_0%,_#010809_100%)]">
+          <main className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center">
+            <div className="w-full max-w-4xl">
+              {renderForm()}
+            </div>
+          </main>
+          {renderRightSidebar()}
+        </div>
+      )}
+
+      {/* 2. MASTER CHALLENGE MODE */}
+      {activeTab === 'CHALLENGE' && (
+        <div className="flex-1 flex flex-col animate-slide-up h-full overflow-hidden bg-[radial-gradient(circle_at_top_right,_#004142_0%,_#001A1A_80%)] relative">
+          
+          {/* Ambient Glows */}
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#C74601] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.15] animate-pulse pointer-events-none"></div>
+
+          {showCrisisWarning && !submissionResult && (
+            <div className="bg-[#C74601] text-white px-6 py-2 flex items-center justify-center gap-3 animate-pulse shadow-md z-20 flex-shrink-0 border-b border-[#E56E2E]">
+              <AlertTriangle className="h-5 w-5" />
+              <span className="text-sm font-bold uppercase tracking-widest text-center">
+                Critical Safety Warning: Address HR 48 and unsecured firearm BEFORE wound care.
+              </span>
+            </div>
+          )}
+
+          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden max-w-[1800px] mx-auto w-full z-10">
+            
+            {/* LEFT PANEL: Static Header + Expandable Narrative Cards */}
+            <aside className="w-full lg:w-[350px] xl:w-[400px] border-r border-[#004142] bg-[#031213] flex flex-col flex-shrink-0 h-[50vh] lg:h-auto shadow-2xl relative">
+              {/* STATIC TOP: Vitals and Risks pinned to top */}
+              <div className="p-5 md:p-6 space-y-4 border-b border-[#004142] bg-[#020C0D] flex-shrink-0 z-10">
+                <h2 className="font-heading font-bold text-lg text-white flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-[#64F4F5]" /> Clinical Case Data
+                </h2>
+
+                <div className="bg-[#C74601]/10 rounded-[16px] border border-[#C74601]/30 p-4 shadow-sm">
+                  <h3 className="text-[#C74601] font-heading font-bold text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <Heart className="h-4 w-4 text-[#C74601]" /> Critical Vitals
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(HENDERSON_NARRATIVE.vitals).map(([k, v]) => (
+                      <div key={k} className="bg-[#010809] rounded-lg p-2 border border-[#C74601]/20">
+                        <p className="text-[10px] text-[#C74601]/70 font-bold uppercase">{k.replace(/([A-Z])/g, ' $1')}</p>
+                        <p className="text-xs font-medium text-[#FAFBF8] mt-0.5">{v}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-[#010809] rounded-[16px] border border-[#004142] p-4 shadow-sm">
+                  <h3 className="text-[#C74601] font-heading font-bold text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <Home className="h-4 w-4 text-[#747474]" /> Environmental Risks
+                  </h3>
+                  <ul className="space-y-2">
+                    {HENDERSON_NARRATIVE.environmentalRisks.map(r => (
+                      <li key={r} className="flex items-start gap-2 text-xs text-[#D9D6D5]">
+                        <ShieldAlert className="h-3.5 w-3.5 mt-0.5 text-[#C74601] shrink-0" />
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* EXPANDABLE PARAGRAPHS: Scrollable area for the deep dive reading */}
+              <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-4 bg-[#031213]">
+                {HENDERSON_NARRATIVE.sections.map((section, idx) => (
+                  <ExpandableCard 
+                    key={idx} 
+                    title={section.title} 
+                    content={section.content} 
+                    defaultOpen={idx === 0} 
+                  />
+                ))}
+              </div>
+            </aside>
+
+            {/* RIGHT PANEL: Form & Contextual Option Bank */}
+            <main className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col h-[70vh] lg:h-auto scroll-smooth">
+              
+              <div className="max-w-4xl mx-auto w-full mb-6 flex justify-between items-center bg-[#031213]/80 backdrop-blur-xl p-4 rounded-[16px] border border-[#004142] shadow-xl">
+                <div>
+                  <h2 className="font-heading font-bold text-lg text-white">Interactive CMS-485 Form</h2>
+                  <p className="text-xs text-[#D9D6D5]">Click on the highlighted fields below to choose an answer.</p>
+                </div>
+                <button
+                  onClick={handleSubmit}
+                  disabled={!allBoxesFilled || submissionResult}
+                  className={`px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-widest transition-all ${
+                    allBoxesFilled && !submissionResult
+                      ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] shadow-md glow-orange hover:-translate-y-0.5'
+                      : 'bg-[#002B2C] text-[#007970] cursor-not-allowed border border-[#004142]'
+                  }`}
+                >
+                  Validate Plan
+                </button>
+              </div>
+
+              {/* The Form */}
+              {renderForm()}
+
+              {/* CONTEXTUAL OPTION BANK (Hidden until a field is clicked) */}
+              <div ref={optionsRef} className="max-w-4xl mx-auto w-full mb-20 scroll-mt-6">
+                {!activeField ? (
+                  <div className="bg-[#031213]/60 border-2 border-dashed border-[#004142] rounded-[24px] p-10 text-center flex flex-col items-center justify-center">
+                    <Pointer className="w-10 h-10 text-[#004142] mb-3" />
+                    <h3 className="font-heading font-bold text-lg text-[#64F4F5]">Answer Bank is Hidden</h3>
+                    <p className="text-sm text-[#007970] mt-1">Click on any highlighted box in the CMS-485 form above to view its options.</p>
+                  </div>
+                ) : (
+                  <div className="bg-[#020C0D] rounded-[24px] border border-[#007970] p-6 md:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.6)] animate-slide-up relative">
+                    {/* Close Button */}
+                    <button onClick={() => setActiveField(null)} className="absolute top-6 right-6 text-[#64F4F5] hover:text-white bg-[#002B2C] p-1.5 rounded-full hover:bg-[#004142] transition-colors">
+                      <X className="w-5 h-5" />
+                    </button>
+
+                    <div className="mb-6 border-b border-[#004142] pb-4 pr-10">
+                      <h3 className="font-heading text-xl font-bold text-white flex items-center gap-2">
+                        <LayoutTemplate className="h-6 w-6 text-[#007970]" /> 
+                        Select Answer for {HENDERSON_BOXES.find(b => b.id === activeField)?.label}
+                      </h3>
+                      <p className="text-sm text-[#D9D6D5] mt-1 font-light">Choose the most clinically accurate and defensible option below.</p>
+                    </div>
+                    
+                    <div className="flex flex-col gap-3">
+                      {currentOptions.map(chip => (
+                        <button
+                          key={chip.id}
+                          onClick={() => handleOptionSelect(chip.id)}
+                          className="w-full text-left rounded-[12px] border border-[#004142] bg-[#010809] px-5 py-4 text-sm font-medium text-[#FAFBF8] transition-all hover:border-[#007970] hover:bg-[#002B2C] hover:shadow-lg group flex items-start gap-3"
+                        >
+                          <div className="w-5 h-5 rounded-full border-2 border-[#004142] group-hover:border-[#64F4F5] flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors">
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#64F4F5] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                          </div>
+                          <span className="leading-snug">{chip.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </main>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

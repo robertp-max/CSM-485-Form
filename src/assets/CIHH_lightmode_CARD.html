@@ -1,0 +1,389 @@
+import React, { useState } from 'react';
+import { 
+  Play, Pause, Square, RotateCcw, Swords, 
+  ArrowRight, ArrowLeft, CheckCircle2, XCircle, 
+  ShieldCheck, FileText, Activity, Check
+} from 'lucide-react';
+
+// Injecting official CareIndeed fonts and premium CSS utilities
+const StyleInjector = () => (
+  <style>
+    {`
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap');
+      
+      .font-heading { font-family: 'Montserrat', sans-serif; }
+      .font-body { font-family: 'Roboto', sans-serif; }
+      
+      /* Premium scrollbar tailored for the Light theme */
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: #FAFBF8; }
+      ::-webkit-scrollbar-thumb { background: #D9D6D5; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #747474; }
+
+      /* Brand Glows - Softened for Light Mode */
+      .glow-orange { box-shadow: 0 8px 24px -6px rgba(199, 70, 1, 0.4); }
+      .glow-teal { box-shadow: 0 8px 24px -6px rgba(0, 121, 112, 0.3); }
+      
+      /* Animations */
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-slide-up { animation: slideUp 0.4s ease-out forwards; }
+    `}
+  </style>
+);
+
+const debugMode = true;
+
+const cards = [
+  {
+    title: 'What CMS-485 Is and Why It Matters',
+    section: 'Foundation',
+    objective: 'Define CMS-485 as the Plan of Care format and connect it to payment and survey outcomes.',
+    bullets: [
+      'CMS-485 is a structured Plan of Care representation.',
+      'Defensible documentation supports patient safety and reimbursement.',
+      'Weak POC content increases denial and survey risk.'
+    ],
+    additional: 'At its core, the CMS-485 is the blueprint of care. Auditors expect one coherent story from certification through claim.',
+    challenge: [
+      'Use patient-specific POC language tied to objective findings.',
+      'Use broad template text without specifics.',
+      'Delay updates until episode end.'
+    ]
+  },
+  {
+    title: 'Why Documentation Quality Drives Outcomes',
+    section: 'Foundation',
+    objective: 'Explain the operational impact of complete and traceable POC documentation.',
+    bullets: [
+      'High-quality documentation reduces claim rework.',
+      'Clear rationale improves interdisciplinary handoffs.',
+      'Documentation quality is a compliance and care-quality control.'
+    ],
+    additional: 'Good documentation prevents ADR escalation and supports a smooth handoff between clinicians.',
+    challenge: [
+      'Treat documentation as a core clinical communication asset.',
+      'Only document for billing, not care coordination.',
+      'Skip rationale if interventions are listed.'
+    ]
+  },
+  {
+    title: 'CoPs Authority for the Plan of Care',
+    section: 'Regulatory Authority',
+    objective: 'Tie Plan of Care expectations to Conditions of Participation requirements.',
+    bullets: [
+      'POC must be established and reviewed by authorized practitioner.',
+      'Content must remain patient-specific and clinically linked.',
+      'Requirements must be operationalized in workflow.'
+    ],
+    additional: 'CoPs are not policy-only artifacts; they must be visible in daily chart updates and decisions.',
+    challenge: [
+      'Operationalize CoPs in daily documentation workflow.',
+      'Rely on static policy text with no workflow checks.',
+      'Use copy-forward language for all recerts.'
+    ]
+  },
+  {
+    title: 'Knowledge Check',
+    section: 'Quiz',
+    objective: 'Check your understanding of the first three topics.',
+    bullets: ['Select the best answer and submit to verify your learning.'],
+    additional: 'Quiz context and rationale can appear here before challenge submission.',
+    challenge: [
+      'Defensible documentation must be specific, timely, and traceable.',
+      'Any completed template is equally defensible.',
+      'Narrative consistency is optional if coding is correct.'
+    ]
+  },
+  {
+    title: 'Completion',
+    final: true
+  }
+];
+
+export default function CMS485Module() {
+  const [cardIndex, setCardIndex] = useState(0);
+  const [panelMode, setPanelMode] = useState('main'); // 'main' | 'additional' | 'challenge'
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('QA mode bypasses locks');
+
+  const card = cards[cardIndex];
+
+  const handleNext = () => {
+    if (!card.final && panelMode === 'main') {
+      setPanelMode('additional');
+    } else if (!card.final && panelMode === 'additional') {
+      setPanelMode('challenge');
+    } else if (cardIndex < cards.length - 1) {
+      setCardIndex(cardIndex + 1);
+      setPanelMode('main');
+      setSelectedAnswer(null);
+      setIsSubmitted(false);
+      setStatusMsg('QA mode bypasses locks');
+    }
+  };
+
+  const handleBack = () => {
+    if (panelMode === 'challenge') {
+      setPanelMode('additional');
+      setIsSubmitted(false);
+      setSelectedAnswer(null);
+    } else if (panelMode === 'additional') {
+      setPanelMode('main');
+    } else if (cardIndex > 0) {
+      setCardIndex(cardIndex - 1);
+      setPanelMode('main');
+      setSelectedAnswer(null);
+      setIsSubmitted(false);
+    }
+  };
+
+  const handleSubmitChallenge = () => {
+    if (selectedAnswer !== null) setIsSubmitted(true);
+  };
+
+  const isCorrect = selectedAnswer === 0; // Mock logic: index 0 is always correct
+
+  return (
+    // Radial gradient using pristine Light Gray (#FAFBF8) fading to subtle darker gray (#E5E4E3)
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_#FAFBF8_0%,_#D9D6D5_100%)] text-[#1F1C1B] font-body p-4 md:p-8 flex items-center justify-center relative overflow-hidden">
+      <StyleInjector />
+
+      {/* Decorative Background Elements - Lightened for subtle depth */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#007970] rounded-full mix-blend-multiply filter blur-[120px] opacity-[0.07] animate-pulse pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#C74601] rounded-full mix-blend-multiply filter blur-[120px] opacity-[0.05] pointer-events-none"></div>
+
+      {/* Debug Chip */}
+      {debugMode && (
+        <div className="absolute top-6 right-6 flex items-center gap-2 bg-[#FFEEE5] border border-[#FFD5BF] text-[#C74601] px-4 py-2 rounded-full text-xs font-bold tracking-widest uppercase backdrop-blur-md shadow-sm z-50">
+          <ShieldCheck className="w-4 h-4" /> QA: ON (Debug)
+        </div>
+      )}
+
+      {/* Main App Container - Pure white, elegant drop shadow */}
+      <div className="w-full max-w-5xl bg-white/95 backdrop-blur-xl border border-[#E5E4E3] rounded-[32px] shadow-[0_24px_60px_rgba(31,28,27,0.08)] overflow-hidden flex flex-col relative z-10">
+        
+        {/* Header */}
+        <header className="px-8 pt-8 pb-4 flex justify-between items-end border-b border-[#E5E4E3]">
+          <div>
+            <p className="text-[#007970] font-bold text-sm tracking-widest uppercase mb-2 flex items-center gap-2">
+              <FileText className="w-4 h-4" /> CMS-485 Designer
+            </p>
+            <div className="font-heading text-4xl font-bold text-[#1F1C1B] tracking-tight">
+              {cardIndex + 1} <span className="text-[#D9D6D5] text-2xl">/ {cards.length}</span>
+            </div>
+          </div>
+          {/* Swapped to Gray Logo for light mode visibility */}
+          <img 
+            className="h-10 w-auto object-contain" 
+            src="https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_Gray.png" 
+            alt="CareIndeed Logo" 
+          />
+        </header>
+
+        {/* Progress Dots */}
+        <div className="px-8 py-4 flex gap-3">
+          {cards.map((_, i) => (
+            <div 
+              key={i} 
+              className={`h-2 rounded-full transition-all duration-500 ${
+                i === cardIndex 
+                  ? 'w-12 bg-[#C74601] glow-orange' 
+                  : i < cardIndex 
+                    ? 'w-6 bg-[#FFD5BF]' 
+                    : 'w-2 bg-[#E5E4E3]'
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Dynamic Panel Content */}
+        <section className="p-8 min-h-[460px] flex flex-col">
+          <div key={`${cardIndex}-${panelMode}`} className="animate-slide-up flex-1 flex flex-col">
+            
+            {card.final ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
+                <div className="w-24 h-24 rounded-full bg-[#E5FEFF] flex items-center justify-center glow-teal mb-4">
+                  <Check className="w-12 h-12 text-[#007970]" />
+                </div>
+                <h1 className="font-heading text-4xl font-bold text-[#1F1C1B]">Course Complete</h1>
+                <p className="text-[#524048] max-w-md text-lg font-light">
+                  You have successfully completed the sample flow. Excellent work mastering the CMS-485 foundations.
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="text-[#C74601] text-xs font-bold tracking-widest uppercase mb-3">
+                  {card.section} • {panelMode.toUpperCase()}
+                </p>
+                <h1 className="font-heading text-3xl md:text-4xl font-bold text-[#1F1C1B] mb-8 leading-tight">
+                  {card.title}
+                </h1>
+
+                {panelMode === 'challenge' ? (
+                  <div className="flex-1 max-w-3xl">
+                    <p className="text-[#524048] mb-6 text-lg">Which response best aligns with this card's objective?</p>
+                    <div className="space-y-3">
+                      {card.challenge.map((c, i) => {
+                        const isSelected = selectedAnswer === i;
+                        const showCorrect = isSubmitted && isSelected && isCorrect;
+                        const showWrong = isSubmitted && isSelected && !isCorrect;
+                        
+                        return (
+                          <button
+                            key={i}
+                            disabled={isSubmitted}
+                            onClick={() => setSelectedAnswer(i)}
+                            className={`w-full text-left p-5 rounded-[16px] border transition-all duration-300 flex items-start gap-4 ${
+                              showCorrect ? 'bg-[#E5FEFF] border-[#007970] glow-teal shadow-sm' :
+                              showWrong ? 'bg-[#FBE6E6] border-[#D70101]' :
+                              isSelected ? 'bg-[#FFEEE5] border-[#C74601]' : 
+                              'bg-white border-[#E5E4E3] hover:border-[#007970] hover:bg-[#F7FEFF]'
+                            }`}
+                          >
+                            <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                              showCorrect ? 'border-[#007970] text-[#007970]' :
+                              showWrong ? 'border-[#D70101] text-[#D70101]' :
+                              isSelected ? 'border-[#C74601] bg-[#C74601]' : 'border-[#D9D6D5]'
+                            }`}>
+                              {showCorrect && <CheckCircle2 className="w-4 h-4" />}
+                              {showWrong && <XCircle className="w-4 h-4" />}
+                              {isSelected && !showCorrect && !showWrong && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                            </div>
+                            <span className={`text-[15px] leading-relaxed ${
+                              showCorrect ? 'text-[#004142] font-semibold' :
+                              showWrong ? 'text-[#D70101]' :
+                              isSelected ? 'text-[#421700] font-medium' : 'text-[#524048]'
+                            }`}>
+                              {c}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    <div className="mt-8 flex items-center justify-between">
+                      <button 
+                        onClick={handleSubmitChallenge}
+                        disabled={selectedAnswer === null || isSubmitted}
+                        className={`px-8 py-3 rounded-[12px] font-bold tracking-wide transition-all duration-300 ${
+                          selectedAnswer !== null && !isSubmitted
+                            ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] glow-orange hover:-translate-y-0.5' 
+                            : 'bg-[#E5E4E3] text-[#747474] cursor-not-allowed border border-[#D9D6D5]'
+                        }`}
+                      >
+                        Submit Answer
+                      </button>
+                      
+                      {isSubmitted && (
+                        <p className={`font-bold animate-slide-up flex items-center gap-2 ${isCorrect ? 'text-[#007970]' : 'text-[#D70101]'}`}>
+                          {isCorrect ? <><CheckCircle2 className="w-5 h-5"/> Correct — great job.</> : <><XCircle className="w-5 h-5"/> Try again — focus on defensible actions.</>}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : panelMode === 'additional' ? (
+                  <div className="bg-[#F7FEFF] border border-[#C4F4F5] rounded-[24px] p-8 shadow-sm">
+                    <h2 className="text-[#007970] font-heading font-bold text-xl mb-4 flex items-center gap-2">
+                      <Activity className="w-5 h-5" /> Additional Subject Content
+                    </h2>
+                    <p className="text-[#1F1C1B] text-lg leading-relaxed">{card.additional}</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-6 h-full">
+                    <div className="bg-[#F7FEFF] border border-[#C4F4F5] rounded-[24px] p-6 shadow-sm">
+                      <h2 className="text-[#007970] font-heading font-bold text-lg mb-2">Learning Objective</h2>
+                      <p className="text-[#1F1C1B] text-lg">{card.objective}</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+                      <div className="bg-white border border-[#E5E4E3] rounded-[24px] p-6 shadow-sm">
+                        <h2 className="text-[#747474] font-heading font-bold text-sm uppercase tracking-widest mb-4 border-b border-[#E5E4E3] pb-2">Key Points</h2>
+                        <ul className="space-y-3">
+                          {card.bullets.map((b, i) => (
+                            <li key={i} className="flex items-start gap-3 text-[#524048]">
+                              <span className="text-[#C74601] mt-1">•</span> {b}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <div className="bg-gradient-to-br from-[#FFEEE5] to-white border border-[#FFD5BF] rounded-[24px] p-6 shadow-sm">
+                        <h2 className="text-[#C74601] font-heading font-bold text-sm uppercase tracking-widest mb-4 border-b border-[#FFD5BF] pb-2">Clinical Lens</h2>
+                        <p className="text-[#1F1C1B] leading-relaxed">Translate this concept into clear, patient-specific, defensible documentation language.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </section>
+
+        {/* Footer Controls - Clean and separated */}
+        <footer className="px-8 py-6 bg-[#FAFBF8] border-t border-[#E5E4E3] flex flex-wrap gap-4 items-center justify-between">
+          
+          <button 
+            onClick={handleBack}
+            disabled={cardIndex === 0 && panelMode === 'main'}
+            className="flex items-center gap-2 text-[#747474] hover:text-[#1F1C1B] font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" /> Back
+          </button>
+
+          {!card.final && (
+            <div className="flex flex-col items-center">
+              <div className="flex gap-2 p-1.5 bg-white rounded-full border border-[#E5E4E3] shadow-sm">
+                {panelMode === 'main' ? (
+                  <button 
+                    onClick={() => { setPanelMode('additional'); setStatusMsg('Playing recording (debug)'); }}
+                    className="flex items-center gap-2 px-6 py-2 rounded-full bg-[#FAFBF8] text-[#007970] hover:text-[#C74601] border border-[#E5E4E3] hover:border-[#C74601] transition-all font-medium text-sm"
+                  >
+                    <Play className="w-4 h-4 fill-current" /> PLAY AUDIO
+                  </button>
+                ) : (
+                  <>
+                    {['Pause', 'Stop', 'Restart'].map(action => {
+                      const Icon = action === 'Pause' ? Pause : action === 'Stop' ? Square : RotateCcw;
+                      return (
+                        <button 
+                          key={action}
+                          onClick={() => setStatusMsg(`${action} clicked (debug)`)}
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-[#747474] hover:bg-[#E5E4E3] hover:text-[#1F1C1B] transition-colors"
+                          title={action}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </button>
+                      );
+                    })}
+                    <button 
+                      onClick={() => setPanelMode('challenge')}
+                      disabled={!debugMode}
+                      className="flex items-center gap-2 px-4 py-2 ml-2 rounded-full bg-[#FFEEE5] text-[#C74601] hover:bg-[#C74601] hover:text-white border border-[#FFD5BF] transition-all font-medium text-sm disabled:opacity-30"
+                    >
+                      <Swords className="w-4 h-4" /> CHALLENGE
+                    </button>
+                  </>
+                )}
+              </div>
+              <span className="text-[10px] text-[#747474] font-bold tracking-widest uppercase mt-2">
+                {statusMsg}
+              </span>
+            </div>
+          )}
+
+          <button 
+            onClick={handleNext}
+            className="flex items-center gap-2 px-6 py-3 bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold rounded-[12px] glow-orange transform hover:-translate-y-0.5 transition-all disabled:opacity-50"
+          >
+            {card.final ? 'Finish' : 'Next'} <ArrowRight className="w-5 h-5" />
+          </button>
+
+        </footer>
+      </div>
+    </div>
+  );
+}

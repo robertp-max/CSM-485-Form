@@ -76,13 +76,44 @@
             font-size: 16px;
             margin-right: 8px;
         }
+
+        /* ── Light Mode Overrides ── */
+        body.light-mode { background: radial-gradient(circle at top right, #FAFBF8 0%, #D9D6D5 100%) !important; color: #1F1C1B !important; }
+        body.light-mode .bg-noise::before { opacity: 0; }
+        body.light-mode .stat-card { background: white; border-color: #E5E4E3; }
+        body.light-mode .stat-card:hover { border-color: rgba(0,121,112,0.4); }
+        body.light-mode .flow-step { background: white; border-color: #E5E4E3; }
+        body.light-mode .flow-step:hover { border-color: rgba(0,121,112,0.4); }
+        body.light-mode::-webkit-scrollbar-track { background: #FAFBF8; }
+        body.light-mode::-webkit-scrollbar-thumb { background: #D9D6D5; }
     </style>
 </head>
-<body class="bg-[#09090b] text-white font-body min-h-screen bg-noise">
+<body class="bg-[#09090b] text-white font-body min-h-screen bg-noise" id="page-body">
+    <script>
+    // Theme bridge: read global theme from localStorage
+    (function() {
+        var theme = localStorage.getItem('cihh.theme') || 'night';
+        var body = document.getElementById('page-body');
+        function applyTheme(t) {
+            if (t === 'light') {
+                body.classList.add('light-mode');
+                body.classList.remove('bg-[#09090b]', 'text-white');
+                body.classList.add('text-[#1F1C1B]');
+            } else {
+                body.classList.remove('light-mode', 'text-[#1F1C1B]');
+                body.classList.add('bg-[#09090b]', 'text-white');
+            }
+        }
+        applyTheme(theme);
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'cihh.theme') applyTheme(e.newValue || 'night');
+        });
+    })();
+    </script>
 
     <!-- Fixed Background Glows -->
-    <div class="fixed top-[-15%] left-[5%] w-[600px] h-[600px] bg-[#007970]/8 rounded-full blur-[160px] pointer-events-none"></div>
-    <div class="fixed bottom-[-15%] right-[5%] w-[500px] h-[500px] bg-[#C74601]/6 rounded-full blur-[140px] pointer-events-none"></div>
+    <div class="fixed top-[-15%] left-[5%] w-[600px] h-[600px] bg-[#007970]/8 rounded-full blur-[160px] pointer-events-none" id="glow-1"></div>
+    <div class="fixed bottom-[-15%] right-[5%] w-[500px] h-[500px] bg-[#C74601]/6 rounded-full blur-[140px] pointer-events-none" id="glow-2"></div>
 
     <!-- Hero Header -->
     <header class="relative overflow-hidden border-b border-white/5">
@@ -548,6 +579,42 @@
                 }
             }
         });
+
+        // Light mode: hide glows, swap header colors
+        (function() {
+            var light = document.body.classList.contains('light-mode');
+            if (!light) return;
+            var g1 = document.getElementById('glow-1'); if (g1) g1.style.display = 'none';
+            var g2 = document.getElementById('glow-2'); if (g2) g2.style.display = 'none';
+            // Swap header backgrounds and text
+            document.querySelectorAll('[class*="border-white/"]').forEach(function(el) {
+                el.style.borderColor = '#E5E4E3';
+            });
+            document.querySelectorAll('[class*="bg-[#0F0F11]"]').forEach(function(el) {
+                el.style.background = 'white';
+                el.style.borderColor = '#E5E4E3';
+            });
+            document.querySelectorAll('[class*="bg-white/[0.02]"]').forEach(function(el) {
+                el.style.background = 'white';
+                el.style.borderColor = '#E5E4E3';
+            });
+            // Swap header logo
+            var headerLogo = document.querySelector('header img[alt="CareIndeed"]');
+            if (headerLogo) {
+                headerLogo.src = 'https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_Gray.png';
+            }
+            // Fix text colors
+            document.querySelectorAll('[class*="text-white/"]').forEach(function(el) {
+                var cl = el.className;
+                if (cl.includes('text-white/60') || cl.includes('text-white/50')) el.style.color = '#524048';
+                else if (cl.includes('text-white/30') || cl.includes('text-white/20')) el.style.color = '#747474';
+                else if (cl.includes('text-white/80') || cl.includes('text-white/70')) el.style.color = '#1F1C1B';
+            });
+            // Stat cards
+            document.querySelectorAll('.stat-card span:last-child').forEach(function(el) {
+                el.style.color = '#747474';
+            });
+        })();
     </script>
 </body>
 </html>
