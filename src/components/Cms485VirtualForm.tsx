@@ -1,6 +1,8 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, Circle, Search, X, ZoomIn, RotateCcw } from 'lucide-react'
 import { Button } from './ui/Button'
+import { useTheme } from '../hooks/useTheme'
+import { ViewModeToggle } from './ViewModeToggle'
 import { CMS485_HOTSPOTS, CMS485_PAGE_LABEL, type Cms485Hotspot } from '../data/cms485Hotspots'
 
 type Props = {
@@ -113,6 +115,7 @@ const validateTryInput = (hotspot: Cms485Hotspot, value: string) => {
 }
 
 export const Cms485VirtualForm = ({ onClose }: Props) => {
+  const { isDarkMode, toggle } = useTheme()
   const [mode, setMode] = useState<Mode>('explore')
   const [selectedId, setSelectedId] = useState(CMS485_HOTSPOTS[0]?.id ?? '')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
@@ -271,14 +274,18 @@ export const Cms485VirtualForm = ({ onClose }: Props) => {
   const activeTryFeedback = tryFeedback[activeForPanel.id]
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm p-0 md:p-2">
-      <div className="h-full w-full rounded-none border border-white/10 bg-[#0B0D10] text-white shadow-[0_0_80px_-20px_rgba(0,121,112,0.55)] md:rounded-2xl">
+    <div className={`cms485-shell fixed inset-0 z-[70] p-0 md:p-2 transition-colors duration-200 ${isDarkMode ? 'bg-black/70 backdrop-blur-sm' : 'bg-black/25 backdrop-blur-[2px]'}`} data-theme={isDarkMode ? 'night' : 'light'}>
+      <div className={`h-full w-full rounded-none border text-white md:rounded-2xl transition-colors duration-200 ${isDarkMode ? 'border-white/10 bg-[#0B0D10] shadow-[0_0_80px_-20px_rgba(0,121,112,0.55)]' : 'border-[#D9D6D5] bg-[#FAFBF8] shadow-none'}`}>
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 md:px-6">
           <div>
             <h2 className="text-lg font-semibold tracking-wide">Interactive CMS-485 Virtual Form</h2>
-            <p className="text-xs text-white/60">{CMS485_PAGE_LABEL} Â· Guided training + Try It simulation</p>
+            <p className="text-xs text-white/60">{CMS485_PAGE_LABEL} · Guided training + Try It simulation</p>
           </div>
           <div className="flex items-center gap-2">
+            <ViewModeToggle isDarkMode={isDarkMode} compact />
+            <Button variant="ghost" className="text-xs" onClick={toggle}>
+              {isDarkMode ? 'Light' : 'Night'}
+            </Button>
             <Button variant="ghost" className="text-xs" onClick={resetAll}>
               Restart
             </Button>
@@ -477,7 +484,7 @@ export const Cms485VirtualForm = ({ onClose }: Props) => {
 
             {allStepsCompleted && mode === 'guided' ? (
               <div className="rounded-xl border border-[#007970]/50 bg-[#007970]/12 p-4">
-                <h3 className="text-base font-semibold text-[#64F4F5]">Youâ€™re done</h3>
+                <h3 className="text-base font-semibold text-[#64F4F5]">You’re done</h3>
                 <p className="mt-1 text-sm text-white/85">
                   All guided sections completed. You can review any hotspot or run Try It mode before finalizing.
                 </p>
@@ -524,7 +531,7 @@ export const Cms485VirtualForm = ({ onClose }: Props) => {
                 {mode === 'guided' && (
                   <div className="mb-4 rounded-xl border border-[#C74601]/45 bg-[#C74601]/10 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-[#FFB27F]">
-                      Step {guidedStepIndex + 1} Â· {activeForPanel.guidedStep.stepTitle}
+                      Step {guidedStepIndex + 1} · {activeForPanel.guidedStep.stepTitle}
                     </p>
                     <p className="mt-2 text-sm text-white/90">{activeForPanel.guidedStep.stepInstruction}</p>
                     <p className="mt-2 text-xs text-white/70"><span className="font-semibold text-white/80">Source:</span> {activeForPanel.guidedStep.source}</p>

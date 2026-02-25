@@ -240,6 +240,9 @@ h1, h2, h3, h4, h5, h6 {
   animation: tealRadiate 2.1s ease-in-out infinite;
 }
 
+.orange-radiate {
+  animation: orangeRadiate 2.4s ease-in-out infinite;
+}
 
 @keyframes swipeInRight {
   from {
@@ -643,5 +646,138 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   color: #64f4f5;
   font-size: 11px;
+}
+
+/* ── Glass Card System ──────────────────────────────────────── */
+
+.glass-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  transition: transform 280ms ease, box-shadow 280ms ease, border-color 280ms ease;
+  /* Dark mode defaults */
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="light"] .glass-card {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(0, 121, 112, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Holographic hover effect */
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(100, 244, 245, 0.08) 0%,
+    rgba(0, 121, 112, 0.06) 25%,
+    rgba(199, 70, 1, 0.06) 50%,
+    rgba(100, 244, 245, 0.08) 75%,
+    rgba(0, 121, 112, 0.04) 100%
+  );
+  background-size: 200% 200%;
+  opacity: 0;
+  transition: opacity 400ms ease;
+  pointer-events: none;
+}
+
+.glass-card:hover {
+  transform: translateY(-2px) scale(1.008);
+  border-color: rgba(100, 244, 245, 0.2);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(100, 244, 245, 0.08);
+}
+
+[data-theme="light"] .glass-card:hover {
+  border-color: rgba(0, 121, 112, 0.25);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(0, 121, 112, 0.06);
+}
+
+.glass-card:hover::before {
+  opacity: 1;
+  animation: holoShimmer 3s ease infinite;
+}
+
+@keyframes holoShimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Glass card content sits above the holographic layer */
+.glass-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Subtle glass divider line */
+.glass-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+}
+
+[data-theme="light"] .glass-divider {
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 121, 112, 0.15) 50%, transparent 100%);
+}
+
+/* ── Gradient Text Animation ─────────────────────────────── */
+
+.gradient-text-animated {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 300% 100%;
+  animation: gradientFlow var(--gradient-speed, 8s) ease infinite;
+}
+
+.gradient-text-animated.paused {
+  animation-play-state: paused;
+}
+
+@keyframes gradientFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.cms485-shell[data-theme='light'] [class*='text-white'] {
+  color: #1f1c1b !important;
+}
+
+.cms485-shell[data-theme='light'] [class*='text-white/'] {
+  color: #524048 !important;
+}
+
+.cms485-shell[data-theme='light'] [class*='border-white'] {
+  border-color: rgba(0, 121, 112, 0.2) !important;
+}
+
+.cms485-shell[data-theme='light'] [class*='bg-black'],
+.cms485-shell[data-theme='light'] [class*='bg-[#0B0D10]'] {
+  background-color: #ffffff !important;
+}
+
+.cms485-shell[data-theme='light'] [class*='bg-white/'] {
+  background-color: #f7feff !important;
+}
+
+.cms485-shell[data-theme='light'] [class*='text-[#64F4F5]'] {
+  color: #007970 !important;
+}
+
+.cms485-shell[data-theme='light'] [class*='text-[#FFB8B8]'] {
+  color: #b42318 !important;
+}
+
+.cms485-shell[data-theme='light'] [class*='focus-visible:ring-offset-black'] {
+  --tw-ring-offset-color: #ffffff !important;
 }
 

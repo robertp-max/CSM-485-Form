@@ -35,7 +35,8 @@ import introVideo from './assets/CMS-485 Form (jake).mp4'
 import additionalContentRaw from './assets/Additional Content.txt?raw'
 import { TRAINING_CARDS } from './data/trainingCards'
 import { CARD_METADATA } from './data/cardMetadata'
-import { applyTheme, getStoredTheme, type ThemeAppearance } from './theme'
+import { useTheme } from './hooks/useTheme'
+import { ViewModeToggle } from './components/ViewModeToggle'
 
 /* ─── URL Constants ─── */
 const SYSTEMS_DOC_URL = import.meta.env.BASE_URL + 'systems-documentation.html'
@@ -253,6 +254,7 @@ const LEARNER_HELP_SECTIONS: HelpSection[] = [
 export default function LearningProfessional() {
   const { resetClaims } = useGlossary()
   const metadataByTitle = useMemo(() => new Map(CARD_METADATA.map(item => [item.title, item])), [])
+  const { theme, isDarkMode, setTheme } = useTheme()
 
   const cards = useMemo<FlowCardItem[]>(() => [
     { title: 'Intro Video', content: null, kind: 'intro-video' },
@@ -285,20 +287,19 @@ export default function LearningProfessional() {
   const [liveStatus, setLiveStatus] = useState('')
   const [showVirtualForm, setShowVirtualForm] = useState(false)
   const [settings, setSettings] = useState<SettingsState>(() => ({
-    appearance: getStoredTheme(),
+    appearance: theme,
     reducedMotion: false,
     interactiveEffects: true,
   }))
   const audioElementRef = useRef<HTMLAudioElement | null>(null)
   const touchStartXRef = useRef<number | null>(null)
 
-  const isDarkMode = settings.appearance === 'night'
   const isDebugMode = true // QA mode on by default in professional view
   const reducedMotion = settings.reducedMotion
 
   useEffect(() => {
-    applyTheme(settings.appearance as ThemeAppearance)
-  }, [settings.appearance])
+    if (settings.appearance !== theme) setTheme(settings.appearance)
+  }, [settings.appearance, theme, setTheme])
 
   /* ─── Derived ─── */
   const currentCard = cards[currentIndex]
@@ -765,7 +766,7 @@ export default function LearningProfessional() {
 
   /* ─── Render ─── */
   return (
-    <div className={`h-screen w-screen overflow-hidden transition-colors duration-300 ${
+    <div className={`h-full w-full overflow-hidden transition-colors duration-200 ${
       isDarkMode ? 'bg-[#09090b] text-white' : 'bg-[#FAFBF8] text-[#1F1C1B]'
     }`} style={{ fontFamily: 'Roboto, sans-serif' }}>
 
@@ -789,6 +790,7 @@ export default function LearningProfessional() {
               >
                 {isDarkMode ? '☀ Light' : '🌙 Night'}
               </button>
+              <ViewModeToggle isDarkMode={isDarkMode} />
               <img
                 src={isDarkMode ? titleMedia : headerLogoGray}
                 alt="CareIndeed"

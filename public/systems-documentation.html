@@ -86,17 +86,78 @@
             color: #64F4F5;
             overflow-x: auto;
         }
+
+        .theme-controls {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+            z-index: 20;
+        }
+
+        .theme-control {
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(15,15,17,0.72);
+            color: #cbd5e1;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+        }
+
+        .theme-control.active {
+            color: #64F4F5;
+            border-color: rgba(100,244,245,0.45);
+            background: rgba(0,121,112,0.16);
+        }
+
+        :focus-visible {
+            outline: 2px solid #64F4F5;
+            outline-offset: 2px;
+        }
+
+        body.theme-light {
+            background: #FAFBF8 !important;
+            color: #1F1C1B !important;
+        }
+
+        body.theme-light .bg-glow { display: none; }
+        body.theme-light .bg-noise::before { opacity: 0.015; }
+        body.theme-light [class*='text-white'] { color: #1F1C1B !important; }
+        body.theme-light [class*='text-white/'] { color: #524048 !important; }
+        body.theme-light [class*='border-white'] { border-color: rgba(0,121,112,0.2) !important; }
+        body.theme-light [class*='bg-[#0F0F11]'],
+        body.theme-light [class*='bg-[#0A0A0C]'],
+        body.theme-light [class*='bg-[#09090b]'],
+        body.theme-light [class*='bg-black'] { background: #FFFFFF !important; }
+        body.theme-light .code-block { background: #F7FEFF !important; color: #007970 !important; border-color: rgba(0,121,112,0.2) !important; }
+        body.theme-light .theme-control { border-color: rgba(0,121,112,0.25); background: #FFFFFF; color: #1F1C1B; }
+        body.theme-light .theme-control.active { color: #007970; background: #E5FEFF; border-color: rgba(0,121,112,0.35); }
     </style>
 </head>
 <body class="bg-[#09090b] text-white font-body min-h-screen bg-noise">
 
     <!-- Fixed Background Glows -->
-    <div class="fixed top-[-15%] left-[5%] w-[600px] h-[600px] bg-[#007970]/8 rounded-full blur-[160px] pointer-events-none"></div>
-    <div class="fixed bottom-[-15%] right-[5%] w-[500px] h-[500px] bg-[#C74601]/6 rounded-full blur-[140px] pointer-events-none"></div>
+    <div class="bg-glow fixed top-[-15%] left-[5%] w-[600px] h-[600px] bg-[#007970]/8 rounded-full blur-[160px] pointer-events-none"></div>
+    <div class="bg-glow fixed bottom-[-15%] right-[5%] w-[500px] h-[500px] bg-[#C74601]/6 rounded-full blur-[140px] pointer-events-none"></div>
 
     <!-- Hero Header -->
     <header class="relative overflow-hidden border-b border-white/5">
         <div class="absolute inset-0 bg-gradient-to-br from-[#007970]/15 via-transparent to-[#C74601]/10 pointer-events-none"></div>
+        <div class="theme-controls" aria-label="Global controls">
+            <button id="theme-toggle" class="theme-control" type="button">Toggle Theme</button>
+            <button id="view-card" class="theme-control" type="button">Card View</button>
+            <button id="view-web" class="theme-control" type="button">Web View</button>
+            <button id="open-learning" class="theme-control" type="button">Open Learning</button>
+        </div>
         <div class="max-w-6xl mx-auto px-8 py-16 relative z-10 text-center">
             <img
                 src="https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png"
@@ -527,7 +588,47 @@
     </footer>
 
     <script>
-        Chart.defaults.color = 'rgba(255,255,255,0.35)';
+        const THEME_KEY = 'cihh.theme';
+        const VIEW_KEY = 'cihh.layoutMode';
+
+        const getTheme = () => {
+            const stored = localStorage.getItem(THEME_KEY);
+            if (stored === 'light' || stored === 'night') return stored;
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'light';
+        };
+
+        const applyTheme = (theme) => {
+            const isDark = theme === 'night';
+            document.documentElement.dataset.theme = isDark ? 'night' : 'light';
+            document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+            document.body.classList.toggle('theme-light', !isDark);
+            localStorage.setItem(THEME_KEY, isDark ? 'night' : 'light');
+            const themeBtn = document.getElementById('theme-toggle');
+            if (themeBtn) themeBtn.textContent = isDark ? 'Switch Light' : 'Switch Night';
+        };
+
+        const applyViewMode = (mode) => {
+            const resolved = mode === 'web' ? 'web' : 'card';
+            localStorage.setItem(VIEW_KEY, resolved);
+            document.getElementById('view-card')?.classList.toggle('active', resolved === 'card');
+            document.getElementById('view-web')?.classList.toggle('active', resolved === 'web');
+        };
+
+        applyTheme(getTheme());
+        applyViewMode(localStorage.getItem(VIEW_KEY));
+
+        document.getElementById('theme-toggle')?.addEventListener('click', () => {
+            applyTheme(getTheme() === 'night' ? 'light' : 'night');
+        });
+        document.getElementById('view-card')?.addEventListener('click', () => applyViewMode('card'));
+        document.getElementById('view-web')?.addEventListener('click', () => applyViewMode('web'));
+        document.getElementById('open-learning')?.addEventListener('click', () => {
+            window.location.href = './#/';
+        });
+
+        Chart.defaults.color = document.body.classList.contains('theme-light')
+            ? 'rgba(31,28,27,0.6)'
+            : 'rgba(255,255,255,0.35)';
         Chart.defaults.font.family = 'Roboto';
 
         // Responsibility Distribution Doughnut

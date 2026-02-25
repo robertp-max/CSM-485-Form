@@ -20,15 +20,14 @@ import {
   Zap,
 } from 'lucide-react'
 import { useTheme } from './hooks/useTheme'
-import { CardFlowLayout } from './components/CardFlowLayout'
 import { RevealSection } from './components/RevealSection'
 import { Button } from './components/ui/Button'
 import { Card } from './components/ui/Card'
 import { TermHighlighter } from './components/TermHighlighter'
 import { useGlossary } from './components/GlossaryProvider'
 import { PlanOfCareFocusPanel } from './components/PlanOfCareFocusPanel'
-import { CIArchitectureCard } from './components/CIArchitectureCard'
 import { Cms485VirtualForm } from './components/Cms485VirtualForm'
+import { ViewModeToggle } from './components/ViewModeToggle'
 import titleMedia from './assets/CI Home Health Logo_White.png'
 import headerLogoGray from './assets/CI Home Health Logo_Gray.png'
 import coverBanner from './assets/CMS-485 LMS Banner.png'
@@ -1003,6 +1002,7 @@ const TrainingSection = ({
 
   return (
     <section className={`flex h-full flex-col justify-start overflow-hidden px-10 py-6 transition-colors duration-300 ${isDarkMode ? 'bg-transparent' : 'bg-white'}`}>
+      <h1 className="sr-only">CMS-485 Home Health Certification &amp; Plan of Care Training</h1>
       <div className="mb-5 shrink-0">
         <RevealSection>
           <div className="mb-4">
@@ -1018,7 +1018,7 @@ const TrainingSection = ({
               </div>
             )}
           </div>
-          <h2 className={`mb-3 font-montserrat text-4xl font-medium leading-tight md:text-5xl transition-colors ${isDarkMode ? 'text-white drop-shadow-lg tracking-tight' : 'text-[#1F1C1B] font-semibold'}`}>
+          <h2 className={`mb-3 font-montserrat text-4xl font-medium leading-tight md:text-5xl transition-colors ${isDarkMode ? 'gradient-text-animated drop-shadow-lg tracking-tight' : 'text-[#1F1C1B] font-semibold'}`} style={isDarkMode ? { backgroundImage: 'linear-gradient(135deg, #64F4F5, #007970, #C74601, #64F4F5)' } : undefined}>
             {title}
           </h2>
         </RevealSection>
@@ -1026,7 +1026,7 @@ const TrainingSection = ({
         {panelMode === 'main' && (
           <RevealSection delayMs={100}>
             {isDarkMode ? (
-              <div className="mb-4 p-5 md:p-6 border border-white/10 bg-white/[0.02] backdrop-blur-md relative overflow-hidden group hover:border-[#64F4F5]/50 transition-colors duration-500 rounded-lg">
+              <div className="glass-card mb-4 p-5 md:p-6 relative overflow-hidden group transition-colors duration-500 rounded-lg">
                 <div className="absolute top-0 left-0 w-1 h-full bg-[#64F4F5] shadow-[0_0_20px_#64F4F5]" />
                 <div className="flex gap-4 items-start relative z-10">
                   <Target className="shrink-0 mt-1 text-[#64F4F5] h-7 w-7" strokeWidth={1.5} />
@@ -1300,7 +1300,6 @@ const FlowCards = ({
   const [finalTestPageIndex, setFinalTestPageIndex] = useState(0)
   const [finalTestAnswers, setFinalTestAnswers] = useState<Record<string, number>>({})
   const [liveStatus, setLiveStatus] = useState('')
-  const [showCIArchitecture, setShowCIArchitecture] = useState(false)
   const [showVirtualForm, setShowVirtualForm] = useState(false)
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
   const touchStartXRef = useRef<number | null>(null)
@@ -1921,6 +1920,8 @@ const FlowCards = ({
               {isDarkMode ? 'Switch to Light Mode' : 'Switch to Night Mode'}
             </Button>
 
+            <ViewModeToggle isDarkMode={isDarkMode} />
+
             <Button
               variant="ghost"
               onClick={onToggleDebugMode}
@@ -1936,20 +1937,18 @@ const FlowCards = ({
           </div>
 
           <div className="pointer-events-auto">
-            <div className={`flex items-center gap-2 p-1.5 rounded-lg border ${isDarkMode ? 'border-white/10' : 'border-[#007970]/20'} bg-[#007970]/10 teal-radiate shadow-sm backdrop-blur-sm`}>
-              <a href={FAQ_HUB_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">FAQ Hub</a>
-              <a href={COURSE_DOCUMENTATION_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Course Docs</a>
-              <a href={SYSTEMS_DOC_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Systems</a>
-              <a href={COURSE_FRAMEWORK_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Framework</a>
-              <a href={MASTERING_CMS485_URL} target="_blank" rel="noreferrer" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Mastering</a>
-              <button onClick={() => setShowCIArchitecture(true)} className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12">Architect</button>
-              <a href="#/help" className="text-xs font-semibold tracking-widest text-[#004C45] px-3 py-1 rounded hover:bg-[#007970]/12 flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />Help</a>
-              <a href="#/henderson" className="text-xs font-semibold tracking-widest text-[#C74601] px-3 py-1 rounded hover:bg-[#C74601]/10 font-bold">Henderson</a>
+            <div className={`flex items-center gap-2 p-1.5 rounded-lg border ${isDarkMode ? 'border-white/10' : 'border-[#007970]/20'} ${isDarkMode ? 'bg-[#007970]/10 teal-radiate shadow-sm backdrop-blur-sm' : 'bg-white shadow-none'}`}>
+              <a href={FAQ_HUB_URL} target="_blank" rel="noreferrer" className={`text-xs font-semibold tracking-widest px-3 py-1 rounded ${isDarkMode ? 'text-[#64F4F5] hover:bg-white/10' : 'text-[#004C45] hover:bg-[#007970]/12'}`}>FAQ Hub</a>
+              <a href={COURSE_DOCUMENTATION_URL} target="_blank" rel="noreferrer" className={`text-xs font-semibold tracking-widest px-3 py-1 rounded ${isDarkMode ? 'text-[#64F4F5] hover:bg-white/10' : 'text-[#004C45] hover:bg-[#007970]/12'}`}>Course Docs</a>
+              <a href={COURSE_FRAMEWORK_URL} target="_blank" rel="noreferrer" className={`text-xs font-semibold tracking-widest px-3 py-1 rounded ${isDarkMode ? 'text-[#64F4F5] hover:bg-white/10' : 'text-[#004C45] hover:bg-[#007970]/12'}`}>Framework</a>
+              <a href={MASTERING_CMS485_URL} target="_blank" rel="noreferrer" className={`text-xs font-semibold tracking-widest px-3 py-1 rounded ${isDarkMode ? 'text-[#64F4F5] hover:bg-white/10' : 'text-[#004C45] hover:bg-[#007970]/12'}`}>Mastering</a>
+              <a href="#/help" className={`text-xs font-semibold tracking-widest px-3 py-1 rounded flex items-center gap-1 ${isDarkMode ? 'text-[#64F4F5] hover:bg-white/10' : 'text-[#004C45] hover:bg-[#007970]/12'}`}><BookOpen className="h-3.5 w-3.5" />Help</a>
+              <a href={SYSTEMS_DOC_URL} target="_blank" rel="noreferrer" className={`text-xs font-bold tracking-widest px-3 py-1.5 rounded-md border transition-colors duration-200 ${isDarkMode ? 'text-[#C74601] bg-[#C74601]/10 border-[#C74601]/30 hover:bg-[#C74601]/20 orange-radiate shadow-[0_0_12px_rgba(199,70,1,0.25)]' : 'text-[#007970] bg-[#E5FEFF] border-[#007970]/30 hover:bg-[#D4F2F3]'}`}>Systems</a>
             </div>
           </div>
         </div>
       )}
-      <div className={`relative flex h-full w-full flex-col overflow-hidden rounded-xl transition-colors duration-300 ${
+      <div className={`relative flex h-full w-full flex-col overflow-hidden rounded-xl transition-colors duration-200 ${
         isDarkMode 
           ? 'bg-[#121214]/90 text-[#F3F4F6] backdrop-blur-xl border border-white/10 shadow-[0_0_80px_-20px_rgba(199,70,1,0.3)]' 
           : 'bg-white text-[#1F1C1B] border-2 border-[#E5E4E3] shadow-[0_30px_60px_-15px_rgba(31,28,27,0.08)] rounded-2xl'
@@ -1992,7 +1991,6 @@ const FlowCards = ({
         )}
       </header>
       )}
-      {showCIArchitecture && <CIArchitectureCard onClose={() => setShowCIArchitecture(false)} />}
       {showVirtualForm && <Cms485VirtualForm onClose={() => setShowVirtualForm(false)} />}
 
       {/* Progress Bar */}
@@ -2013,12 +2011,7 @@ const FlowCards = ({
             <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-[#007970]/15 rounded-full blur-[120px] pointer-events-none" />
             <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] bg-[#C74601]/10 rounded-full blur-[100px] pointer-events-none" />
           </>
-        ) : (
-          <>
-            <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-[#C4F4F5]/30 rounded-full blur-[100px] pointer-events-none" />
-            <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] bg-[#FFD5BF]/30 rounded-full blur-[100px] pointer-events-none" />
-          </>
-        )}
+        ) : null}
 
         <div
           className="absolute inset-0 z-10 flex items-stretch justify-center"
@@ -2086,7 +2079,8 @@ const FlowCards = ({
               }`}>
                 {audioPlaybackState === 'playing' ? (
                   <Button
-                    variant="ghost" 
+                    variant="ghost"
+                    aria-label="Pause"
                     onClick={handleAudioPauseClick}
                     className={`h-9 w-9 p-0 rounded-lg border-transparent transition-colors ${
                       isDarkMode 
@@ -2099,6 +2093,7 @@ const FlowCards = ({
                 ) : (
                   <Button
                     variant="ghost"
+                    aria-label="Play"
                     onClick={handleAudioPlayClick}
                     className={`h-9 w-9 p-0 rounded-lg border-transparent transition-colors ${
                       isDarkMode
@@ -2115,6 +2110,7 @@ const FlowCards = ({
 
                 <Button
                     variant="ghost"
+                    aria-label="Stop"
                      onClick={handleAudioStopClick}
                     className={`h-9 w-9 p-0 rounded-lg border-transparent transition-colors ${
                       isDarkMode
@@ -2128,6 +2124,7 @@ const FlowCards = ({
                 
                 <Button
                   variant="ghost"
+                  aria-label="Restart"
                   onClick={handleAudioRestartClick}
                   className={`h-9 w-9 p-0 rounded-lg border-transparent transition-colors ${
                     isDarkMode
@@ -2139,7 +2136,7 @@ const FlowCards = ({
                   <RotateCcw className="h-4 w-4" />
                 </Button>
               </div>
-              <span className={`text-[9px] uppercase tracking-[0.2em] animate-pulse ${isDarkMode ? 'font-medium text-[#64F4F5]/50' : 'font-bold text-[#747474]'}`}>
+              <span aria-live="polite" role="status" className={`text-[11px] uppercase tracking-[0.2em] animate-pulse ${isDarkMode ? 'font-medium text-[#64F4F5]/70' : 'font-bold text-[#747474]'}`}>
                 {liveStatus || getAudioStatusLabel()}
               </span>
             </div>
@@ -2201,14 +2198,12 @@ function App() {
   const [isDebugMode, setIsDebugMode] = useState(true)
 
   return (
-    <CardFlowLayout isDarkMode={isDarkMode}>
-      <FlowCards
-        isDarkMode={isDarkMode}
-        isDebugMode={isDebugMode}
-        onToggleDarkMode={toggle}
-        onToggleDebugMode={() => setIsDebugMode((prev) => !prev)}
-      />
-    </CardFlowLayout>
+    <FlowCards
+      isDarkMode={isDarkMode}
+      isDebugMode={isDebugMode}
+      onToggleDarkMode={toggle}
+      onToggleDebugMode={() => setIsDebugMode((prev) => !prev)}
+    />
   )
 }
 

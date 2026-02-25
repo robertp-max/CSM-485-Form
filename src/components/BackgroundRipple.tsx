@@ -10,8 +10,10 @@ type Ripple = {
 export const BackgroundRipple = ({ isDarkMode }: { isDarkMode: boolean }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const ripplesRef = useRef<Ripple[]>([])
+  const prefersReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
   useEffect(() => {
+    if (prefersReduced) return
     const canvas = canvasRef.current
     if (!canvas) {
       return
