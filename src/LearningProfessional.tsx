@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { ReactElement } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,7 +16,6 @@ import {
   HelpCircle,
   Zap,
   BookOpen,
-  HelpingHand,
   Layers,
   GraduationCap,
   Award,
@@ -63,7 +61,7 @@ type FlowCardKind = 'intro-video' | 'cover' | 'training' | 'final-test' | 'compl
 
 type FlowCardItem = {
   title: string
-  content: ReactElement | null
+  content: null
   kind: FlowCardKind
   trainingIndex?: number
 }
@@ -961,7 +959,7 @@ export default function LearningProfessional() {
       {showVirtualForm && <Cms485VirtualForm onClose={() => setShowVirtualForm(false)} />}
 
       {/* Dock - bottom right */}
-      <Dock items={dockItems} position="bottom-right" />
+      <Dock items={dockItems} position="bottom-right" isDarkMode={isDarkMode} />
     </div>
   )
 }
