@@ -272,8 +272,8 @@ export const Cms485VirtualForm = ({ onClose }: Props) => {
   const activeTryFeedback = tryFeedback[activeForPanel.id]
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm p-3 md:p-6">
-      <div className="mx-auto h-full max-w-[1600px] rounded-2xl border border-white/10 bg-[#0B0D10] text-white shadow-[0_0_80px_-20px_rgba(0,121,112,0.55)]">
+    <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm p-0 md:p-2">
+      <div className="h-full w-full rounded-none border border-white/10 bg-[#0B0D10] text-white shadow-[0_0_80px_-20px_rgba(0,121,112,0.55)] md:rounded-2xl">
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 md:px-6">
           <div>
             <h2 className="text-lg font-semibold tracking-wide">Interactive CMS-485 Virtual Form</h2>
@@ -336,7 +336,7 @@ export const Cms485VirtualForm = ({ onClose }: Props) => {
               ref={viewerScrollRef}
               className="hide-scrollbar h-[calc(100%-40px)] min-h-0 overflow-auto rounded-xl border border-white/10 bg-black/35 p-2"
             >
-              <div className="mx-auto w-full max-w-[900px] origin-top" style={{ transform: `scale(${zoom})` }}>
+              <div className="mx-auto w-full max-w-[1100px] origin-top" style={{ transform: `scale(${zoom})` }}>
                 <div className="relative aspect-[8.5/11] overflow-hidden rounded-lg border border-white/10 bg-black">
                   <iframe
                     src={`${samplePdfUrl}#page=1&toolbar=0&view=FitH`}

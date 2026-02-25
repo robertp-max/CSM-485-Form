@@ -1990,6 +1990,18 @@ const FlowCards = ({
             }`}>
               {displayProgressStep} <span className={isDarkMode ? 'text-[#C74601]' : 'text-[#007970]'}>/ {totalProgressSteps}</span>
             </div>
+            <Button
+              variant="ghost"
+              onClick={() => setShowVirtualForm(true)}
+              className={`gap-2 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] border transition-all duration-300 ${
+                isDarkMode
+                  ? 'border-[#64F4F5]/40 text-[#64F4F5] hover:bg-[#64F4F5]/15 hover:border-[#64F4F5] hover:shadow-[0_0_18px_rgba(100,244,245,0.35)]'
+                  : 'border-[#007970]/30 text-[#007970] hover:bg-[#007970]/10 hover:border-[#007970]'
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              <span className="hidden md:inline">Virtual CMS-485</span>
+            </Button>
           </div>
         )}
       </header>
@@ -2080,18 +2092,6 @@ const FlowCards = ({
                 <span className="hidden sm:inline">Return</span>
               </Button>
             </div>
-              <Button
-                variant="ghost"
-                onClick={() => setShowVirtualForm(true)}
-                className={`gap-2 px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] border transition-all duration-300 ${
-                  isDarkMode
-                    ? 'border-[#64F4F5]/40 text-[#64F4F5] hover:bg-[#64F4F5]/15 hover:border-[#64F4F5] hover:shadow-[0_0_18px_rgba(100,244,245,0.35)]'
-                    : 'border-[#007970]/30 text-[#007970] hover:bg-[#007970]/10 hover:border-[#007970]'
-                }`}
-              >
-                <FileText className="h-4 w-4" />
-                <span className="hidden md:inline">Virtual CMS-485</span>
-              </Button>
 
             {/* Center: Audio Controls */}
             <div className="flex flex-col items-center gap-2 justify-self-center">
@@ -2227,3 +2227,4 @@ function App() {
 }
 
 export default App
+
