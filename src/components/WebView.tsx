@@ -13,8 +13,10 @@ export function WebView({ children, isDarkMode }: { children: ReactNode; isDarkM
       }`}
     >
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-[#007970] focus:text-white focus:rounded-md focus:font-bold">Skip to content</a>
-      <main id="main-content" className="relative z-10 mx-auto w-full max-w-screen-2xl">
-        {children}
+      <main id="main-content" className="relative z-10 mx-auto w-full max-w-screen-2xl min-h-screen">
+        <div className="h-screen w-full">
+          {children}
+        </div>
       </main>
     </div>
   )

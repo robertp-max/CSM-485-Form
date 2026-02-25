@@ -65,9 +65,8 @@ createRoot(document.getElementById('root')!).render(
               <Route element={<AppShell />}>
                 <Route path="/" element={<App />} />
                 <Route path="/learning" element={<LearningProfessional />} />
+                <Route path="/help" element={<HelpCenter />} />
               </Route>
-              {/* Standalone pages (own layout) */}
-              <Route path="/help" element={<HelpCenter />} />
               {/* Henderson challenge now lives inside Virtual CMS-485 */}
               <Route path="/henderson" element={<Navigate to="/" replace />} />
             </Routes>

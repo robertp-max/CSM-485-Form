@@ -21,6 +21,10 @@ import {
 
 const STORAGE_KEY = 'cms485.henderson.v1'
 
+type Props = {
+  onExit?: () => void
+}
+
 type Placement = Record<string, string> // boxId → chipId
 type SubmissionResult = {
   correct: string[]    // box IDs
@@ -41,7 +45,7 @@ function saveState(placements: Placement) {
 }
 
 /* ── Component ───────────────────────────────────────────── */
-export default function HendersonChallenge() {
+export default function HendersonChallenge({ onExit }: Props) {
   const { isDarkMode, toggle } = useTheme()
   const [placements, setPlacements] = useState<Placement>(() => loadState().placements)
   const [draggingChipId, setDraggingChipId] = useState<string | null>(null)
@@ -166,9 +170,15 @@ export default function HendersonChallenge() {
             <button onClick={handleReset} className="rounded-xl border-2 border-[#007970] bg-[#007970] text-white px-6 py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#006059]">
               Restart Challenge
             </button>
-            <a href="#/" className="rounded-xl border-2 border-[#E5E4E3] px-6 py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#007970]/10">
-              Back to Course
-            </a>
+            {onExit ? (
+              <button onClick={onExit} className="rounded-xl border-2 border-[#E5E4E3] px-6 py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#007970]/10">
+                Back to Virtual CMS-485
+              </button>
+            ) : (
+              <a href="#/" className="rounded-xl border-2 border-[#E5E4E3] px-6 py-3 text-sm font-bold uppercase tracking-widest hover:bg-[#007970]/10">
+                Back to Course
+              </a>
+            )}
           </div>
         </div>
       </div>
@@ -181,9 +191,15 @@ export default function HendersonChallenge() {
       <header className={`sticky top-0 z-40 border-b ${isDarkMode ? 'border-white/10 bg-[#09090b]/95 backdrop-blur-lg' : 'border-[#E5E4E3] bg-[#FAFBF8]/95 backdrop-blur-lg'}`}>
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
-            <a href="#/" className="flex items-center gap-1 text-sm font-medium text-[#007970] hover:underline">
-              <ArrowLeft className="h-4 w-4" /> Course
-            </a>
+            {onExit ? (
+              <button onClick={onExit} className="flex items-center gap-1 text-sm font-medium text-[#007970] hover:underline">
+                <ArrowLeft className="h-4 w-4" /> Virtual CMS-485
+              </button>
+            ) : (
+              <a href="#/" className="flex items-center gap-1 text-sm font-medium text-[#007970] hover:underline">
+                <ArrowLeft className="h-4 w-4" /> Course
+              </a>
+            )}
             <div className={`h-5 w-px ${isDarkMode ? 'bg-white/15' : 'bg-[#E5E4E3]'}`} />
             <h1 className="font-heading text-base font-bold">
               Clinical Master Challenge: <span className="text-[#C74601]">Case Henderson</span>
@@ -406,41 +422,32 @@ export default function HendersonChallenge() {
               Drag chips into the CMS-485 boxes above. Or click a chip, then click a box.
             </p>
 
-            {(['diagnosis', 'functional', 'nursing', 'frequency', 'safety'] as const).map((category) => {
-              const chips = availableChips.filter((c) => c.category === category)
-              if (chips.length === 0) return null
-              return (
-                <div key={category} className="mb-3">
-                  <span className={`text-[10px] uppercase tracking-widest font-bold ${muted}`}>{category}</span>
-                  <div className="flex flex-wrap gap-2 mt-1.5">
-                    {chips.map((chip) => (
-                      <button
-                        key={chip.id}
-                        draggable
-                        onDragStart={() => handleDragStart(chip.id)}
-                        onClick={() => {
-                          if (draggingChipId === chip.id) {
-                            setDraggingChipId(null)
-                          } else {
-                            setDraggingChipId(chip.id)
-                          }
-                        }}
-                        className={`rounded-lg border px-3 py-2 text-xs font-medium transition-all cursor-grab active:cursor-grabbing ${
-                          draggingChipId === chip.id
-                            ? (isDarkMode ? 'border-[#64F4F5] bg-[#64F4F5]/15 text-[#64F4F5] scale-105' : 'border-[#007970] bg-[#E5FEFF] text-[#007970] scale-105 shadow-md')
-                            : category === 'safety'
-                              ? (isDarkMode ? 'border-[#C74601]/40 bg-[#C74601]/8 text-[#FFB27F] hover:border-[#C74601]' : 'border-[#C74601]/30 bg-[#FFEEE5] text-[#C74601] hover:border-[#C74601]')
-                              : (isDarkMode ? 'border-white/15 bg-white/5 text-white/80 hover:border-[#64F4F5]/50' : 'border-[#E5E4E3] bg-white text-[#524048] hover:border-[#007970] hover:shadow-sm')
-                        }`}
-                      >
-                        <GripVertical className="h-3 w-3 inline mr-1 opacity-50" />
-                        {chip.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
+            <div className="flex flex-wrap gap-2 mt-1.5">
+              {availableChips.map((chip) => (
+                <button
+                  key={chip.id}
+                  draggable
+                  onDragStart={() => handleDragStart(chip.id)}
+                  onClick={() => {
+                    if (draggingChipId === chip.id) {
+                      setDraggingChipId(null)
+                    } else {
+                      setDraggingChipId(chip.id)
+                    }
+                  }}
+                  className={`rounded-lg border px-3 py-2 text-xs font-medium transition-all cursor-grab active:cursor-grabbing ${
+                    draggingChipId === chip.id
+                      ? (isDarkMode ? 'border-[#64F4F5] bg-[#64F4F5]/15 text-[#64F4F5] scale-105' : 'border-[#007970] bg-[#E5FEFF] text-[#007970] scale-105 shadow-md')
+                      : chip.category === 'safety'
+                        ? (isDarkMode ? 'border-[#C74601]/40 bg-[#C74601]/8 text-[#FFB27F] hover:border-[#C74601]' : 'border-[#C74601]/30 bg-[#FFEEE5] text-[#C74601] hover:border-[#C74601]')
+                        : (isDarkMode ? 'border-white/15 bg-white/5 text-white/80 hover:border-[#64F4F5]/50' : 'border-[#E5E4E3] bg-white text-[#524048] hover:border-[#007970] hover:shadow-sm')
+                  }`}
+                >
+                  <GripVertical className="h-3 w-3 inline mr-1 opacity-50" />
+                  {chip.label}
+                </button>
+              ))}
+            </div>
 
             {availableChips.length === 0 && (
               <p className={`text-xs ${muted}`}>All chips placed. Click "Generate Master Plan" to check your answers.</p>
