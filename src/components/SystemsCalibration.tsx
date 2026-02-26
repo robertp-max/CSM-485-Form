@@ -25,6 +25,8 @@ import {
   Zap,
 } from 'lucide-react'
 import CursorPreview from './CursorPreview'
+import BlobCursor from './BlobCursor'
+import SplashCursor from './SplashCursor'
 
 // ─── Types ─────────────────────────────────────────────────────
 export type CalibrationMode = 'light' | 'night'
@@ -589,5 +591,16 @@ export default function SystemsCalibration({ onComplete }: SystemsCalibrationPro
 
   // ─── Render ────────────────────────────────────────────────
   const content = renderStepContent()
-  return isCard ? cardWrapper(content) : webWrapper(content)
+  const layout = isCard ? cardWrapper(content) : webWrapper(content)
+
+  // Show the actual cursor effect on the prize page so users can try it
+  const showLiveCursor = currentKey === 'prize' && selectedPrize
+
+  return (
+    <>
+      {showLiveCursor && selectedPrize === 'blob-cursor' && <BlobCursor />}
+      {showLiveCursor && selectedPrize === 'splash-cursor' && <SplashCursor />}
+      {layout}
+    </>
+  )
 }
