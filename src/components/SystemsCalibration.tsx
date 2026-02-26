@@ -24,7 +24,6 @@ import {
   Volume2,
   Zap,
 } from 'lucide-react'
-import CursorPreview from './CursorPreview'
 import BlobCursor from './BlobCursor'
 import SplashCursor from './SplashCursor'
 
@@ -371,31 +370,6 @@ export default function SystemsCalibration({ onComplete }: SystemsCalibrationPro
                   <p className="text-xs mt-1 leading-relaxed" style={{ color: p.textDim }}>
                     {prize.desc}
                   </p>
-
-                  {/* Live cursor preview */}
-                  {(prize.id === 'blob-cursor' || prize.id === 'splash-cursor') && selectedPrize === prize.id && (
-                    <div
-                      className="mt-3 rounded-xl overflow-hidden border"
-                      style={{
-                        borderColor: p.accent + '25',
-                        background: mode === 'night'
-                          ? 'rgba(0, 26, 26, 0.6)'
-                          : 'rgba(250, 251, 248, 0.8)',
-                      }}
-                    >
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b" style={{ borderColor: p.accent + '15' }}>
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: p.accent, opacity: 0.6 }} />
-                        <span className="text-[10px] font-medium tracking-wide uppercase" style={{ color: p.textDim }}>Live Preview</span>
-                      </div>
-                      <div className="flex items-center justify-center py-1">
-                        <CursorPreview
-                          type={prize.id === 'blob-cursor' ? 'blob' : 'splash'}
-                          width={180}
-                          height={70}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
               </button>
             ))}
