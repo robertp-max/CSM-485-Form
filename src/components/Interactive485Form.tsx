@@ -133,7 +133,7 @@ const HENDERSON_NARRATIVE = {
     {
       title: 'Clinical Evaluation Narrative',
       content:
-        'Upon arrival for the initial assessment, the clinical environment was immediately compromised by the presence of a loaded handgun on the nightstand, requiring immediate tactical communication to establish a safe perimeter before the secondary stabilization phase could begin. The patient presents as significantly ashen and diaphoretic with a documented bradycardia of HR 48, yet due to profound diabetic peripheral neuropathy, he denies the typical chest pressure associated with myocardial infarction, though the clinical "silent" presentation suggests a 911 transfer is the only viable path forward despite the urgency of the Wagner Grade 3 great toe ulcer which currently probes to the bone.',
+        'Upon arrival for the initial assessment, the clinical environment was immediately compromised by the presence of a loaded handgun on the nightstand, requiring immediate tactical communication to establish a safe perimeter before the secondary stabilization phase could begin. The patient presents as significantly ashen and diaphoretic with a documented bradycardia of HR 48, yet due to profound diabetic peripheral neuropathy, he denies the typical chest pressure associated with myocardial infarction, though the clinical "silent" presentation suggests a 911 transfer is the only viable path forward despite the urgency of the Wagner Grade 3 great toe ulcer which currently probes to the bone. During the assessment, the neighbor, Mrs. Gable, arrived unannounced to ask if George\'s cat, "Pickles," could stay at her house until the power is restored, specifically mentioning that the feline requires a specific brand of wet food twice daily; meanwhile, the daughter\'s refusal to assist was punctuated by her claim that she is allergic to the cat and will not return until the animal is removed.',
     },
     {
       title: 'Physician Coordination',
@@ -199,7 +199,7 @@ const ANSWER_CHIPS = [
   { id: '24-3', boxId: 'box-24', label: 'Provide educational pamphlets on low-sodium diets and foot care', trapNote: '"Fluff" that ignores the cardiac crisis.' },
   { id: '24-4', boxId: 'box-24', label: 'Install grab bars and non-slip mats in the bathroom immediately', trapNote: 'Good, but not the priority over the heart rate.' },
   { id: '24-5', boxId: 'box-24', label: 'Arrange for Meals-on-Wheels to address the power outage/nutrition', trapNote: 'Social need, not an emergency action.' },
-  { id: '24-6', boxId: 'box-24', label: 'Request Physical Therapy evaluation for home exercise program', trapNote: 'Already ordered; not an "emergency" action.' },
+  { id: '24-6', boxId: 'box-24', label: "Coordinate with Mrs. Gable regarding 'Pickles' the cat and feline dietary needs", trapNote: 'Social determinant distractor — irrelevant to the emergency clinical priority or CMS-485 safety requirements.' },
   { id: '24-7', boxId: 'box-24', label: 'Obtain consent for diabetic foot care and daily weights', trapNote: 'Basic care, not emergency stabilization.' },
   { id: '24-8', boxId: 'box-24', label: 'Instruct patient to keep legs elevated at 45 degrees while sleeping', trapNote: 'Dangerous if ischemia is present (reduces flow).' },
   { id: '24-9', boxId: 'box-24', label: 'Perform medication reconciliation and remove expired pills', trapNote: 'Necessary, but secondary to the 911/Firearm risk.' },
