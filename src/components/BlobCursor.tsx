@@ -1,151 +1,142 @@
-/* ── BlobCursor — Canvas-based blob cursor animation ───────────
- *  Creates a smooth, morphing blob that follows the cursor.
- *  Inspired by https://reactbits.dev/animations/blob-cursor
- *  Uses CareIndeed brand teal for the blob color.
+/* ── BlobCursor — GSAP SVG-filtered blob cursor ────────────────
+ *  Smooth, gooey blob trail that follows the cursor using GSAP.
+ *  Based on react-bits BlobCursor with CareIndeed brand defaults.
  * ─────────────────────────────────────────────────────────────── */
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useRef, useEffect, useCallback } from 'react'
+import gsap from 'gsap'
+import './BlobCursor.css'
 
 interface BlobCursorProps {
-  blobColor?: string
-  blobSize?: number
-  smoothing?: number
+  blobType?: 'circle' | 'square'
+  fillColor?: string
+  trailCount?: number
+  sizes?: number[]
+  innerSizes?: number[]
+  innerColor?: string
+  opacities?: number[]
+  shadowColor?: string
+  shadowBlur?: number
+  shadowOffsetX?: number
+  shadowOffsetY?: number
+  filterId?: string
+  filterStdDeviation?: number
+  filterColorMatrixValues?: string
+  useFilter?: boolean
+  fastDuration?: number
+  slowDuration?: number
+  fastEase?: string
+  slowEase?: string
+  zIndex?: number
 }
 
 export default function BlobCursor({
-  blobColor = 'rgba(0, 121, 112, 0.35)',
-  blobSize = 36,
-  smoothing = 0.15,
+  blobType = 'circle',
+  fillColor = '#007970',
+  trailCount = 2,
+  sizes = [55, 90],
+  innerSizes = [8, 22],
+  innerColor = '#64F4F5',
+  opacities = [0.7, 0.45],
+  shadowColor = 'rgba(0,0,0,0.25)',
+  shadowBlur = 8,
+  shadowOffsetX = 4,
+  shadowOffsetY = 4,
+  filterId = 'blob',
+  filterStdDeviation = 30,
+  filterColorMatrixValues = '1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 35 -10',
+  useFilter = true,
+  fastDuration = 0.15,
+  slowDuration = 0.55,
+  fastEase = 'power3.out',
+  slowEase = 'power1.out',
+  zIndex = 9998,
 }: BlobCursorProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const mouseRef = useRef({ x: -100, y: -100 })
-  const blobRef = useRef({ x: -100, y: -100 })
-  const animFrameRef = useRef<number>(0)
-  const pointsRef = useRef<{ x: number; y: number; originX: number; originY: number; noiseOffsetX: number; noiseOffsetY: number }[]>([])
+  const containerRef = useRef<HTMLDivElement>(null)
+  const blobsRef = useRef<(HTMLDivElement | null)[]>([])
 
-  // Simple noise using sine for organic feel
-  const noise = useCallback((x: number, y: number) => {
-    return Math.sin(x * 1.3) * Math.cos(y * 0.7) * 0.5 + 0.5
+  const updateOffset = useCallback(() => {
+    if (!containerRef.current) return { left: 0, top: 0 }
+    const rect = containerRef.current.getBoundingClientRect()
+    return { left: rect.left, top: rect.top }
   }, [])
 
-  // Init blob points around a circle
-  const initPoints = useCallback((cx: number, cy: number) => {
-    const numPoints = 8
-    const pts: typeof pointsRef.current = []
-    for (let i = 0; i < numPoints; i++) {
-      const angle = (i / numPoints) * Math.PI * 2
-      const x = cx + Math.cos(angle) * blobSize
-      const y = cy + Math.sin(angle) * blobSize
-      pts.push({
-        x,
-        y,
-        originX: Math.cos(angle) * blobSize,
-        originY: Math.sin(angle) * blobSize,
-        noiseOffsetX: Math.random() * 1000,
-        noiseOffsetY: Math.random() * 1000,
+  const handleMove = useCallback(
+    (e: MouseEvent | TouchEvent) => {
+      const { left, top } = updateOffset()
+      const x = 'clientX' in e ? e.clientX : e.touches[0].clientX
+      const y = 'clientY' in e ? e.clientY : e.touches[0].clientY
+
+      blobsRef.current.forEach((el, i) => {
+        if (!el) return
+        const isLead = i === 0
+        gsap.to(el, {
+          x: x - left,
+          y: y - top,
+          duration: isLead ? fastDuration : slowDuration,
+          ease: isLead ? fastEase : slowEase,
+        })
       })
-    }
-    pointsRef.current = pts
-  }, [blobSize])
+    },
+    [updateOffset, fastDuration, slowDuration, fastEase, slowEase],
+  )
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const resize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    const handleMove = (e: PointerEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY }
-    }
-    window.addEventListener('pointermove', handleMove)
-
-    initPoints(0, 0)
-    let time = 0
-
-    const render = () => {
-      if (!ctx) return
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-      // Smooth follow
-      blobRef.current.x += (mouseRef.current.x - blobRef.current.x) * smoothing
-      blobRef.current.y += (mouseRef.current.y - blobRef.current.y) * smoothing
-
-      const cx = blobRef.current.x
-      const cy = blobRef.current.y
-      time += 0.015
-
-      // Update blob points with noise
-      const pts = pointsRef.current
-      for (let i = 0; i < pts.length; i++) {
-        const p = pts[i]
-        const n = noise(p.noiseOffsetX + time, p.noiseOffsetY + time)
-        const wobble = 0.7 + n * 0.6
-        p.x = cx + p.originX * wobble
-        p.y = cy + p.originY * wobble
-      }
-
-      // Draw smooth blob using Catmull-Rom to Bezier conversion
-      if (pts.length < 3) {
-        animFrameRef.current = requestAnimationFrame(render)
-        return
-      }
-
-      ctx.beginPath()
-      ctx.fillStyle = blobColor
-
-      // Draw smooth closed curve
-      const len = pts.length
-      const first = pts[0]
-      const last = pts[len - 1]
-      const secondLast = pts[len - 2]
-
-      // Start
-      const startX = (last.x + first.x) / 2
-      const startY = (last.y + first.y) / 2
-      ctx.moveTo(startX, startY)
-
-      for (let i = 0; i < len; i++) {
-        const curr = pts[i]
-        const next = pts[(i + 1) % len]
-        const cpx = (curr.x + next.x) / 2
-        const cpy = (curr.y + next.y) / 2
-        ctx.quadraticCurveTo(curr.x, curr.y, cpx, cpy)
-      }
-
-      ctx.closePath()
-      ctx.fill()
-
-      // Inner bright dot
-      ctx.beginPath()
-      ctx.arc(cx, cy, blobSize * 0.15, 0, Math.PI * 2)
-      ctx.fillStyle = blobColor.replace(/[\d.]+\)$/, '0.6)')
-      ctx.fill()
-
-      animFrameRef.current = requestAnimationFrame(render)
-    }
-
-    animFrameRef.current = requestAnimationFrame(render)
-
+    const onResize = () => updateOffset()
+    window.addEventListener('resize', onResize)
+    window.addEventListener('mousemove', handleMove as EventListener)
+    window.addEventListener('touchmove', handleMove as EventListener)
     return () => {
-      cancelAnimationFrame(animFrameRef.current)
-      window.removeEventListener('resize', resize)
-      window.removeEventListener('pointermove', handleMove)
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('mousemove', handleMove as EventListener)
+      window.removeEventListener('touchmove', handleMove as EventListener)
     }
-  }, [blobColor, blobSize, smoothing, noise, initPoints])
+  }, [updateOffset, handleMove])
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-[9998]"
-      style={{ mixBlendMode: 'multiply' }}
-    />
+    <div
+      ref={containerRef}
+      className="blob-container"
+      style={{ zIndex }}
+    >
+      {useFilter && (
+        <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+          <filter id={filterId}>
+            <feGaussianBlur in="SourceGraphic" result="blur" stdDeviation={filterStdDeviation} />
+            <feColorMatrix in="blur" values={filterColorMatrixValues} />
+          </filter>
+        </svg>
+      )}
+
+      <div className="blob-main" style={{ filter: useFilter ? `url(#${filterId})` : undefined }}>
+        {Array.from({ length: trailCount }).map((_, i) => (
+          <div
+            key={i}
+            ref={(el) => { blobsRef.current[i] = el }}
+            className="blob"
+            style={{
+              width: sizes[i] ?? sizes[0],
+              height: sizes[i] ?? sizes[0],
+              borderRadius: blobType === 'circle' ? '50%' : '0%',
+              backgroundColor: fillColor,
+              opacity: opacities[i] ?? opacities[0],
+              boxShadow: `${shadowOffsetX}px ${shadowOffsetY}px ${shadowBlur}px 0 ${shadowColor}`,
+            }}
+          >
+            <div
+              className="inner-dot"
+              style={{
+                width: innerSizes[i] ?? innerSizes[0],
+                height: innerSizes[i] ?? innerSizes[0],
+                top: ((sizes[i] ?? sizes[0]) - (innerSizes[i] ?? innerSizes[0])) / 2,
+                left: ((sizes[i] ?? sizes[0]) - (innerSizes[i] ?? innerSizes[0])) / 2,
+                backgroundColor: innerColor,
+                borderRadius: blobType === 'circle' ? '50%' : '0%',
+              }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
