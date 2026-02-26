@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareIndeed | CMS-485 Layout Challenge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            orange: '#D35400',
+                            orangeLight: '#FDF2EC',
+                            teal: '#007970',
+                            charcoal: '#2C3E50',
+                            surface: '#F8F9FA',
+                        }
+                    },
+                    fontFamily: {
+                        heading: ['Montserrat', 'sans-serif'],
+                        sans: ['Roboto', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #EFEFEF; color: #333; }
+        
+        .bank-zone {
+            min-height: 200px;
+            transition: background-color 0.2s;
+        }
+        
+        .form-drop-zone {
+            min-height: 60px;
+            transition: all 0.2s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 8px 8px 8px; /* Padding top to avoid the box number */
+        }
+        
+        .form-drop-zone.drag-over {
+            background-color: #e6f4f1 !important;
+            border-color: #007970 !important;
+        }
+
+        .box-label {
+            position: absolute;
+            top: 4px;
+            left: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            color: #9CA3AF;
+            pointer-events: none;
+        }
+        
+        .chip {
+            cursor: grab;
+            transition: transform 0.1s, box-shadow 0.1s;
+            user-select: none;
+            width: 100%;
+            background: white;
+            border: 1px solid #E5E7EB;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #374151;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            line-height: 1.3;
+            text-align: left;
+        }
+        
+        .chip:active {
+            cursor: grabbing;
+            transform: scale(0.98);
+        }
+
+        .chip svg {
+            color: #007970;
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+
+        .form-drop-zone .chip {
+            border-color: transparent;
+            background: transparent;
+            box-shadow: none;
+            padding: 0;
+            justify-content: center;
+            font-weight: 700;
+            color: #2C3E50;
+            text-transform: uppercase;
+            font-size: 10px;
+            text-align: center;
+            white-space: normal;
+        }
+
+        .form-drop-zone .chip svg {
+            display: none;
+        }
+
+        /* Validation states */
+        .correct-zone {
+            background-color: #ecfdf5 !important;
+            border-color: #10b981 !important;
+        }
+        .correct-zone .chip { color: #047857; }
+        
+        .incorrect-zone {
+            background-color: #fef2f2 !important;
+            border-color: #ef4444 !important;
+        }
+        .incorrect-zone .chip { color: #b91c1c; }
+
+        /* Anti-Cheat Styles */
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none; /* Prevents text highlighting */
+        }
+        
+        #anti-cheat-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255, 255, 255, 0.98);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            backdrop-filter: blur(10px);
+        }
+
+    </style>
+</head>
+<body class="p-4 md:p-8 flex justify-center items-start min-h-screen">
+
+    <!-- Anti-Cheat Overlay Message -->
+    <div id="anti-cheat-overlay">
+        <svg class="w-16 h-16 text-brand-orange mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        <h2 class="text-2xl font-heading font-bold text-gray-800">Assessment Paused</h2>
+        <p class="text-gray-500 mt-2">Please click back into this window to resume your test.</p>
+    </div>
+
+    <div class="max-w-[1400px] w-full bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-200 flex flex-col h-[90vh]">
+        
+        <!-- HEADER -->
+        <header class="px-8 py-5 flex justify-between items-center bg-white border-b border-gray-200 shrink-0">
+            <div>
+                <h1 class="text-2xl font-heading font-bold text-gray-800">CMS-485 Layout Mastery</h1>
+                <p class="text-brand-gray text-sm mt-1">Drag all 20 parts into their correct boxes. Points deduct after 2 minutes!</p>
+            </div>
+            <div class="flex items-center gap-6">
+                <!-- Scoreboard -->
+                <div class="flex items-center gap-6 mr-4">
+                    <div class="text-right hidden md:block">
+                        <div class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Time</div>
+                        <div id="timerDisplay" class="font-heading font-bold text-gray-800 text-xl leading-none mt-1 transition-colors">00:00</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Score</div>
+                        <div id="scoreDisplay" class="font-heading font-bold text-brand-teal text-3xl leading-none mt-1 transition-colors">100</div>
+                    </div>
+                </div>
+
+                <button onclick="checkAnswers()" class="bg-brand-teal hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg text-sm font-heading font-bold shadow-sm transition-all">
+                    CHECK ANSWERS
+                </button>
+                <button onclick="autoSolve()" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-heading font-bold shadow-sm transition-all">
+                    SHOW KEY
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="flex flex-col lg:flex-row flex-1 overflow-hidden bg-brand-surface">
+            
+            <!-- LEFT PANEL: PARTS BANK -->
+            <div class="w-full lg:w-[340px] border-r border-gray-200 bg-gray-50 flex flex-col flex-shrink-0">
+                <div class="p-6 bg-white border-b border-gray-200 shadow-sm z-10">
+                    <h3 class="font-heading font-bold text-gray-800 text-sm uppercase tracking-widest flex items-center gap-2">
+                        <svg class="w-5 h-5 text-brand-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        Form Parts Bank
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-2">Drag the labels to the empty structural boxes on the right.</p>
+                </div>
+                
+                <!-- Draggable Bank Area -->
+                <div class="p-4 flex-1 overflow-y-auto bank-zone flex flex-col gap-2" id="bankZone" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                    <!-- Chips will be dynamically inserted here in random order via JS -->
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL: BLANK CMS-485 FORM -->
+            <div class="flex-1 p-8 overflow-y-auto bg-gray-100 flex items-start justify-center">
+                
+                <div class="bg-white border-y-[6px] border-[#2C3E50] shadow-md font-sans w-full max-w-4xl flex flex-col">
+                    
+                    <!-- Row 1 -->
+                    <div class="flex border-b border-gray-300">
+                        <div class="flex-1 border-r border-gray-300 form-drop-zone bg-white" id="zone-1" data-box="1" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 1</span>
+                        </div>
+                        <div class="flex-1 border-r border-gray-300 form-drop-zone bg-white" id="zone-2" data-box="2" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 2</span>
+                        </div>
+                        <div class="flex-1 border-r border-gray-300 form-drop-zone bg-white" id="zone-3" data-box="3" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 3</span>
+                        </div>
+                        <div class="flex-1 border-r border-gray-300 form-drop-zone bg-white" id="zone-4" data-box="4" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 4</span>
+                        </div>
+                        <div class="flex-1 form-drop-zone bg-white" id="zone-5" data-box="5" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 5</span>
+                        </div>
+                    </div>
+
+                    <!-- Row 2 -->
+                    <div class="border-b border-gray-300 form-drop-zone min-h-[60px] bg-white" id="zone-6" data-box="6" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                        <span class="box-label">Box 6</span>
+                    </div>
+
+                    <!-- Row 3 -->
+                    <div class="flex border-b border-gray-300 min-h-[70px]">
+                        <div class="w-[60%] border-r border-gray-300 form-drop-zone bg-white" id="zone-11" data-box="11" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 11</span>
+                        </div>
+                        <div class="w-[40%] form-drop-zone bg-white" id="zone-12" data-box="12" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 12</span>
+                        </div>
+                    </div>
+
+                    <!-- Row 4 -->
+                    <div class="flex border-b border-gray-300 min-h-[70px]">
+                        <div class="w-[30%] border-r border-gray-300 form-drop-zone bg-white" id="zone-14" data-box="14" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 14</span>
+                        </div>
+                        <div class="w-[40%] border-r border-gray-300 form-drop-zone bg-white" id="zone-15" data-box="15" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 15</span>
+                        </div>
+                        <div class="w-[30%] form-drop-zone bg-white" id="zone-16" data-box="16" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 16</span>
+                        </div>
+                    </div>
+
+                    <!-- Row 5 -->
+                    <div class="border-b border-gray-300 form-drop-zone min-h-[80px] bg-white" id="zone-18" data-box="18" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                        <span class="box-label">Box 18</span>
+                    </div>
+
+                    <!-- Row 6 -->
+                    <div class="flex border-b border-gray-300 min-h-[80px]">
+                        <div class="w-[60%] border-r border-gray-300 form-drop-zone bg-white" id="zone-21" data-box="21" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 21</span>
+                        </div>
+                        <div class="w-[40%] form-drop-zone bg-white" id="zone-22" data-box="22" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 22</span>
+                        </div>
+                    </div>
+
+                    <!-- Row 7 (Training Custom Box) -->
+                    <div class="border-b-4 border-gray-400 form-drop-zone min-h-[60px] bg-white" id="zone-safety" data-box="safety" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                        <span class="box-label">Safety Addendum</span>
+                    </div>
+
+                    <!-- Row 8 (Real Box 23 & 25) -->
+                    <div class="flex border-b border-gray-300 min-h-[60px]">
+                        <div class="w-[70%] border-r border-gray-300 form-drop-zone bg-white" id="zone-23" data-box="23" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 23</span>
+                        </div>
+                        <div class="w-[30%] form-drop-zone bg-white" id="zone-25" data-box="25" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 25</span>
+                        </div>
+                    </div>
+
+                    <!-- Row 9 (Real Box 24 & 26) -->
+                    <div class="flex border-b border-gray-300 min-h-[80px]">
+                        <div class="w-[50%] border-r border-gray-300 form-drop-zone bg-white" id="zone-24" data-box="24" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 24</span>
+                        </div>
+                        <div class="w-[50%] form-drop-zone bg-white" id="zone-26" data-box="26" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 26</span>
+                        </div>
+                    </div>
+
+                    <!-- Row 10 (Real Box 27 & 28) -->
+                    <div class="flex min-h-[80px]">
+                        <div class="w-[50%] border-r border-gray-300 form-drop-zone bg-white" id="zone-27" data-box="27" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 27</span>
+                        </div>
+                        <div class="w-[50%] form-drop-zone bg-white" id="zone-28" data-box="28" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                            <span class="box-label">Box 28</span>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // Game State & Timers
+        let score = 100;
+        let timeElapsed = 0;
+        let startTime;
+        let timerInterval;
+        let isComplete = false;
+
+        // The definitive list of Form Parts and their correct box numbers
+        const formParts = [
+            { id: "chip-1", box: "1", label: "Patient HI #" },
+            { id: "chip-2", box: "2", label: "SOC Date" },
+            { id: "chip-3", box: "3", label: "Cert Period" },
+            { id: "chip-4", box: "4", label: "Medical Rec #" },
+            { id: "chip-5", box: "5", label: "Provider #" },
+            { id: "chip-6", box: "6", label: "Patient Name, Address, DOB" },
+            { id: "chip-11", box: "11", label: "Principal Diagnosis" },
+            { id: "chip-12", box: "12", label: "Other Pertinent DX" },
+            { id: "chip-14", box: "14", label: "DME / Supplies" },
+            { id: "chip-15", box: "15", label: "Functional Limitations" },
+            { id: "chip-16", box: "16", label: "Mental Status" },
+            { id: "chip-18", box: "18", label: "Skilled Nursing Orders" },
+            { id: "chip-21", box: "21", label: "Visit Frequency" },
+            { id: "chip-22", box: "22", label: "Goals / Rehab Potential" },
+            { id: "chip-safety", box: "safety", label: "Safety / Emergency Actions" },
+            
+            // The New Footer Sections
+            { id: "chip-23", box: "23", label: "Nurse's Signature and Date of Verbal SOC" },
+            { id: "chip-24", box: "24", label: "Physician's Name and Address" },
+            { id: "chip-25", box: "25", label: "Date HHA Received Signed POT" },
+            { id: "chip-26", box: "26", label: "Certification/Recertification Statement" },
+            { id: "chip-27", box: "27", label: "Attending Physician's Signature and Date Signed" },
+            { id: "chip-28", box: "28", label: "Federal Penalty Warning (Misrepresentation)" }
+        ];
+
+        // Initialize: Shuffle and render chips
+        window.onload = () => {
+            const bankZone = document.getElementById('bankZone');
+            
+            // Shuffle array
+            const shuffled = [...formParts].sort(() => Math.random() - 0.5);
+            
+            shuffled.forEach(part => {
+                const chipHTML = `
+                    <div class="chip" draggable="true" ondragstart="drag(event)" id="${part.id}" data-box="${part.box}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                        <span>${part.label}</span>
+                    </div>
+                `;
+                bankZone.insertAdjacentHTML('beforeend', chipHTML);
+            });
+
+            // Start the aggressive anti-cheat timer
+            startTime = Date.now();
+            startTimer();
+        };
+
+        function startTimer() {
+            const timerDisplay = document.getElementById('timerDisplay');
+            const scoreDisplay = document.getElementById('scoreDisplay');
+
+            // Run interval every 500ms to keep UI snappy and catch background tab time
+            timerInterval = setInterval(() => {
+                if (isComplete) return;
+
+                // Use Date.now() so time counts accurately even if they open another tab (browser throttling)
+                timeElapsed = Math.floor((Date.now() - startTime) / 1000);
+                
+                // Format UI
+                const m = Math.floor(timeElapsed / 60).toString().padStart(2, '0');
+                const s = (timeElapsed % 60).toString().padStart(2, '0');
+                timerDisplay.innerText = `${m}:${s}`;
+
+                // The Penalty Curve
+                let currentScore = 100;
+                
+                if (timeElapsed > 180) {
+                    // After 3 minutes: -60 pts (for mins 2-3) AND -2 pts per second
+                    const over180 = timeElapsed - 180;
+                    currentScore = 100 - 60 - (over180 * 2);
+                    
+                    scoreDisplay.classList.remove('text-brand-teal', 'text-brand-orange');
+                    scoreDisplay.classList.add('text-red-600');
+                    timerDisplay.classList.remove('text-gray-800', 'text-brand-orange');
+                    timerDisplay.classList.add('text-red-600');
+                } else if (timeElapsed > 120) {
+                    // After 2 minutes: -1 pt per second
+                    const over120 = timeElapsed - 120;
+                    currentScore = 100 - over120;
+                    
+                    scoreDisplay.classList.remove('text-brand-teal');
+                    scoreDisplay.classList.add('text-brand-orange');
+                    timerDisplay.classList.remove('text-gray-800');
+                    timerDisplay.classList.add('text-brand-orange');
+                }
+
+                score = Math.max(0, currentScore);
+                scoreDisplay.innerText = score;
+
+                // Game Over if they hit 0
+                if (score === 0 && !isComplete) {
+                    isComplete = true;
+                    clearInterval(timerInterval);
+                    alert("Time's up! Your score has hit 0. The form is locked. Please refresh the page to try again!");
+                }
+            }, 500);
+        }
+
+        // Drag and Drop Logic
+        function allowDrop(ev) {
+            ev.preventDefault();
+            if (ev.currentTarget.classList.contains('form-drop-zone') || ev.currentTarget.id === 'bankZone') {
+                ev.currentTarget.classList.add('drag-over');
+            }
+        }
+
+        function dragLeave(ev) {
+            ev.currentTarget.classList.remove('drag-over');
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+            ev.target.style.opacity = '0.5';
+            
+            // Reset zone styling when a chip is picked up
+            document.querySelectorAll('.form-drop-zone').forEach(z => {
+                z.classList.remove('correct-zone', 'incorrect-zone');
+            });
+            
+            setTimeout(() => { ev.target.style.opacity = '1'; }, 0);
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            const dropZone = ev.currentTarget;
+            dropZone.classList.remove('drag-over');
+            
+            const data = ev.dataTransfer.getData("text");
+            const draggedElement = document.getElementById(data);
+            if (!draggedElement) return;
+
+            // Handle dropping into a Form Box
+            if (dropZone.classList.contains('form-drop-zone')) {
+                // If box already has a chip, swap it back to the bank
+                const existingChip = dropZone.querySelector('.chip');
+                if (existingChip && existingChip !== draggedElement) {
+                    document.getElementById('bankZone').appendChild(existingChip);
+                }
+                dropZone.appendChild(draggedElement);
+            } 
+            // Handle dropping back into the Bank
+            else if (dropZone.id === 'bankZone') {
+                dropZone.appendChild(draggedElement);
+            }
+        }
+
+        // Validation Logic
+        function checkAnswers() {
+            if (score === 0 || isComplete) {
+                alert("The assessment is over. Please refresh to try again.");
+                return;
+            }
+
+            let correctCount = 0;
+            let totalBoxes = formParts.length;
+
+            document.querySelectorAll('.form-drop-zone').forEach(zone => {
+                const expectedBox = zone.getAttribute('data-box');
+                const chip = zone.querySelector('.chip');
+                
+                // Clear previous states
+                zone.classList.remove('correct-zone', 'incorrect-zone');
+
+                if (chip) {
+                    const actualBox = chip.getAttribute('data-box');
+                    if (actualBox === expectedBox) {
+                        zone.classList.add('correct-zone');
+                        correctCount++;
+                    } else {
+                        zone.classList.add('incorrect-zone');
+                    }
+                }
+            });
+
+            if (correctCount === totalBoxes) {
+                isComplete = true;
+                clearInterval(timerInterval);
+                alert(`🎉 Master Clinician! You perfectly reconstructed the ENTIRE CMS-485 form.\n\n🏆 Final Score: ${score}/100\n⏱️ Time: ${Math.floor(timeElapsed / 60)}m ${timeElapsed % 60}s`);
+            } else if (correctCount > 0) {
+                alert(`You got ${correctCount} out of ${totalBoxes} correct. Keep going! Look closely at the bottom signature boxes!\n\nCurrent Score: ${score}`);
+            } else {
+                alert(`No correct matches yet. Drag the labels into the boxes and try again.\n\nCurrent Score: ${score}`);
+            }
+        }
+
+        // Auto Solve Logic
+        function autoSolve() {
+            isComplete = true;
+            clearInterval(timerInterval);
+            score = 0;
+            
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            scoreDisplay.innerText = score;
+            scoreDisplay.classList.remove('text-brand-teal', 'text-brand-orange');
+            scoreDisplay.classList.add('text-red-600');
+
+            // Reset colors
+            document.querySelectorAll('.form-drop-zone').forEach(z => {
+                z.classList.remove('correct-zone', 'incorrect-zone');
+            });
+
+            formParts.forEach(part => {
+                const chip = document.getElementById(part.id);
+                const targetZone = document.getElementById(`zone-${part.box}`);
+                if (chip && targetZone) {
+                    targetZone.appendChild(chip);
+                    // Add a slight delay for visual effect
+                    setTimeout(() => {
+                        targetZone.classList.add('correct-zone');
+                    }, 50);
+                }
+            });
+        }
+
+        // --- ANTI-CHEAT MEASURES ---
+        
+        // 1. Disable Right-Click
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        // 2. Prevent Common Keyboard Shortcuts (Copy, Print, Save)
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'p' || e.key === 's' || e.key === 'u')) {
+                e.preventDefault();
+            }
+        });
+
+        // 3. Blur Screen when window loses focus (Stops Snipping Tool & Tab Switching)
+        window.addEventListener('blur', () => {
+            document.getElementById('anti-cheat-overlay').style.display = 'flex';
+        });
+
+        window.addEventListener('focus', () => {
+            document.getElementById('anti-cheat-overlay').style.display = 'none';
+        });
+
+    </script>
+</body>
+</html>
