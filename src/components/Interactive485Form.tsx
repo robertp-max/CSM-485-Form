@@ -1126,12 +1126,12 @@ export default function Interactive485Form({ theme = 'night', onProceed }: Props
                       </p>
                     </div>
 
-                    <div className="flex flex-col gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {currentOptions.map((chip) => (
                         <button
                           key={chip.id}
                           onClick={() => handleOptionSelect(chip.id)}
-                          className="w-full text-left rounded-[12px] border px-5 py-4 text-sm font-medium transition-all group flex items-start gap-3"
+                          className="w-full text-left rounded-[12px] border px-4 py-3 text-sm font-medium transition-all group flex items-start gap-3"
                           style={{ background: p.bg, borderColor: p.cardBorder, color: p.text }}
                           onMouseEnter={(e) => {
                             ;(e.currentTarget as HTMLElement).style.borderColor = p.accentDim

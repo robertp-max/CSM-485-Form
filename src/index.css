@@ -623,8 +623,8 @@ h1, h2, h3, h4, h5, h6 {
 /* Debug panel */
 .glossary-debug-panel {
   position: fixed;
-  bottom: 8px;
-  right: 8px;
+  top: 8px;
+  left: 8px;
   z-index: 99999;
   max-width: 300px;
   max-height: 200px;

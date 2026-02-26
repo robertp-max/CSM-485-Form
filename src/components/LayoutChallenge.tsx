@@ -388,13 +388,6 @@ export default function LayoutChallenge({ theme, onComplete, onBack }: LayoutCha
               CHECK
             </button>
             <button
-              onClick={showKey}
-              className="px-4 py-2 rounded-lg text-sm font-heading font-bold border transition-all hover:-translate-y-0.5"
-              style={{ borderColor: p.cardBorder, color: p.textMuted, background: isNight ? p.bgAlt : '#fff' }}
-            >
-              SHOW KEY
-            </button>
-            <button
               onClick={handleReset}
               className="p-2 rounded-lg transition-colors hover:opacity-80"
               style={{ color: p.textDim }}
