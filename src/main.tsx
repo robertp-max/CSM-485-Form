@@ -1,9 +1,9 @@
 import { Component, StrictMode, lazy, Suspense } from 'react'
 import type { ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
 import './index.css'
-import App from './App.tsx'
+import App from './App'
 import { applyTheme, getStoredTheme } from './theme'
 import { GlossaryProvider } from './components/GlossaryProvider'
 import { GlossaryDebugPanel } from './components/GlossaryDebugPanel'
@@ -11,8 +11,8 @@ import { GlossaryDebugPanel } from './components/GlossaryDebugPanel'
 // Apply persisted or system-preferred theme before mounting the app
 applyTheme(getStoredTheme())
 
-const LearningProfessional = lazy(() => import('./LearningProfessional.tsx'))
-const HelpCenter = lazy(() => import('./components/HelpCenter.tsx'))
+const LearningProfessional = lazy(() => import('./LearningProfessional'))
+const HelpCenter = lazy(() => import('./components/HelpCenter'))
 
 type ErrorBoundaryState = {
   hasError: boolean
@@ -63,10 +63,49 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/" element={<App />} />
               <Route path="/learning" element={<LearningProfessional />} />
               <Route path="/help" element={<HelpCenter />} />
-              {/* Henderson challenge now lives inside Virtual CMS-485 */}
-              <Route path="/henderson" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
+
+          {/* Master Site-Wide Shortcuts */}
+          <div style={{
+            position: 'fixed',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 99999,
+            display: 'flex',
+            gap: '8px',
+            padding: '8px',
+            background: 'rgba(0,0,0,0.85)',
+            borderRadius: '99px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(8px)',
+            pointerEvents: 'auto'
+          }}>
+            {[
+              { to: '/', label: 'ENGINE' },
+              { to: '/learning', label: 'LEARN' },
+              { to: '/help', label: 'HELP' },
+            ].map(link => (
+              <Link 
+                key={link.to} 
+                to={link.to}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '99px',
+                  color: '#fff',
+                  textDecoration: 'none',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  background: 'rgba(255,255,255,0.1)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
         </HashRouter>
         <GlossaryDebugPanel />
       </GlossaryProvider>

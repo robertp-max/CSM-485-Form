@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import type { ReactNode, CSSProperties } from 'react'
 
 export type DockItem = {
@@ -10,7 +10,7 @@ export type DockItem = {
 
 type DockProps = {
   items: DockItem[]
-  position?: 'bottom-right' | 'bottom-center'
+  position?: 'bottom-right' | 'bottom-center' | 'center-left'
   isDarkMode?: boolean
 }
 
@@ -19,6 +19,32 @@ export const Dock = ({ items, position = 'bottom-right', isDarkMode = false }: D
   const [isExpanded, setIsExpanded] = useState(false)
   const dockRef = useRef<HTMLDivElement>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ─── Drag state (resets on refresh) ────────────────────────
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const dragState = useRef({ dragging: false, startX: 0, startY: 0, origX: 0, origY: 0 })
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    const target = e.target as HTMLElement
+    if (!target.closest('[data-dock-drag]')) return
+    e.preventDefault()
+    dragState.current = { dragging: true, startX: e.clientX, startY: e.clientY, origX: dragOffset.x, origY: dragOffset.y }
+    dockRef.current?.setPointerCapture(e.pointerId)
+  }, [dragOffset])
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragState.current.dragging) return
+    setDragOffset({
+      x: dragState.current.origX + (e.clientX - dragState.current.startX),
+      y: dragState.current.origY + (e.clientY - dragState.current.startY),
+    })
+  }, [])
+
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    if (!dragState.current.dragging) return
+    dragState.current.dragging = false
+    dockRef.current?.releasePointerCapture(e.pointerId)
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -46,15 +72,38 @@ export const Dock = ({ items, position = 'bottom-right', isDarkMode = false }: D
 
   const positionClasses = position === 'bottom-right'
     ? 'fixed bottom-6 right-6 z-50'
-    : 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50'
+    : position === 'bottom-center'
+      ? 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50'
+      : 'fixed left-6 top-1/2 -translate-y-1/2 z-50'
 
   return (
     <div
       ref={dockRef}
-      className={positionClasses}
+      className={`${positionClasses} group`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`, touchAction: 'none' }}
     >
+      {/* Drag handle */}
+      <div
+        data-dock-drag
+        className={`absolute -top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-1 rounded-full cursor-grab active:cursor-grabbing select-none
+                   backdrop-blur-md border shadow-lg transition-all opacity-0 group-hover:opacity-100 ${
+                     isDarkMode
+                       ? 'bg-white/10 border-white/20 hover:border-white/40'
+                       : 'bg-black/60 border-white/20 hover:border-white/40'
+                   }`}
+        style={{ touchAction: 'none' }}
+      >
+        <svg width="12" height="6" viewBox="0 0 12 6" className="text-white/50">
+          <circle cx="1.5" cy="1" r="1" fill="currentColor"/><circle cx="5" cy="1" r="1" fill="currentColor"/><circle cx="8.5" cy="1" r="1" fill="currentColor"/>
+          <circle cx="1.5" cy="5" r="1" fill="currentColor"/><circle cx="5" cy="5" r="1" fill="currentColor"/><circle cx="8.5" cy="5" r="1" fill="currentColor"/>
+        </svg>
+        <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest">Drag</span>
+      </div>
       <div
         className={`flex items-end gap-1 px-3 py-2 rounded-2xl border backdrop-blur-md shadow-[0_8px_32px_rgba(31,28,27,0.12)] transition-all duration-300 ${
           isDarkMode

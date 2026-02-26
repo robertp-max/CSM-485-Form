@@ -1,0 +1,764 @@
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { 
+  Loader2, 
+  ShieldAlert, 
+  ShieldCheck, 
+  Activity, 
+  Thermometer, 
+  Wind, 
+  Zap, 
+  FileText, 
+  ArrowRight, 
+  ArrowLeft,
+  CheckCircle2, 
+  Settings, 
+  Volume2, 
+  Monitor, 
+  Music, 
+  Sun, 
+  Moon, 
+  Layout, 
+  MousePointer2, 
+  PartyPopper, 
+  Lock,
+  Search,
+  AlertTriangle,
+  HeartPulse,
+  Droplets,
+  Mic2,
+  ClipboardCheck,
+  Stethoscope,
+  ChevronLeft
+} from 'lucide-react';
+
+/**
+ * CAREINDEED CMS-485 MASTER CHALLENGE
+ * High-Fidelity Senior UI/UX Implementation
+ * Theme: Sophisticated Clinical Tech (Grounded)
+ */
+
+// --- DESIGN TOKENS & ANIMATIONS ---
+const CSS_STYLES = `
+  :root {
+    --teal-base: #007970;
+    --teal-deep: #004142;
+    --teal-glow: #64F4F5;
+    --orange-base: #C74601;
+    --orange-dark: #421700;
+    --orange-light: #FFD5BF;
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.1);
+  }
+
+  .theme-day {
+    --bg-main: #F8FAFC;
+    --card-bg: rgba(255, 255, 255, 0.8);
+    --text-main: #0F172A;
+    --text-muted: #64748B;
+    --glass-blur: blur(40px);
+    --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.05);
+  }
+
+  .theme-night {
+    --bg-main: #020617;
+    --card-bg: rgba(15, 23, 42, 0.6);
+    --text-main: #F8FAFC;
+    --text-muted: #94A3B8;
+    --glass-blur: blur(60px);
+    --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  @keyframes clinicalSync {
+    0% { transform: scale(0.98); opacity: 0.7; }
+    50% { transform: scale(1.02); opacity: 1; filter: drop-shadow(0 0 10px var(--teal-glow)); }
+    100% { transform: scale(0.98); opacity: 0.7; }
+  }
+
+  .perspective-1000 { perspective: 1000px; }
+  .preserve-3d { transform-style: preserve-3d; }
+  
+  .card-3d {
+    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .cursor-blob {
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, var(--orange-base) 0%, transparent 70%);
+    filter: blur(80px);
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: 9999;
+    position: fixed;
+    transition: transform 0.1s ease-out;
+  }
+
+  .particle {
+    position: fixed;
+    width: 6px;
+    height: 6px;
+    background: var(--teal-glow);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    animation: particleFade 0.6s ease-out forwards;
+  }
+
+  @keyframes particleFade {
+    to { transform: translate(var(--x), var(--y)) scale(0); opacity: 0; }
+  }
+
+  .onboarding-container {
+    height: 720px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-panel {
+    background: var(--card-bg);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 48px;
+    box-shadow: var(--shadow);
+  }
+
+  .btn-premium {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn-premium:active {
+    transform: translateY(2px) scale(0.98);
+  }
+`;
+
+// --- SIMULATION DATA ---
+const HENDERSON_CASE = {
+  vitals: [
+    { label: 'BS', value: '342', color: 'orange' },
+    { label: 'HR', value: '48 (Ashen)', color: 'teal' },
+    { label: 'BP', value: '158/92', color: 'orange' },
+    { label: 'Leg', value: 'Left Leg Cold/Pulseless', color: 'orange' },
+  ],
+  hazards: [
+    { icon: AlertTriangle, text: 'Unsecured firearm', severity: 'High' },
+    { icon: Zap, text: 'Power out', severity: 'Medium' },
+    { icon: ShieldAlert, text: 'Primary caregiver quit', severity: 'Critical' },
+  ],
+  narrative: [
+    {
+      title: 'Initial Assessment',
+      text: 'Upon arrival, a loaded handgun required tactical communication to establish a safe perimeter. Patient is ashen/bradycardic (HR 48). Diabetic neuropathy masks chest pressure. Wagner Grade 3 great toe ulcer probes to bone.'
+    },
+    {
+      title: 'Care Coordination',
+      text: 'Stabilization requires 72h oversight (3w1 in week one). Then twice-weekly (2w3) for remainder of month one. Final month is once-weekly (1w4). PT starts after 48h vascular hold: 2x/wk for 3 wks (2w3), then 1x/wk for 2 wks (1w2).'
+    }
+  ]
+};
+
+// --- COMPONENTS ---
+
+const CursorEffects = ({ utility, mousePos }) => {
+  const [particles, setParticles] = useState([]);
+
+  useEffect(() => {
+    if (utility === 'Teal Splash Cursor') {
+      const handleMouseDown = (e) => {
+        const newParticles = Array.from({ length: 8 }).map((_, i) => ({
+          id: Date.now() + i,
+          x: e.clientX,
+          y: e.clientY,
+          tx: (Math.random() - 0.5) * 100,
+          ty: (Math.random() - 0.5) * 100,
+        }));
+        setParticles(prev => [...prev, ...newParticles]);
+        setTimeout(() => {
+          setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
+        }, 600);
+      };
+      window.addEventListener('mousedown', handleMouseDown);
+      return () => window.removeEventListener('mousedown', handleMouseDown);
+    }
+  }, [utility]);
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[9999]">
+      {utility === 'Ambient Orange Blob' && (
+        <div 
+          className="cursor-blob" 
+          style={{ 
+            transform: `translate(${mousePos.x - 150}px, ${mousePos.y - 150}px)`,
+          }} 
+        />
+      )}
+      {particles.map(p => (
+        <div 
+          key={p.id}
+          className="particle"
+          style={{ 
+            left: p.x, 
+            top: p.y, 
+            '--x': `${p.tx}px`, 
+            '--y': `${p.ty}px` 
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+export default function App() {
+  const [stage, setStage] = useState(0);
+  const [theme, setTheme] = useState('night');
+  const [layout, setLayout] = useState('Tactical Dashboard');
+  const [utility, setUtility] = useState(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isSimulationActive, setIsSimulationActive] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [gain, setGain] = useState(50);
+  const [testingAudio, setTestingAudio] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState('Monitor Speakers');
+  
+  const [answers, setAnswers] = useState({ box24: null, box18: null });
+  const [lifelineUsed, setLifelineUsed] = useState(false);
+  const [showModal, setShowModal] = useState(null); 
+  const [carouselIndex, setCarouselIndex] = useState(0);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => setMousePos({ x: e.clientX, y: e.clientY });
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  const nextStage = () => {
+    if (stage === 1) { 
+      setSyncing(true);
+      setStage(2);
+      setTimeout(() => {
+        setSyncing(false);
+        setStage(3);
+      }, 2000);
+    } else {
+      setStage(prev => Math.min(prev + 1, onboardingStages.length - 1));
+    }
+  };
+
+  const prevStage = () => {
+    // If we are at stage 3 (after the 2-sec sync), skip the sync stage and go back to stage 1
+    if (stage === 3) {
+      setStage(1);
+    } else {
+      setStage(prev => Math.max(prev - 1, 0));
+    }
+  };
+
+  const handleAnswerSelection = (box, value) => {
+    if (box === 'box18' && !answers.box24) {
+      if (utility === 'Audit Lifeline' && !lifelineUsed) {
+        setLifelineUsed(true);
+        setShowModal('lifeline');
+      } else {
+        setShowModal('failure');
+      }
+      return;
+    }
+    setAnswers(prev => ({ ...prev, [box]: value }));
+  };
+
+  const resetSim = () => {
+    setAnswers({ box24: null, box18: null });
+    setShowModal(null);
+  };
+
+  const onboardingStages = [
+    {
+      title: "Audio Readiness",
+      description: "Initialize clinical alert pathways.",
+      script: "Welcome to CareIndeed. Let's start by testing your audio settings to ensure all clinical alerts and patient notifications are audible.",
+      content: (
+        <div className="flex flex-col items-center gap-6">
+          <div className="p-8 rounded-full bg-teal-500/10 border border-teal-500/20">
+            <Volume2 size={48} className="text-[#64F4F5] animate-pulse" />
+          </div>
+          <button onClick={nextStage} className="btn-premium px-12 py-4 glass-panel text-white hover:bg-teal-500/20">
+            Start Audio Test
+          </button>
+        </div>
+      )
+    },
+    {
+      title: "Device Setup",
+      description: "Select your clinical workspace interface.",
+      script: "Please choose your primary device. This ensures the CMS-485 forms are scaled correctly for your documentation style.",
+      content: (
+        <div className="grid grid-cols-2 gap-4 w-full">
+          {['Standard Workstation', 'Remote Tablet'].map(device => (
+            <div 
+              key={device}
+              onClick={() => setSelectedDevice(device)}
+              className={`p-8 rounded-[32px] cursor-pointer transition-all border-2 flex flex-col items-center gap-4 ${
+                selectedDevice === device ? 'border-[#64F4F5] bg-teal-500/10' : 'border-white/10 bg-white/5'
+              }`}
+            >
+              <Monitor size={32} className={selectedDevice === device ? 'text-[#64F4F5]' : 'text-slate-400'} />
+              <span className="font-semibold text-white">{device}</span>
+            </div>
+          ))}
+          <div className="col-span-2 flex gap-4 mt-4">
+            <button onClick={prevStage} className="btn-premium flex-1 px-8 py-4 rounded-full border border-white/10 text-slate-400 hover:bg-white/5 flex items-center justify-center gap-2">
+              <ArrowLeft size={16} /> Back
+            </button>
+            <button onClick={nextStage} className="btn-premium flex-[2] py-4 rounded-full bg-[#007970] text-white font-semibold">
+              Confirm Selection
+            </button>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: "Clinical Data Sync",
+      description: "Connecting to secure CMS records...",
+      script: "We're currently syncing with the Henderson patient file. Please stay with us while we securely load the clinical history.",
+      content: (
+        <div className="flex flex-col items-center gap-6">
+          <Loader2 size={64} className="text-[#64F4F5] animate-spin" />
+          <p className="text-[#64F4F5] font-mono tracking-widest uppercase">Syncing Patient Records...</p>
+        </div>
+      )
+    },
+    {
+      title: "Alert Verification",
+      description: "Test notification volume and clarity.",
+      script: "Use the slider to set your preferred volume. Let's make sure you can hear those high-priority alerts during your shift.",
+      content: (
+        <div className="w-full flex flex-col gap-8">
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between text-sm text-slate-400 uppercase">
+              <span>Alert Volume</span>
+              <span>{gain}%</span>
+            </div>
+            <input 
+              type="range" 
+              value={gain} 
+              onChange={(e) => setGain(e.target.value)}
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#64F4F5]"
+            />
+          </div>
+          <button 
+            onClick={() => setTestingAudio(!testingAudio)} 
+            className={`btn-premium px-12 py-6 rounded-[32px] flex items-center justify-center gap-4 border-2 transition-all ${
+              testingAudio ? 'border-[#64F4F5] text-[#64F4F5]' : 'border-white/10 text-white'
+            }`}
+          >
+            {testingAudio ? <Music className="animate-bounce" /> : <Activity />}
+            {testingAudio ? '[ Alert Tone Playing ]' : 'Test Audible Notifications'}
+          </button>
+          <div className="flex gap-4">
+            <button onClick={prevStage} className="btn-premium flex-1 px-8 py-4 rounded-full border border-white/10 text-slate-400 hover:bg-white/5 flex items-center justify-center gap-2">
+              <ChevronLeft size={16} /> Back
+            </button>
+            <button onClick={nextStage} className="btn-premium flex-[2] py-4 rounded-full bg-[#007970] text-white">Continue to UI Setup</button>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: "Visual Preference",
+      description: "Select comfortable interface lighting.",
+      script: "Choose the atmosphere that works best for your eyes. Most of our clinicians prefer 'Night Ops' for reduced glare during late charts.",
+      content: (
+        <div className="grid grid-cols-2 gap-4 w-full">
+          {[
+            { id: 'day', label: 'Day Shift', icon: Sun },
+            { id: 'night', label: 'Night Ops', icon: Moon }
+          ].map(m => (
+            <div 
+              key={m.id}
+              onClick={() => setTheme(m.id)}
+              className={`p-8 rounded-[32px] cursor-pointer transition-all border-2 flex flex-col items-center gap-4 ${
+                theme === m.id ? 'border-[#64F4F5] bg-teal-500/10' : 'border-white/10 bg-white/5'
+              }`}
+            >
+              <m.icon size={32} className={theme === m.id ? 'text-[#64F4F5]' : 'text-slate-400'} />
+              <span className="font-semibold text-white">{m.label}</span>
+            </div>
+          ))}
+          <div className="col-span-2 flex gap-4 mt-4">
+            <button onClick={prevStage} className="btn-premium flex-1 px-8 py-4 rounded-full border border-white/10 text-slate-400 hover:bg-white/5 flex items-center justify-center gap-2">
+              <ChevronLeft size={16} /> Back
+            </button>
+            <button onClick={nextStage} className="btn-premium flex-[2] py-4 rounded-full bg-[#007970] text-white">Apply Visuals</button>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: "Dashboard Layout",
+      description: "Choose your patient visualization style.",
+      script: "How do you prefer to view case data? The Tactical Dashboard is great for broad grids, while the Carousel helps focus on one section at a time.",
+      content: (
+        <div className="grid grid-cols-2 gap-4 w-full">
+          {[
+            { id: 'Tactical Dashboard', label: 'Tactical View', desc: 'Standard Grid' },
+            { id: 'Focused Carousel', label: 'Focused View', desc: 'Step-by-Step' }
+          ].map(l => (
+            <div 
+              key={l.id}
+              onClick={() => setLayout(l.id)}
+              className={`p-8 rounded-[32px] cursor-pointer transition-all border-2 flex flex-col gap-2 ${
+                layout === l.id ? 'border-[#64F4F5] bg-teal-500/10' : 'border-white/10 bg-white/5'
+              }`}
+            >
+              <Layout size={32} className={layout === l.id ? 'text-[#64F4F5]' : 'text-slate-400'} />
+              <span className="font-semibold text-white">{l.label}</span>
+              <span className="text-xs text-slate-500 uppercase">{l.desc}</span>
+            </div>
+          ))}
+          <div className="col-span-2 flex gap-4 mt-4">
+            <button onClick={prevStage} className="btn-premium flex-1 px-8 py-4 rounded-full border border-white/10 text-slate-400 hover:bg-white/5 flex items-center justify-center gap-2">
+              <ChevronLeft size={16} /> Back
+            </button>
+            <button onClick={nextStage} className="btn-premium flex-[2] py-4 rounded-full bg-[#007970] text-white">Save Layout</button>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: "Orientation Progress",
+      description: "Training modules verified.",
+      script: "Great job completing the setup. I've unlocked some clinical utilities to assist you with the complex Henderson case audit.",
+      content: (
+        <div className="flex flex-col items-center gap-8 py-4">
+          <div className="relative">
+            <ClipboardCheck size={80} className="text-[#64F4F5]" />
+            <div className="absolute inset-0 animate-ping rounded-full bg-[#64F4F5]/20" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-white mb-2">Orientation Verified</h2>
+            <p className="text-[#64F4F5] font-mono tracking-widest uppercase">Support Utilities Enabled</p>
+          </div>
+          <div className="w-full flex gap-4">
+            <button onClick={prevStage} className="btn-premium flex-1 px-8 py-4 rounded-full border border-white/10 text-slate-400 hover:bg-white/5 flex items-center justify-center gap-2">
+              <ChevronLeft size={16} /> Back
+            </button>
+            <button onClick={nextStage} className="btn-premium flex-[2] py-4 rounded-full bg-[#007970] text-white">View Utilities</button>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: "Clinical Utilities",
+      description: "Select real-time documentation assistance.",
+      script: "I recommend choosing the Audit Lifeline. It acts as a safety net if you accidentally document clinical steps out of sequence.",
+      content: (
+        <div className="relative w-full h-full flex flex-col gap-4">
+          {['Teal Splash Cursor', 'Ambient Orange Blob', 'Audit Lifeline'].map(u => (
+            <div 
+              key={u}
+              onClick={() => setUtility(u)}
+              className={`p-6 rounded-[24px] cursor-pointer transition-all border-2 z-10 flex items-center justify-between ${
+                utility === u ? 'border-[#64F4F5] bg-teal-500/10' : 'border-white/10 bg-white/5'
+              }`}
+            >
+              <div className="flex items-center gap-4">
+                {u === 'Audit Lifeline' ? <ShieldCheck className="text-orange-500" /> : <MousePointer2 className="text-teal-400" />}
+                <span className="font-semibold text-white">{u}</span>
+              </div>
+              {utility === u && <CheckCircle2 size={20} className="text-[#64F4F5]" />}
+            </div>
+          ))}
+          <div className="flex gap-4 mt-4 z-10">
+            <button onClick={prevStage} className="btn-premium flex-1 px-8 py-4 rounded-full border border-white/10 text-slate-400 hover:bg-white/5 flex items-center justify-center gap-2">
+              <ChevronLeft size={16} /> Back
+            </button>
+            <button onClick={nextStage} className="btn-premium flex-[2] py-4 rounded-full bg-[#007970] text-white">Confirm Utilities</button>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: "Ready for Shift",
+      description: "Finalize system readiness for simulation.",
+      script: "Everything is set. You're ready to start the Henderson case. Remember to follow the 'Safety First' sequence protocol.",
+      content: (
+        <div className="flex flex-col items-center gap-6 w-full">
+          <div className="p-8 rounded-[48px] bg-white/5 border border-white/10 w-full text-center">
+            <Stethoscope size={48} className="text-[#64F4F5] mx-auto mb-4" />
+            <p className="text-white font-bold uppercase tracking-tighter text-xl">System Readiness Locked</p>
+            <p className="text-slate-400 text-sm mt-2">All settings are saved. Ready to begin the Henderson case?</p>
+          </div>
+          <div className="w-full flex gap-4">
+            <button onClick={prevStage} className="btn-premium flex-1 px-8 py-4 rounded-full border border-white/10 text-slate-400 hover:bg-white/5 flex items-center justify-center gap-2">
+              <ChevronLeft size={16} /> Back
+            </button>
+            <button 
+              onClick={() => setIsSimulationActive(true)}
+              className="flex-[2] btn-premium py-6 rounded-full bg-[#64F4F5] text-black font-bold uppercase tracking-widest hover:brightness-110"
+            >
+              Start Clinical Case
+            </button>
+          </div>
+        </div>
+      )
+    }
+  ];
+
+  const currentStageData = onboardingStages[stage];
+
+  return (
+    <div className={`min-h-screen transition-all duration-1000 flex flex-col font-sans theme-${theme} bg-[var(--bg-main)] text-[var(--text-main)]`}>
+      <style>{CSS_STYLES}</style>
+      
+      <CursorEffects utility={utility} mousePos={mousePos} />
+
+      {!isSimulationActive ? (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="w-full max-w-2xl glass-panel onboarding-container p-12 flex flex-col items-center justify-between">
+            <div className="text-center w-full">
+              <span className="text-xs font-mono text-slate-500 tracking-[0.3em] uppercase mb-2 block">Module 0{stage + 1} // System Setup</span>
+              <h1 className="text-4xl font-bold tracking-tight mb-2 text-white">{currentStageData.title}</h1>
+              <p className="text-slate-400">{currentStageData.description}</p>
+            </div>
+
+            <div className="w-full flex-1 flex flex-col items-center justify-center transition-all duration-500">
+              {currentStageData.content}
+              
+              <div className="mt-8 p-4 bg-white/5 border border-white/10 rounded-2xl flex items-start gap-3 w-full max-w-lg">
+                <Mic2 size={16} className="text-[#64F4F5] mt-1 shrink-0" />
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] font-bold text-[#64F4F5] uppercase tracking-widest">HR Briefing Audio Script</span>
+                  <p className="text-xs text-slate-400 italic leading-relaxed">"{currentStageData.script}"</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full flex justify-between items-center mt-8">
+              <div className="flex gap-2">
+                {onboardingStages.map((_, i) => (
+                  <div key={i} className={`h-1 rounded-full transition-all ${i <= stage ? 'w-8 bg-[#64F4F5]' : 'w-4 bg-white/10'}`} />
+                ))}
+              </div>
+              <span className="text-slate-500 font-mono text-xs">READY_STATE_0{stage + 1}</span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex h-screen overflow-hidden">
+          {/* SIDEBAR */}
+          <aside className="w-[450px] border-r border-white/5 glass-panel rounded-none border-y-0 p-8 flex flex-col gap-8 overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#007970] flex items-center justify-center">
+                  <HeartPulse className="text-white" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-white tracking-tight">Patient Clinical File</h2>
+                  <p className="text-[10px] font-mono text-[#64F4F5]">ID: HENDERSON-485-M</p>
+                </div>
+              </div>
+              <div className="px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-500 text-[10px] font-bold uppercase">Critical Priority</div>
+            </div>
+
+            <section>
+              <h3 className="text-xs font-mono text-slate-500 uppercase tracking-widest mb-4">Current Vitals</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {HENDERSON_CASE.vitals.map(v => (
+                  <div key={v.label} className="p-4 rounded-[24px] bg-white/5 border border-white/10">
+                    <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">{v.label}</p>
+                    <p className={`text-xl font-bold ${v.color === 'orange' ? 'text-[#C74601]' : 'text-[#64F4F5]'}`}>{v.value}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <h3 className="text-xs font-mono text-slate-500 uppercase tracking-widest mb-4">Safety Hazards</h3>
+              <div className="flex flex-col gap-3">
+                {HENDERSON_CASE.hazards.map((h, i) => (
+                  <div key={i} className="flex items-center gap-4 p-4 rounded-[24px] bg-white/5 border border-white/10">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${h.severity === 'Critical' ? 'bg-red-500/20 text-red-500' : 'bg-orange-500/20 text-orange-500'}`}>
+                      <h.icon size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">{h.text}</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-tighter">Priority: {h.severity}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="flex-1">
+              <h3 className="text-xs font-mono text-slate-500 uppercase tracking-widest mb-4">Clinical Narrative</h3>
+              <div className="flex flex-col gap-4">
+                {HENDERSON_CASE.narrative.map((n, i) => (
+                  <div key={i} className="p-6 rounded-[32px] bg-white/5 border border-white/10">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText size={16} className="text-[#64F4F5]" />
+                      <span className="text-xs font-bold uppercase tracking-widest text-[#64F4F5]">{n.title}</span>
+                    </div>
+                    <p className="text-sm text-slate-400 leading-relaxed italic">"{n.text}"</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </aside>
+
+          {/* MAIN WORKSPACE */}
+          <main className="flex-1 p-12 overflow-y-auto bg-black/20">
+            <header className="flex justify-between items-center mb-12">
+              <div>
+                <h1 className="text-3xl font-bold text-white tracking-tighter">CMS-485 Audit Simulation</h1>
+                <p className="text-slate-500">Interface: <span className="text-[#64F4F5]">{layout}</span></p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="px-6 py-3 rounded-2xl glass-panel text-[#64F4F5] font-mono text-sm border border-[#64F4F5]/20">
+                  <Activity size={16} className="inline mr-2" />
+                  DATABASE_SYNC: SECURE
+                </div>
+              </div>
+            </header>
+
+            {layout === 'Tactical Dashboard' ? (
+              <div className="grid grid-cols-2 gap-8">
+                {/* Box 24 */}
+                <div className={`p-10 rounded-[48px] glass-panel border-2 transition-all ${answers.box24 ? 'border-[#64F4F5] bg-teal-500/5' : 'border-white/5'}`}>
+                  <div className="flex items-center gap-3 mb-6">
+                    <ShieldAlert size={28} className="text-[#C74601]" />
+                    <h2 className="text-2xl font-bold text-white">Box 24: Safety/911</h2>
+                  </div>
+                  <p className="text-slate-400 mb-8">Determine the primary safety protocol based on cardiovascular status and household hazards.</p>
+                  <div className="flex flex-col gap-3">
+                    {['Standard Home Precautions', '911 Emergency Activation', 'Caregiver Refresher Training'].map(opt => (
+                      <button 
+                        key={opt}
+                        onClick={() => handleAnswerSelection('box24', opt)}
+                        className={`text-left p-6 rounded-[24px] border-2 transition-all font-semibold ${
+                          answers.box24 === opt ? 'bg-[#64F4F5] text-black border-[#64F4F5]' : 'bg-white/5 text-white border-white/10 hover:border-white/30'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Box 18 */}
+                <div className={`p-10 rounded-[48px] glass-panel border-2 transition-all ${answers.box18 ? 'border-[#64F4F5] bg-teal-500/5' : 'border-white/5'}`}>
+                  <div className="flex items-center gap-3 mb-6">
+                    <Droplets size={28} className="text-[#C74601]" />
+                    <h2 className="text-2xl font-bold text-white">Box 18: Wound Care</h2>
+                  </div>
+                  <p className="text-slate-400 mb-8">Establish wound care frequency for Wagner Grade 3 great toe ulceration.</p>
+                  <div className="flex flex-col gap-3">
+                    {['Standard Daily Cleanse', 'Vascular Specialist Referral', '2w1 Complex Wound Protocol'].map(opt => (
+                      <button 
+                        key={opt}
+                        onClick={() => handleAnswerSelection('box18', opt)}
+                        className={`text-left p-6 rounded-[24px] border-2 transition-all font-semibold ${
+                          answers.box18 === opt ? 'bg-[#64F4F5] text-black border-[#64F4F5]' : 'bg-white/5 text-white border-white/10 hover:border-white/30'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center gap-12 perspective-1000">
+                <div className="relative w-[600px] h-[400px] preserve-3d">
+                  {[
+                    { id: 'box24', title: 'Box 24 (Safety)', options: ['Standard Home Precautions', '911 Emergency Activation', 'Caregiver Refresher Training'] },
+                    { id: 'box18', title: 'Box 18 (Wound Care)', options: ['Standard Daily Cleanse', 'Vascular Specialist Referral', '2w1 Complex Wound Protocol'] }
+                  ].map((card, idx) => (
+                    <div 
+                      key={card.id}
+                      className={`absolute inset-0 card-3d glass-panel p-10 flex flex-col justify-between border-2 border-white/20 transition-all duration-700 ${
+                        carouselIndex === idx ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                      }`}
+                      style={{ 
+                        transform: carouselIndex === idx ? 'rotateX(0deg)' : 'rotateX(45deg) translateZ(-100px)',
+                        zIndex: carouselIndex === idx ? 10 : 0
+                      }}
+                    >
+                      <div>
+                        <h2 className="text-2xl font-bold text-[#64F4F5] mb-2">{card.title}</h2>
+                        <p className="text-slate-400 mb-6">Select the appropriate clinical response.</p>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        {card.options.map(opt => (
+                          <button 
+                            key={opt}
+                            onClick={() => handleAnswerSelection(card.id, opt)}
+                            className={`text-left p-4 rounded-2xl border transition-all ${answers[card.id] === opt ? 'bg-[#64F4F5] text-black' : 'bg-white/5 text-white border-white/10'}`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-4">
+                  <button onClick={() => setCarouselIndex(0)} className={`w-3 h-3 rounded-full transition-all ${carouselIndex === 0 ? 'bg-[#64F4F5] w-8' : 'bg-white/20'}`} />
+                  <button onClick={() => setCarouselIndex(1)} className={`w-3 h-3 rounded-full transition-all ${carouselIndex === 1 ? 'bg-[#64F4F5] w-8' : 'bg-white/20'}`} />
+                </div>
+              </div>
+            )}
+
+            {answers.box24 && answers.box18 && (
+              <div className="mt-12 flex justify-center">
+                <button 
+                  onClick={() => setShowModal('success')}
+                  className="btn-premium px-12 py-6 rounded-full bg-[#007970] text-white font-bold tracking-[0.2em] shadow-[0_0_30px_rgba(0,121,112,0.4)]"
+                >
+                  Commit Documentation Protocol
+                </button>
+              </div>
+            )}
+          </main>
+        </div>
+      )}
+
+      {/* MODALS */}
+      {showModal && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 backdrop-blur-xl bg-black/40 animate-fade-in">
+          <div className="max-w-md w-full glass-panel p-10 border-2 border-white/20 text-center flex flex-col gap-6 scale-up-center">
+            {showModal === 'failure' && (
+              <>
+                <div className="w-20 h-20 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <ShieldAlert size={40} />
+                </div>
+                <h2 className="text-3xl font-bold text-white">Clinical Sequence Error</h2>
+                <p className="text-slate-400">Patient safety protocol violation. Emergency stabilization (Box 24) must be documented before specialized wound treatment (Box 18).</p>
+                <button onClick={resetSim} className="btn-premium py-4 rounded-full bg-red-600 text-white font-bold">Rectify Documentation</button>
+              </>
+            )}
+
+            {showModal === 'lifeline' && (
+              <>
+                <div className="w-20 h-20 bg-orange-500/20 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <ShieldCheck size={40} />
+                </div>
+                <h2 className="text-3xl font-bold text-white">Audit Lifeline Applied</h2>
+                <p className="text-slate-400">Your documentation sequence was intercepted. We've blocked the error—please document Box 24 prior to clinical intervention.</p>
+                <button onClick={() => setShowModal(null)} className="btn-premium py-4 rounded-full bg-orange-600 text-white font-bold">Resume Audit</button>
+              </>
+            )}
+
+            {showModal === 'success' && (
+              <>
+                <div className="w-20 h-20 bg-teal-500/20 text-[#64F4F5] rounded-full flex items-center justify-center mx-auto mb-2">
+                  <CheckCircle2 size={40} />
+                </div>
+                <h2 className="text-3xl font-bold text-white">Documentation Verified</h2>
+                <p className="text-slate-400">CMS-485 mapping for the Henderson case is complete. Compliance check passed.</p>
+                <button onClick={() => window.location.reload()} className="btn-premium py-4 rounded-full bg-[#007970] text-white font-bold">Finish Simulation</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

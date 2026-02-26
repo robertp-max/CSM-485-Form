@@ -22,7 +22,7 @@ type SplashCursorProps = {
   fadeSpeed?: number
 }
 
-export function SplashCursor({
+export default function SplashCursor({
   colors = ['rgba(0, 121, 112, 0.3)', 'rgba(100, 244, 245, 0.25)', 'rgba(199, 70, 1, 0.2)'],
   particleCount = 6,
   maxRadius = 18,

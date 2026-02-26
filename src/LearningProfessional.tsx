@@ -25,6 +25,7 @@ import { Dock } from './components/Dock'
 import type { DockItem } from './components/Dock'
 import { SettingsPanel } from './components/SettingsPanel'
 import type { SettingsState } from './components/SettingsPanel'
+import BookCarousel from './components/BookCarousel'
 import { PlanOfCareFocusPanel } from './components/PlanOfCareFocusPanel'
 import { Cms485VirtualForm } from './components/Cms485VirtualForm'
 import { TermHighlighter } from './components/TermHighlighter'
@@ -651,6 +652,23 @@ export default function LearningProfessional() {
                   </p>
                 </div>
               )}
+              {/* Audio Play Button — centered below subject content */}
+              <div className="flex justify-center mt-2">
+                <button
+                  onClick={audioPlaybackState === 'playing' ? handleAudioPauseClick : handleAudioPlayClick}
+                  disabled={!currentVoiceRecording}
+                  className={`w-14 h-14 rounded-full border-2 flex items-center justify-center transition-colors ${
+                    isDarkMode
+                      ? 'border-[#007970] text-[#64F4F5] hover:bg-[#007970]/20 disabled:opacity-30 disabled:cursor-not-allowed'
+                      : 'border-[#007970] text-[#007970] hover:bg-[#007970]/10 disabled:opacity-30 disabled:cursor-not-allowed'
+                  }`}
+                  title={audioPlaybackState === 'playing' ? 'Pause audio' : 'Play audio'}
+                >
+                  {audioPlaybackState === 'playing'
+                    ? <Pause className="h-5 w-5 fill-current" />
+                    : <Play className="h-5 w-5 fill-current ml-0.5" />}
+                </button>
+              </div>
               {metadata?.pocFocus && (
                 <PlanOfCareFocusPanel
                   focus={metadata.pocFocus}
@@ -694,12 +712,11 @@ export default function LearningProfessional() {
     if (cardItem?.kind === 'cover') {
       if (showReportGrid) {
         return (
-          <ReportGrid
+          <BookCarousel
             items={TRAINING_CARDS}
             onSelect={(itemIndex) => handleReportSelect(itemIndex + trainingStartIndex)}
             isDarkMode={isDarkMode}
             unlockedCount={unlockedTrainingCount}
-            interactiveEffects={settings.interactiveEffects}
           />
         )
       }
@@ -841,73 +858,30 @@ export default function LearningProfessional() {
 
         {/* Footer */}
         {showNavigationChrome && (
-          <footer className={`px-8 py-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4 shrink-0 border-t ${
+          <footer className={`px-8 py-3 flex items-center justify-between shrink-0 border-t ${
             isDarkMode ? 'border-white/10 bg-[#0A0A0C]' : 'border-[#E5E4E3] bg-[#FAFBF8]'
           }`}>
             {/* Left: Back */}
-            <div className="justify-self-start">
-              <button
-                onClick={goPrev}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
-                  isDarkMode ? 'text-white/40 hover:text-white hover:bg-white/5' : 'text-[#747474] hover:text-[#1F1C1B] hover:bg-[#E5E4E3]'
-                }`}
-              >
-                <ArrowLeft className="h-4 w-4" /> Return
-              </button>
-            </div>
+            <button
+              onClick={goPrev}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
+                isDarkMode ? 'text-white/40 hover:text-white hover:bg-white/5' : 'text-[#747474] hover:text-[#1F1C1B] hover:bg-[#E5E4E3]'
+              }`}
+            >
+              <ArrowLeft className="h-4 w-4" /> Return
+            </button>
 
-            {/* Center: Audio */}
-            <div className="flex flex-col items-center gap-1.5 justify-self-center">
-              <div className={`flex items-center gap-0.5 p-1 rounded-xl border ${
-                isDarkMode ? 'border-white/10 bg-white/5' : 'border-[#E5E4E3] bg-white shadow-sm'
-              }`}>
-                {audioPlaybackState === 'playing' ? (
-                  <button onClick={handleAudioPauseClick} className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-[#64F4F5] hover:bg-white/10' : 'text-[#007970] bg-[#E5FEFF] hover:bg-[#C4F4F5]'}`}>
-                    <Pause className="h-4 w-4 fill-current" />
-                  </button>
-                ) : (
-                  <button onClick={handleAudioPlayClick} disabled={!currentVoiceRecording} className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-[#64F4F5] hover:bg-white/10' : 'text-[#007970] hover:bg-[#E5FEFF]'}`}>
-                    <Play className="h-4 w-4 fill-current ml-0.5" />
-                  </button>
-                )}
-                <div className={`w-px h-4 mx-0.5 ${isDarkMode ? 'bg-white/10' : 'bg-[#E5E4E3]'}`} />
-                <button onClick={handleAudioStopClick} disabled={!currentVoiceRecording} className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-[#747474] hover:text-[#D70101] hover:bg-[#FFF0F0]'}`}>
-                  <Square className="h-4 w-4 fill-current" />
-                </button>
-                <button onClick={handleAudioRestartClick} disabled={!currentVoiceRecording} className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-white/40 hover:text-white hover:bg-white/10' : 'text-[#747474] hover:text-[#007970] hover:bg-[#E5FEFF]'}`}>
-                  <RotateCcw className="h-4 w-4" />
-                </button>
-              </div>
-              <span className={`text-[9px] uppercase tracking-[0.18em] ${isDarkMode ? 'text-white/40' : 'text-[#747474]'}`}>
-                {liveStatus || getAudioStatusLabel()}
-              </span>
-            </div>
-
-            {/* Right: Challenge + Advance */}
-            <div className="flex items-center gap-3 justify-self-end">
-              <button
-                onClick={handleChallengeClick}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors ${
-                  isChallengeUnlocked
-                    ? (isDarkMode ? 'text-[#C74601] hover:bg-[#C74601]/10' : 'text-[#C74601] hover:bg-[#FFEEE5]')
-                    : 'text-[#747474] opacity-40 cursor-not-allowed'
-                } ${isNextLockedFeedback ? 'animate-shake' : ''}`}
-              >
-                {isChallengeUnlocked ? <Zap className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                Test
-              </button>
-
-              <button
-                onClick={goNext}
-                className={`group flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-white transition-all ${
-                  isDarkMode
-                    ? 'bg-[#007970] border border-[#007970] hover:bg-[#00968b]'
-                    : 'bg-[#007970] border-2 border-[#004142] hover:shadow-[3px_3px_0_#004142] hover:-translate-y-0.5'
-                } ${isNextLockedFeedback ? 'animate-shake' : ''}`}
-              >
-                Advance <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
+            {/* Right: Advance */}
+            <button
+              onClick={goNext}
+              className={`group flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest text-white transition-all ${
+                isDarkMode
+                  ? 'bg-[#007970] border border-[#007970] hover:bg-[#00968b]'
+                  : 'bg-[#007970] border-2 border-[#004142] hover:shadow-[3px_3px_0_#004142] hover:-translate-y-0.5'
+              } ${isNextLockedFeedback ? 'animate-shake' : ''}`}
+            >
+              Advance <ArrowRight className="h-4 w-4" />
+            </button>
 
             <audio
               ref={audioElementRef}

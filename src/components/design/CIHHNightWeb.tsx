@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Play, Pause, Square, RotateCcw, Swords,
   ArrowRight, ArrowLeft, CheckCircle2, XCircle,
@@ -31,21 +31,25 @@ const StyleInjector = () => (
 );
 
 const debugMode = true;
+import { Dock } from '../Dock';
 import { TRAINING_CARDS } from '../../data/trainingCards';
 import { FINAL_TEST_TITLE, FINAL_TEST_OBJECTIVE, FINAL_TEST_KEY_POINTS, FINAL_TEST_QUESTIONS } from '../../data/finalTest';
 
-const mapCardFromTraining = (c: any) => ({
-  title: c.title,
-  section: c.section ?? '',
-  objective: c.objective ?? '',
-  bullets: c.bullets ?? [],
-  additional: c.auditFocus ?? '',
-  challenge: [
-    c.bullets?.[0] ?? c.objective ?? 'Select the most defensible response.',
-    c.bullets?.[1] ?? 'Use a generic template statement without patient-specific details.',
-    c.bullets?.[2] ?? 'Delay documentation updates until episode end.',
-  ],
-});
+const mapCardFromTraining = (c: any) => {
+  const fallbackAdditional = [c.auditFocus, c.objective, ...(c.bullets ?? [])].filter(Boolean).join(' ')
+  return {
+    title: c.title,
+    section: c.section ?? '',
+    objective: c.objective ?? '',
+    bullets: c.bullets ?? [],
+    additional: fallbackAdditional,
+    challenge: [
+      c.bullets?.[0] ?? c.objective ?? 'Select the most defensible response.',
+      c.bullets?.[1] ?? 'Use a generic template statement without patient-specific details.',
+      c.bullets?.[2] ?? 'Delay documentation updates until episode end.',
+    ],
+  }
+};
 
 const cards = [
   ...TRAINING_CARDS.map(mapCardFromTraining),
@@ -63,22 +67,40 @@ const cards = [
 export default function CIHHNightWeb() {
   const [cardIndex, setCardIndex] = useState(0);
   const [panelMode, setPanelMode] = useState('main');
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number | null>>(() => ({}));
+  const [submittedAnswers, setSubmittedAnswers] = useState<Record<number, boolean>>(() => ({}));
   const [statusMsg, setStatusMsg] = useState('QA mode bypasses locks');
 
   const card = cards[cardIndex] as any;
 
+  const additionalSummary = (() => {
+    if (!card.additional) return '';
+    const sentences = card.additional.split(/(?<=\.)\s+/).filter(Boolean);
+    return sentences.slice(0, 2).join(' ').trim() || card.additional.slice(0, 180);
+  })();
+
+  const dockItems = [
+    { icon: <FileText className="w-5 h-5" />, label: 'Help', onClick: () => alert('Open help') },
+    { icon: <ShieldCheck className="w-5 h-5" />, label: debugMode ? 'QA: ON' : 'QA: OFF', onClick: () => setStatusMsg(prev => prev === 'QA: ON' ? 'QA: OFF' : 'QA: ON'), isActive: debugMode },
+    { icon: <Activity className="w-5 h-5" />, label: 'Top', onClick: () => { setCardIndex(0); setPanelMode('main'); } },
+  ];
+
   const handleNext = () => {
     if (!card.final && panelMode === 'main') {
       setPanelMode('additional');
-    } else if (!card.final && panelMode === 'additional') {
+      return;
+    }
+    if (!card.final && panelMode === 'additional') {
       setPanelMode('challenge');
-    } else if (cardIndex < cards.length - 1) {
+      return;
+    }
+    if (panelMode === 'challenge' && !submittedAnswers[cardIndex]) {
+      setStatusMsg('Submit the challenge to advance');
+      return;
+    }
+    if (cardIndex < cards.length - 1) {
       setCardIndex(cardIndex + 1);
       setPanelMode('main');
-      setSelectedAnswer(null);
-      setIsSubmitted(false);
       setStatusMsg('QA mode bypasses locks');
     }
   };
@@ -86,24 +108,30 @@ export default function CIHHNightWeb() {
   const handleBack = () => {
     if (panelMode === 'challenge') {
       setPanelMode('additional');
-      setIsSubmitted(false);
-      setSelectedAnswer(null);
     } else if (panelMode === 'additional') {
       setPanelMode('main');
     } else if (cardIndex > 0) {
       setCardIndex(cardIndex - 1);
       setPanelMode('main');
-      setSelectedAnswer(null);
-      setIsSubmitted(false);
     }
   };
 
   const handleSubmitChallenge = () => {
-    if (selectedAnswer !== null) setIsSubmitted(true);
+    const sel = selectedAnswers[cardIndex] ?? null;
+    if (sel !== null) setSubmittedAnswers(prev => ({ ...prev, [cardIndex]: true }));
   };
 
-  const isCorrect = selectedAnswer === 0;
+  const isCorrect = (index: number) => (selectedAnswers[index] ?? null) === 0;
   const progressPercentage = ((cardIndex) / (cards.length - 1)) * 100;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') handleNext();
+      if (e.key === 'ArrowLeft') handleBack();
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [cardIndex, panelMode, selectedAnswers, submittedAnswers]);
 
   return (
     <div className="flex h-screen w-full bg-[#010809] text-[#FAFBF8] font-body overflow-hidden">
@@ -160,7 +188,7 @@ export default function CIHHNightWeb() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-6 md:p-12 lg:p-16 z-10 flex flex-col items-center">
-          <div key={`${cardIndex}-${panelMode}`} className="animate-slide-up w-full max-w-4xl flex-1 flex flex-col justify-center">
+          <div key={`${cardIndex}-${panelMode}`} className="animate-slide-up w-full max-w-4xl min-h-[780px] flex-1 flex flex-col justify-center">
 
             {card.final ? (
               <div className="flex flex-col items-center text-center space-y-8 py-20">
@@ -185,15 +213,16 @@ export default function CIHHNightWeb() {
                     <p className="text-[#64F4F5] text-xl font-medium">Which response best aligns with this card's objective?</p>
                     <div className="space-y-4">
                       {card.challenge.map((c: string, i: number) => {
-                        const isSelected = selectedAnswer === i;
-                        const showCorrect = isSubmitted && isSelected && isCorrect;
-                        const showWrong = isSubmitted && isSelected && !isCorrect;
+                        const isSelected = (selectedAnswers[cardIndex] ?? null) === i;
+                        const submitted = Boolean(submittedAnswers[cardIndex]);
+                        const showCorrect = submitted && isSelected && isCorrect(cardIndex);
+                        const showWrong = submitted && isSelected && !isCorrect(cardIndex);
 
                         return (
                           <button
                             key={i}
-                            disabled={isSubmitted}
-                            onClick={() => setSelectedAnswer(i)}
+                            disabled={submitted}
+                            onClick={() => setSelectedAnswers(prev => ({ ...prev, [cardIndex]: i }))}
                             className={`w-full text-left p-6 rounded-[20px] border-2 transition-all duration-300 flex items-start gap-5 ${
                               showCorrect ? 'bg-[#007970]/20 border-[#64F4F5] glow-teal' :
                               showWrong ? 'bg-[#D70101]/20 border-[#D70101]' :
@@ -224,9 +253,9 @@ export default function CIHHNightWeb() {
                     <div className="pt-6 flex items-center justify-between">
                       <button
                         onClick={handleSubmitChallenge}
-                        disabled={selectedAnswer === null || isSubmitted}
+                        disabled={(selectedAnswers[cardIndex] ?? null) === null || Boolean(submittedAnswers[cardIndex])}
                         className={`px-10 py-4 rounded-[16px] font-bold text-lg tracking-wide transition-all duration-300 ${
-                          selectedAnswer !== null && !isSubmitted
+                          (selectedAnswers[cardIndex] ?? null) !== null && !submittedAnswers[cardIndex]
                             ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] glow-orange hover:-translate-y-1'
                             : 'bg-[#002B2C]/50 text-[#007970] cursor-not-allowed border border-[#004142]'
                         }`}
@@ -234,19 +263,38 @@ export default function CIHHNightWeb() {
                         Submit Answer
                       </button>
 
-                      {isSubmitted && (
-                        <p className={`font-bold text-lg animate-slide-up flex items-center gap-3 ${isCorrect ? 'text-[#64F4F5]' : 'text-[#FBE6E6]'}`}>
-                          {isCorrect ? <><CheckCircle2 className="w-7 h-7"/> Correct — great job.</> : <><XCircle className="w-7 h-7"/> Try again — focus on defensible actions.</>}
+                      {submittedAnswers[cardIndex] && (
+                        <p className={`font-bold text-lg animate-slide-up flex items-center gap-3 ${isCorrect(cardIndex) ? 'text-[#64F4F5]' : 'text-[#FBE6E6]'}`}>
+                          {isCorrect(cardIndex) ? <><CheckCircle2 className="w-7 h-7"/> Correct — great job.</> : <><XCircle className="w-7 h-7"/> Incorrect — review before advancing.</>}
                         </p>
                       )}
                     </div>
                   </div>
                 ) : panelMode === 'additional' ? (
-                  <div className="bg-[#002B2C]/50 backdrop-blur-md border border-[#007970]/40 rounded-[32px] p-8 md:p-10 shadow-2xl">
-                    <h2 className="text-[#64F4F5] font-heading font-bold text-2xl mb-6 flex items-center gap-3">
-                      <Activity className="w-7 h-7" /> Deep Dive: Clinical Application
-                    </h2>
-                    <p className="text-[#FAFBF8] text-xl leading-relaxed font-light">{card.additional}</p>
+                  <div className="flex flex-col items-center">
+                    <div className="bg-[#002B2C]/50 backdrop-blur-md border border-[#007970]/40 rounded-[32px] p-8 md:p-10 shadow-2xl w-full">
+                      <h2 className="text-[#64F4F5] font-heading font-bold text-2xl mb-6 flex items-center gap-3">
+                        <Activity className="w-7 h-7" /> Subject Content (hover to view all)
+                      </h2>
+                      <div className="relative group">
+                        <p className="text-[#FAFBF8] text-xl leading-relaxed font-light line-clamp-2">{additionalSummary}</p>
+                        {card.additional && (
+                          <div className="pointer-events-none absolute left-0 top-full mt-2 w-[56rem] max-w-full p-4 rounded-lg bg-[#001A1A] border border-[#004142] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                            <p className="text-[#D9D6D5] text-base leading-relaxed whitespace-pre-line">{card.additional}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Audio Play Button — centered below subject content */}
+                    <div className="flex justify-center mt-5">
+                      <button
+                        onClick={() => { setPanelMode('additional'); setStatusMsg('Playing recording (debug)'); }}
+                        className={`w-14 h-14 rounded-full border-2 border-[#007970] text-[#64F4F5] flex items-center justify-center hover:bg-[#007970]/20 transition-colors`}
+                        title="Play audio"
+                      >
+                        <Play className="w-5 h-5 md:w-6 md:h-6 fill-current ml-0.5" />
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-8 w-full">
@@ -291,47 +339,6 @@ export default function CIHHNightWeb() {
             <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" /> Back
           </button>
 
-          {!card.final && (
-            <div className="flex flex-col items-center">
-              <div className="flex gap-2 p-1.5 md:p-2 bg-[#002B2C]/50 rounded-full border border-[#004142]">
-                {panelMode === 'main' ? (
-                  <button
-                    onClick={() => { setPanelMode('additional'); setStatusMsg('Playing recording (debug)'); }}
-                    className="flex items-center gap-2 md:gap-3 px-6 md:px-8 py-2.5 md:py-3 rounded-full bg-[#031213] text-[#64F4F5] hover:text-[#FFD5BF] border border-[#007970]/50 hover:border-[#C74601] transition-all font-bold tracking-wide text-sm md:text-base"
-                  >
-                    <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" /> PLAY AUDIO
-                  </button>
-                ) : (
-                  <>
-                    {['Pause', 'Stop', 'Restart'].map(action => {
-                      const Icon = action === 'Pause' ? Pause : action === 'Stop' ? Square : RotateCcw;
-                      return (
-                        <button
-                          key={action}
-                          onClick={() => setStatusMsg(`${action} clicked (debug)`)}
-                          className="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-[#64F4F5] hover:bg-[#007970] hover:text-white transition-colors"
-                          title={action}
-                        >
-                          <Icon className="w-4 h-4 md:w-5 md:h-5" />
-                        </button>
-                      );
-                    })}
-                    <button
-                      onClick={() => setPanelMode('challenge')}
-                      disabled={!debugMode}
-                      className="flex items-center gap-2 px-4 md:px-6 py-2 ml-2 md:ml-3 rounded-full bg-[#C74601]/10 text-[#C74601] hover:bg-[#C74601] hover:text-white border border-[#C74601]/50 transition-all font-bold tracking-wide disabled:opacity-30 text-sm md:text-base"
-                    >
-                      <Swords className="w-4 h-4 md:w-5 md:h-5" /> CHALLENGE
-                    </button>
-                  </>
-                )}
-              </div>
-              <span className="text-[10px] md:text-[11px] text-[#64F4F5] font-bold tracking-widest uppercase mt-2 md:mt-3">
-                {statusMsg}
-              </span>
-            </div>
-          )}
-
           <button
             onClick={handleNext}
             className="flex items-center gap-2 md:gap-3 px-6 md:px-10 py-3 md:py-4 bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold md:text-lg rounded-[12px] md:rounded-[16px] glow-orange transform hover:-translate-y-1 transition-all disabled:opacity-50 text-sm md:text-base"
@@ -340,6 +347,8 @@ export default function CIHHNightWeb() {
           </button>
 
         </footer>
+        {/* Dock (center-left) */}
+        <Dock items={dockItems} position="center-left" isDarkMode={true} />
       </main>
     </div>
   );

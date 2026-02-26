@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Play, Pause, Square, RotateCcw, Swords,
   ArrowRight, ArrowLeft, CheckCircle2, XCircle,
@@ -31,21 +31,25 @@ const StyleInjector = () => (
 );
 
 const debugMode = true;
+import { Dock } from '../Dock';
 import { TRAINING_CARDS } from '../../data/trainingCards';
 import { FINAL_TEST_TITLE, FINAL_TEST_OBJECTIVE, FINAL_TEST_KEY_POINTS, FINAL_TEST_QUESTIONS } from '../../data/finalTest';
 
-const mapCardFromTraining = (c: any) => ({
-  title: c.title,
-  section: c.section ?? '',
-  objective: c.objective ?? '',
-  bullets: c.bullets ?? [],
-  additional: c.auditFocus ?? '',
-  challenge: [
-    c.bullets?.[0] ?? c.objective ?? 'Select the most defensible response.',
-    c.bullets?.[1] ?? 'Use a generic template statement without patient-specific details.',
-    c.bullets?.[2] ?? 'Delay documentation updates until episode end.',
-  ],
-});
+const mapCardFromTraining = (c: any) => {
+  const fallbackAdditional = [c.auditFocus, c.objective, ...(c.bullets ?? [])].filter(Boolean).join(' ')
+  return {
+    title: c.title,
+    section: c.section ?? '',
+    objective: c.objective ?? '',
+    bullets: c.bullets ?? [],
+    additional: fallbackAdditional,
+    challenge: [
+      c.bullets?.[0] ?? c.objective ?? 'Select the most defensible response.',
+      c.bullets?.[1] ?? 'Use a generic template statement without patient-specific details.',
+      c.bullets?.[2] ?? 'Delay documentation updates until episode end.',
+    ],
+  }
+}
 
 const cards = [
   ...TRAINING_CARDS.map(mapCardFromTraining),
@@ -63,46 +67,119 @@ const cards = [
 export default function CIHHLightCard() {
   const [cardIndex, setCardIndex] = useState(0);
   const [panelMode, setPanelMode] = useState('main');
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number | null>>(() => ({}));
+  const [submittedAnswers, setSubmittedAnswers] = useState<Record<number, boolean>>(() => ({}));
   const [statusMsg, setStatusMsg] = useState('QA mode bypasses locks');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const VOICE_RECORDINGS = {
+    ...import.meta.glob('../../assets/Voice Recordings/*.wav', { eager: true, import: 'default' }),
+    ...import.meta.glob('../../assets/Voice Recordings/*.mp3', { eager: true, import: 'default' }),
+  } as Record<string, string>
+
+  const findAudioForTitle = (title: string) => {
+    const key = title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    for (const fp of Object.keys(VOICE_RECORDINGS)) {
+      if (fp.toLowerCase().includes(key) || fp.toLowerCase().includes(title.toLowerCase().split(' ')[0])) return VOICE_RECORDINGS[fp]
+    }
+    return null
+  }
 
   const card = cards[cardIndex] as any;
+  const audioUrl = card?.title ? findAudioForTitle(card.title) : null;
+  const hasAudio = Boolean(audioUrl);
+
+  const additionalSummary = (() => {
+    if (!card.additional) return '';
+    const sentences = card.additional.split(/(?<=\.)\s+/).filter(Boolean);
+    return sentences.slice(0, 2).join(' ').trim() || card.additional.slice(0, 180);
+  })();
+
+  const dockItems = [
+    { icon: <FileText className="w-5 h-5" />, label: 'Help', onClick: () => alert('Open help') },
+    { icon: <ShieldCheck className="w-5 h-5" />, label: debugMode ? 'QA: ON' : 'QA: OFF', onClick: () => setStatusMsg(prev => prev === 'QA: ON' ? 'QA: OFF' : 'QA: ON'), isActive: debugMode },
+    { icon: <Activity className="w-5 h-5" />, label: 'Top', onClick: () => { setCardIndex(0); setPanelMode('main'); } },
+  ];
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  }
 
   const handleNext = () => {
     if (!card.final && panelMode === 'main') {
+      stopAudio()
       setPanelMode('additional');
-    } else if (!card.final && panelMode === 'additional') {
+      return
+    }
+    if (!card.final && panelMode === 'additional') {
+      stopAudio()
       setPanelMode('challenge');
-    } else if (cardIndex < cards.length - 1) {
+      return
+    }
+    if (panelMode === 'challenge' && !submittedAnswers[cardIndex]) {
+      setStatusMsg('Submit the challenge to advance');
+      return
+    }
+    if (cardIndex < cards.length - 1) {
+      stopAudio()
       setCardIndex(cardIndex + 1);
       setPanelMode('main');
-      setSelectedAnswer(null);
-      setIsSubmitted(false);
       setStatusMsg('QA mode bypasses locks');
     }
   };
 
   const handleBack = () => {
+    stopAudio()
     if (panelMode === 'challenge') {
       setPanelMode('additional');
-      setIsSubmitted(false);
-      setSelectedAnswer(null);
     } else if (panelMode === 'additional') {
       setPanelMode('main');
     } else if (cardIndex > 0) {
       setCardIndex(cardIndex - 1);
       setPanelMode('main');
-      setSelectedAnswer(null);
-      setIsSubmitted(false);
     }
   };
 
   const handleSubmitChallenge = () => {
-    if (selectedAnswer !== null) setIsSubmitted(true);
+    const sel = selectedAnswers[cardIndex] ?? null
+    if (sel !== null) {
+      setSubmittedAnswers(prev => ({ ...prev, [cardIndex]: true }))
+    }
   };
 
-  const isCorrect = selectedAnswer === 0;
+  const isCorrect = (index: number) => {
+    const sel = selectedAnswers[index]
+    return sel === 0
+  }
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') handleNext()
+      if (e.key === 'ArrowLeft') handleBack()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [cardIndex, panelMode])
+
+  useEffect(() => {
+    // Stop audio when card changes
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  }, [cardIndex]);
+
+  useEffect(() => {
+    if (panelMode === 'additional' && hasAudio) {
+      if (!audioRef.current) audioRef.current = new Audio()
+      audioRef.current.src = audioUrl as string
+      audioRef.current.play().catch(() => setStatusMsg('Audio blocked; click play'))
+      setStatusMsg('Playing')
+    }
+  }, [panelMode, cardIndex, hasAudio, audioUrl]);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_#FAFBF8_0%,_#D9D6D5_100%)] text-[#1F1C1B] font-body p-4 md:p-8 flex items-center justify-center relative overflow-hidden">
@@ -117,7 +194,7 @@ export default function CIHHLightCard() {
         </div>
       )}
 
-      <div className="w-full max-w-5xl bg-white/95 backdrop-blur-xl border border-[#E5E4E3] rounded-[32px] shadow-[0_24px_60px_rgba(31,28,27,0.08)] overflow-hidden flex flex-col relative z-10">
+      <div className="w-full max-w-5xl min-h-[780px] bg-white/95 backdrop-blur-xl border border-[#E5E4E3] rounded-[32px] shadow-[0_24px_60px_rgba(31,28,27,0.08)] overflow-hidden flex flex-col relative z-10">
         <header className="px-8 pt-8 pb-4 flex justify-between items-end border-b border-[#E5E4E3]">
           <div>
             <p className="text-[#007970] font-bold text-sm tracking-widest uppercase mb-2 flex items-center gap-2">
@@ -149,8 +226,8 @@ export default function CIHHLightCard() {
           ))}
         </div>
 
-        <section className="p-8 min-h-[460px] flex flex-col">
-          <div key={`${cardIndex}-${panelMode}`} className="animate-slide-up flex-1 flex flex-col">
+        <section className="p-8 min-h-[520px] flex flex-col items-center justify-center">
+          <div key={`${cardIndex}-${panelMode}`} className="animate-slide-up flex-1 flex flex-col w-full max-w-4xl">
 
             {card.final ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
@@ -175,16 +252,17 @@ export default function CIHHLightCard() {
                   <div className="flex-1 max-w-3xl">
                     <p className="text-[#524048] mb-6 text-lg">Which response best aligns with this card's objective?</p>
                     <div className="space-y-3">
-                      {card.challenge.map((c: string, i: number) => {
-                        const isSelected = selectedAnswer === i;
-                        const showCorrect = isSubmitted && isSelected && isCorrect;
-                        const showWrong = isSubmitted && isSelected && !isCorrect;
+                        {card.challenge.map((c: string, i: number) => {
+                        const isSelected = (selectedAnswers[cardIndex] ?? null) === i;
+                        const submitted = Boolean(submittedAnswers[cardIndex]);
+                        const showCorrect = submitted && isSelected && isCorrect(cardIndex);
+                        const showWrong = submitted && isSelected && !isCorrect(cardIndex);
 
                         return (
                           <button
                             key={i}
-                            disabled={isSubmitted}
-                            onClick={() => setSelectedAnswer(i)}
+                            disabled={submitted}
+                            onClick={() => setSelectedAnswers(prev => ({ ...prev, [cardIndex]: i }))}
                             className={`w-full text-left p-5 rounded-[16px] border transition-all duration-300 flex items-start gap-4 ${
                               showCorrect ? 'bg-[#E5FEFF] border-[#007970] glow-teal shadow-sm' :
                               showWrong ? 'bg-[#FBE6E6] border-[#D70101]' :
@@ -216,9 +294,9 @@ export default function CIHHLightCard() {
                     <div className="mt-8 flex items-center justify-between">
                       <button
                         onClick={handleSubmitChallenge}
-                        disabled={selectedAnswer === null || isSubmitted}
+                        disabled={(selectedAnswers[cardIndex] ?? null) === null || Boolean(submittedAnswers[cardIndex])}
                         className={`px-8 py-3 rounded-[12px] font-bold tracking-wide transition-all duration-300 ${
-                          selectedAnswer !== null && !isSubmitted
+                          (selectedAnswers[cardIndex] ?? null) !== null && !submittedAnswers[cardIndex]
                             ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] glow-orange hover:-translate-y-0.5'
                             : 'bg-[#E5E4E3] text-[#747474] cursor-not-allowed border border-[#D9D6D5]'
                         }`}
@@ -226,19 +304,53 @@ export default function CIHHLightCard() {
                         Submit Answer
                       </button>
 
-                      {isSubmitted && (
-                        <p className={`font-bold animate-slide-up flex items-center gap-2 ${isCorrect ? 'text-[#007970]' : 'text-[#D70101]'}`}>
-                          {isCorrect ? <><CheckCircle2 className="w-5 h-5"/> Correct — great job.</> : <><XCircle className="w-5 h-5"/> Try again — focus on defensible actions.</>}
+                      {submittedAnswers[cardIndex] && (
+                        <p className={`font-bold animate-slide-up flex items-center gap-2 ${isCorrect(cardIndex) ? 'text-[#007970]' : 'text-[#D70101]'}`}>
+                          {isCorrect(cardIndex) ? <><CheckCircle2 className="w-5 h-5"/> Correct — great job.</> : <><XCircle className="w-5 h-5"/> Incorrect — review before advancing.</>}
                         </p>
                       )}
                     </div>
                   </div>
                 ) : panelMode === 'additional' ? (
-                  <div className="bg-[#F7FEFF] border border-[#C4F4F5] rounded-[24px] p-8 shadow-sm">
-                    <h2 className="text-[#007970] font-heading font-bold text-xl mb-4 flex items-center gap-2">
-                      <Activity className="w-5 h-5" /> Additional Subject Content
-                    </h2>
-                    <p className="text-[#1F1C1B] text-lg leading-relaxed">{card.additional}</p>
+                  <div className="flex flex-col items-center">
+                    <div className="bg-[#F7FEFF] border border-[#C4F4F5] rounded-[24px] p-8 shadow-sm w-full">
+                      <h2 className="text-[#007970] font-heading font-bold text-xl mb-4 flex items-center gap-2">
+                        <Activity className="w-5 h-5" /> Subject Content (hover to view all)
+                      </h2>
+                      <div className="relative group">
+                        <p className="text-[#1F1C1B] text-lg leading-relaxed line-clamp-2">{additionalSummary}</p>
+                        {card.additional && (
+                          <div className="pointer-events-none absolute left-0 top-full mt-2 w-[56rem] max-w-full p-4 rounded-lg bg-white border border-[#E5E4E3] shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                            <p className="text-[#1F1C1B] text-sm leading-relaxed whitespace-pre-line">{card.additional}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Audio Play Button — centered below subject content */}
+                    <div className="flex justify-center mt-4">
+                      <button
+                        onClick={() => {
+                          if (!audioRef.current) audioRef.current = new Audio()
+                          if (!audioUrl) { setStatusMsg('No recording available'); return }
+                          if (isPlaying) {
+                            audioRef.current.pause()
+                            setIsPlaying(false)
+                            setStatusMsg('Paused')
+                            return
+                          }
+                          audioRef.current.src = audioUrl
+                          audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setStatusMsg('Audio blocked; click play'))
+                          setStatusMsg('')
+                        }}
+                        disabled={!hasAudio}
+                        className={`w-14 h-14 rounded-full border-2 border-[#007970] text-[#007970] flex items-center justify-center hover:bg-[#007970]/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed`}
+                        title={isPlaying ? 'Pause audio' : 'Play audio'}
+                      >
+                        {isPlaying
+                          ? <Pause className="w-5 h-5 fill-current" />
+                          : <Play className="w-5 h-5 fill-current ml-0.5" />}
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-6 h-full">
@@ -276,61 +388,24 @@ export default function CIHHLightCard() {
           <button
             onClick={handleBack}
             disabled={cardIndex === 0 && panelMode === 'main'}
-            className="flex items-center gap-2 text-[#747474] hover:text-[#1F1C1B] font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 text-[#747474] hover:text-[#1F1C1B] font-semibold tracking-widest uppercase disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" /> Back
+            <ArrowLeft className="w-5 h-5" />
+            <span>Return</span>
           </button>
-
-          {!card.final && (
-            <div className="flex flex-col items-center">
-              <div className="flex gap-2 p-1.5 bg-white rounded-full border border-[#E5E4E3] shadow-sm">
-                {panelMode === 'main' ? (
-                  <button
-                    onClick={() => { setPanelMode('additional'); setStatusMsg('Playing recording (debug)'); }}
-                    className="flex items-center gap-2 px-6 py-2 rounded-full bg-[#FAFBF8] text-[#007970] hover:text-[#C74601] border border-[#E5E4E3] hover:border-[#C74601] transition-all font-medium text-sm"
-                  >
-                    <Play className="w-4 h-4 fill-current" /> PLAY AUDIO
-                  </button>
-                ) : (
-                  <>
-                    {['Pause', 'Stop', 'Restart'].map(action => {
-                      const Icon = action === 'Pause' ? Pause : action === 'Stop' ? Square : RotateCcw;
-                      return (
-                        <button
-                          key={action}
-                          onClick={() => setStatusMsg(`${action} clicked (debug)`)}
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-[#747474] hover:bg-[#E5E4E3] hover:text-[#1F1C1B] transition-colors"
-                          title={action}
-                        >
-                          <Icon className="w-4 h-4" />
-                        </button>
-                      );
-                    })}
-                    <button
-                      onClick={() => setPanelMode('challenge')}
-                      disabled={!debugMode}
-                      className="flex items-center gap-2 px-4 py-2 ml-2 rounded-full bg-[#FFEEE5] text-[#C74601] hover:bg-[#C74601] hover:text-white border border-[#FFD5BF] transition-all font-medium text-sm disabled:opacity-30"
-                    >
-                      <Swords className="w-4 h-4" /> CHALLENGE
-                    </button>
-                  </>
-                )}
-              </div>
-              <span className="text-[10px] text-[#747474] font-bold tracking-widest uppercase mt-2">
-                {statusMsg}
-              </span>
-            </div>
-          )}
 
           <button
             onClick={handleNext}
-            className="flex items-center gap-2 px-6 py-3 bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold rounded-[12px] glow-orange transform hover:-translate-y-0.5 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-3 bg-[#007970] hover:bg-[#00665e] text-white font-bold rounded-[12px] transform hover:-translate-y-0.5 transition-all disabled:opacity-50"
           >
-            {card.final ? 'Finish' : 'Next'} <ArrowRight className="w-5 h-5" />
+            {card.final ? 'Finish' : 'Advance'}
+            <ArrowRight className="w-5 h-5" />
           </button>
 
         </footer>
       </div>
+      {/* Dock (center-left) */}
+      <Dock items={dockItems} position="center-left" isDarkMode={false} />
     </div>
   );
 }
