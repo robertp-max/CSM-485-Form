@@ -20,8 +20,8 @@ const StyleInjector = () => (
       ::-webkit-scrollbar-thumb { background: #D9D6D5; border-radius: 4px; }
       ::-webkit-scrollbar-thumb:hover { background: #747474; }
 
-      .glow-orange { box-shadow: 0 8px 24px -6px rgba(199, 70, 1, 0.4); }
-      .glow-teal { box-shadow: 0 8px 24px -6px rgba(0, 121, 112, 0.3); }
+      .glow-orange { box-shadow: 0 9px 28px -6px rgba(199, 70, 1, 0.46); }
+      .glow-teal { box-shadow: 0 9px 28px -6px rgba(0, 121, 112, 0.345); }
 
       @keyframes auroraFloatA {
         0% { transform: translate3d(0, 0, 0) scale(1); }
@@ -452,7 +452,7 @@ export default function CIHHLightCard() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[44%] h-[44%] bg-[#C74601] rounded-full mix-blend-multiply filter blur-[150px] opacity-[0.13] animate-aurora-b pointer-events-none"></div>
 
       {debugMode && (
-        <div className="absolute top-6 right-6 flex items-center gap-2 bg-[#FFEEE5] border border-[#FFD5BF] text-[#C74601] px-4 py-2 rounded-full text-[0.9075rem] font-bold tracking-widest uppercase backdrop-blur-md shadow-sm z-50">
+        <div className="absolute top-6 right-6 flex items-center gap-2 bg-[#FFEEE5] text-[#C74601] px-4 py-2 rounded-full text-[0.9075rem] font-bold tracking-widest uppercase backdrop-blur-md shadow-sm z-50">
           <ShieldCheck className="w-4 h-4" /> QA: ON (Debug)
         </div>
       )}
@@ -473,9 +473,9 @@ export default function CIHHLightCard() {
             onPointerCancel={handlePointerUp}
             onClick={handleCardEdgeClick}
             style={{ touchAction: 'pan-y' }}
-            className="relative w-full min-h-[1000px] bg-white/5 backdrop-blur-2xl border border-white/35 rounded-[32px] shadow-[0_24px_60px_rgba(31,28,27,0.12)] overflow-hidden flex flex-col"
+            className="relative w-full min-h-[1000px] bg-white/0 backdrop-blur-2xl rounded-[32px] shadow-[0_24px_60px_rgba(31,28,27,0.12)] overflow-hidden flex flex-col border-l-[4.3px] border-l-[#C74601]"
           >
-        <header className="px-8 pt-8 pb-4 flex justify-between items-end border-b border-[#E5E4E3]">
+        <header className="px-8 pt-8 pb-4 flex justify-between items-end">
           <div>
             <p className="text-[#007970] font-bold text-[1.059rem] tracking-widest uppercase mb-2 flex items-center gap-2">
               <FileText className="w-4 h-4" /> CMS-485 Designer
@@ -511,20 +511,20 @@ export default function CIHHLightCard() {
 
             {card.final ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
-                <div className="w-24 h-24 rounded-full bg-[#E5FEFF] flex items-center justify-center glow-teal mb-4">
+                <div className="w-24 h-24 rounded-full bg-[#E5FEFF] flex items-center justify-center glow-teal mb-4 -translate-y-[1px] hover:-translate-y-[2px] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3)] transition-all duration-300">
                   <Check className="w-12 h-12 text-[#007970]" />
                 </div>
-                <h1 className="font-heading text-[2.7225rem] font-bold text-[#1F1C1B]">Course Complete</h1>
-                <p className="text-[#524048] max-w-md text-[1.3613rem] font-light">
+                <h1 className="font-heading text-[2.7225rem] font-bold text-[#1F1C1B] -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">Course Complete</h1>
+                <p className="text-[#524048] max-w-md text-[1.3613rem] font-light -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">
                   You have successfully completed the sample flow. Excellent work mastering the CMS-485 foundations.
                 </p>
               </div>
             ) : (
               <>
-                <p className="text-[#C74601] text-[0.9075rem] font-bold tracking-widest uppercase mb-3">
+                <p className="text-[#C74601] text-[0.9075rem] font-bold tracking-widest uppercase mb-3 -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">
                   {card.section} • {panelMode.toUpperCase()}
                 </p>
-                <h1 className="font-heading text-3xl md:text-4xl font-bold text-[#1F1C1B] mb-8 leading-tight">
+                <h1 className="font-heading text-3xl md:text-4xl font-bold text-[#1F1C1B] mb-8 leading-tight -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">
                   {card.title}
                 </h1>
 
@@ -543,17 +543,17 @@ export default function CIHHLightCard() {
                             key={i}
                             disabled={submitted}
                             onClick={() => setSelectedAnswers(prev => ({ ...prev, [cardIndex]: i }))}
-                            className={`w-full text-left p-5 rounded-[16px] border transition-all duration-300 flex items-start gap-4 ${
-                              showCorrect ? 'bg-[#E5FEFF]/[0.45] border-[#007970] glow-teal shadow-sm' :
-                              showWrong ? 'bg-[#FBE6E6]/[0.45] border-[#D70101]' :
-                              isSelected ? 'bg-[#FFEEE5]/[0.45] border-[#C74601]' :
-                              'bg-white/[0.45] border-[#E5E4E3] hover:border-[#007970] hover:bg-[#F7FEFF]/[0.45]'
+                            className={`w-full text-left p-5 rounded-[16px] transition-all duration-300 flex items-start gap-4 bg-transparent border-l-[3.3px] border-l-[#747474] shadow-[0_6px_14px_-10px_rgba(31,28,27,0.2)] hover:bg-white/[0.30] hover:border-l-[#007970] hover:shadow-[0_0_26px_-6px_rgba(0,121,112,0.62),0_12px_26px_-12px_rgba(31,28,27,0.28)] ${
+                              showCorrect ? 'glow-teal border-l-[#00BFB4] shadow-[0_0_32px_-4px_rgba(0,191,180,0.78),0_12px_28px_-12px_rgba(31,28,27,0.32)]' :
+                              showWrong ? 'border-l-[#00BFB4] shadow-[0_0_30px_-5px_rgba(0,191,180,0.72),0_12px_28px_-12px_rgba(31,28,27,0.32)]' :
+                              isSelected ? 'border-l-[#00BFB4] shadow-[0_0_30px_-5px_rgba(0,191,180,0.72),0_12px_28px_-12px_rgba(31,28,27,0.32)]' :
+                              ''
                             }`}
                           >
-                            <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-                              showCorrect ? 'border-[#007970] text-[#007970]' :
-                              showWrong ? 'border-[#D70101] text-[#D70101]' :
-                              isSelected ? 'border-[#C74601] bg-[#C74601]' : 'border-[#D9D6D5]'
+                            <div className={`mt-0.5 w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center ${
+                              showCorrect ? 'text-[#007970] bg-transparent' :
+                              showWrong ? 'text-[#D70101] bg-transparent' :
+                              isSelected ? 'bg-transparent' : 'bg-transparent'
                             }`}>
                               {showCorrect && <CheckCircle2 className="w-4 h-4" />}
                               {showWrong && <XCircle className="w-4 h-4" />}
@@ -578,7 +578,7 @@ export default function CIHHLightCard() {
                         className={`px-8 py-3 rounded-[12px] text-[1.1rem] font-bold tracking-wide transition-all duration-300 ${
                           !submittedAnswers[cardIndex]
                             ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] glow-orange hover:-translate-y-0.5'
-                            : 'bg-[#E5E4E3] text-[#747474] cursor-not-allowed border border-[#D9D6D5]'
+                            : 'bg-[#E5E4E3] text-[#747474] cursor-not-allowed'
                         }`}
                       >
                         Submit
@@ -593,7 +593,7 @@ export default function CIHHLightCard() {
                   </div>
                 ) : panelMode === 'additional' ? (
                   <div className="flex-1 flex">
-                    <div className="bg-[#F7FEFF]/[0.45] border border-[#C4F4F5] rounded-[24px] p-8 shadow-sm w-full h-full overflow-y-auto">
+                    <div className="bg-transparent rounded-[24px] p-8 w-full h-full overflow-y-auto -translate-y-[1px] hover:-translate-y-[2px] border-l-[3.3px] border-l-[#007970] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_18px_-10px_rgba(0,121,112,0.35)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_30px_-6px_rgba(0,121,112,0.72)] transition-all duration-300 hover:bg-white/[0.30]">
                       <p className="text-[#1F1C1B] text-[1.21rem] leading-relaxed whitespace-pre-line">
                         {currentAdditionalContent}
                       </p>
@@ -601,25 +601,25 @@ export default function CIHHLightCard() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-6 h-full">
-                    <div className="bg-[#F7FEFF]/[0.45] border border-[#C4F4F5] rounded-[24px] p-6 shadow-sm">
+                    <div className="bg-transparent rounded-[24px] p-6 -translate-y-[1px] hover:-translate-y-[2px] border-l-[3px] border-l-[#007970] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_16px_-10px_rgba(0,121,112,0.3)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_28px_-6px_rgba(0,121,112,0.68)] transition-all duration-300 hover:bg-white/[0.30]">
                       <h2 className="text-[#007970] font-heading font-bold text-[1.3613rem] mb-2">Learning Objective</h2>
                       <p className="text-[#1F1C1B] text-[1.3613rem]">{card.objective}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
-                      <div className="bg-white/[0.45] border border-[#E5E4E3] rounded-[24px] p-6 shadow-sm">
-                        <h2 className="text-[#747474] font-heading font-bold text-[1.059rem] uppercase tracking-widest mb-4 border-b border-[#E5E4E3] pb-2">Key Points</h2>
-                        <ul className="space-y-3">
+                      <div className="bg-transparent rounded-[24px] p-6 -translate-y-[1px] hover:-translate-y-[2px] border-l-[3.3px] border-l-[#524048] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_16px_-10px_rgba(82,64,72,0.3)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_28px_-6px_rgba(82,64,72,0.62)] transition-all duration-300 hover:bg-white/[0.30]">
+                        <h2 className="text-[#747474] font-heading font-bold text-[1.059rem] uppercase tracking-widest mb-4 pb-2">Key Points</h2>
+                        <ul className="space-y-3 list-none">
                           {card.bullets.map((b: string, i: number) => (
-                            <li key={i} className="flex items-start gap-3 text-[#524048] text-[1.21rem]">
-                              <span className="text-[#C74601] mt-1">•</span> {b}
+                            <li key={i} className="text-[#524048] text-[1.21rem]">
+                              {b}
                             </li>
                           ))}
                         </ul>
                       </div>
 
-                      <div className="bg-gradient-to-br from-[#FFEEE5]/[0.45] to-white/[0.45] border border-[#FFD5BF] rounded-[24px] p-6 shadow-sm">
-                        <h2 className="text-[#C74601] font-heading font-bold text-[1.059rem] uppercase tracking-widest mb-4 border-b border-[#FFD5BF] pb-2">Clinical Lens</h2>
+                      <div className="bg-transparent rounded-[24px] p-6 -translate-y-[1px] hover:-translate-y-[2px] border-l-[3.3px] border-l-[#C74601] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_16px_-10px_rgba(199,70,1,0.35)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_28px_-6px_rgba(199,70,1,0.72)] transition-all duration-300 hover:bg-white/[0.30]">
+                        <h2 className="text-[#C74601] font-heading font-bold text-[1.059rem] uppercase tracking-widest mb-4 pb-2">Clinical Lens</h2>
                         <p className="text-[#1F1C1B] text-[1.21rem] leading-relaxed">Translate this concept into clear, patient-specific, defensible documentation language.</p>
                       </div>
                     </div>
@@ -630,11 +630,15 @@ export default function CIHHLightCard() {
           </div>
 
           {panelMode === 'additional' && (
-            <div className="fixed bottom-6 right-6 z-30">
+            <div
+              className="fixed bottom-6 right-6 z-30 p-[40px] -m-[40px]"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+            >
               <button
                 onClick={toggleAudio}
                 disabled={!hasAudio}
-                className="w-14 h-14 rounded-full border-2 border-[#007970] text-[#007970] flex items-center justify-center hover:bg-[#007970]/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-14 h-14 text-[#007970] flex items-center justify-center hover:text-[#005E57] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title={isPlaying ? 'Pause audio' : 'Play audio'}
               >
                 {isPlaying
