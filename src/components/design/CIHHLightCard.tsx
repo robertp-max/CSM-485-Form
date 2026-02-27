@@ -6,7 +6,7 @@ import {
   Square, RotateCcw, Swords,
   CheckCircle2, XCircle,
   ShieldCheck, FileText, Activity, Check,
-  Moon, Sun
+  Moon, Sun, Layers, LayoutGrid
 } from 'lucide-react';
 
 const StyleInjector = () => (
@@ -266,6 +266,7 @@ export default function CIHHLightCard() {
   const [modeTransitionKey, setModeTransitionKey] = useState(0);
   const [showCurtain, setShowCurtain] = useState(false);
   const [curtainDirection, setCurtainDirection] = useState<'night' | 'day'>('night');
+  const [viewMode, setViewMode] = useState<'card' | 'web'>('card');
   const [cardIndex, setCardIndex] = useState(0);
   const [panelMode, setPanelMode] = useState('main');
   const [navDirection, setNavDirection] = useState(1)
@@ -300,6 +301,7 @@ export default function CIHHLightCard() {
 
   const dockItems = [
     { icon: <FileText className="w-5 h-5" />, label: 'Help', onClick: () => alert('Open help') },
+    { icon: viewMode === 'card' ? <LayoutGrid className="w-5 h-5" /> : <Layers className="w-5 h-5" />, label: viewMode === 'card' ? 'Web' : 'Card', onClick: () => { sfxClick(); setViewMode(prev => prev === 'card' ? 'web' : 'card'); }, isActive: viewMode === 'web' },
     { icon: <ShieldCheck className="w-5 h-5" />, label: debugMode ? 'QA: ON' : 'QA: OFF', onClick: () => setStatusMsg(prev => prev === 'QA: ON' ? 'QA: OFF' : 'QA: ON'), isActive: debugMode },
     { icon: isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />, label: isDarkMode ? 'Light' : 'Night', onClick: () => {
       const goingToNight = !isDarkMode;
@@ -527,6 +529,7 @@ export default function CIHHLightCard() {
         </div>
       )}
 
+      {viewMode === 'card' ? (
       <div className="w-full max-w-[1200px] min-h-[1000px] relative z-10">
         <AnimatePresence mode="wait" custom={navDirection}>
           <motion.div
@@ -724,6 +727,180 @@ export default function CIHHLightCard() {
           </motion.div>
         </AnimatePresence>
       </div>
+      ) : (
+      /* ═══════════════════════════════════════════════════════ */
+      /*  WEB VIEW — scrollable full-page documentation layout */
+      /* ═══════════════════════════════════════════════════════ */
+      <div className="w-full max-w-[960px] relative z-10 py-8">
+        {/* Web view header */}
+        <header className="mb-12 flex justify-between items-end">
+          <div>
+            <p className="text-[#007970] dark:text-[#64F4F5] font-bold text-[1.059rem] tracking-widest uppercase mb-2 flex items-center gap-2">
+              <FileText className="w-4 h-4" /> CMS-485 Designer
+            </p>
+            <h1 className="font-heading text-[2.7225rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] tracking-tight leading-tight">
+              Course Overview
+            </h1>
+            <p className="text-[#747474] dark:text-[#D9D6D5] text-[1.1rem] mt-2">{cards.filter(c => !(c as any).final).length} modules &middot; Web View</p>
+          </div>
+          <img
+            className="h-[2.8rem] w-auto object-contain"
+            src={isDarkMode
+              ? "https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png"
+              : "https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_Gray.png"
+            }
+            alt="CareIndeed Logo"
+          />
+        </header>
+
+        {/* Module cards */}
+        <div className="space-y-10">
+          {cards.filter(c => !(c as any).final).map((webCard: any, idx: number) => {
+            const matchedSection = ADDITIONAL_SECTIONS.find(section => {
+              const normSection = normalizeText(section.title)
+              const normCard = normalizeText(webCard.title ?? '')
+              return normSection.includes(normCard) || normCard.includes(normSection)
+            })
+            const additionalBody = matchedSection?.body || webCard.additional || ''
+
+            return (
+              <motion.article
+                key={idx}
+                initial={{ opacity: 0, y: 32 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: idx * 0.08, ease: 'easeOut' }}
+                className="bg-white/0 dark:bg-[#020F10]/40 backdrop-blur-xl rounded-[28px] border-l-[4.3px] border-l-[#C74601] shadow-[0_12px_40px_rgba(31,28,27,0.08)] dark:shadow-[0_12px_40px_rgba(0,10,10,0.5)] overflow-hidden transition-all duration-300 hover:shadow-[0_20px_60px_rgba(31,28,27,0.16)] dark:hover:shadow-[0_20px_60px_rgba(0,10,10,0.65)]"
+              >
+                {/* Module header */}
+                <div className="px-8 pt-7 pb-4 border-b border-[#E5E4E3]/50 dark:border-[#07282A]/60">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[#C74601] dark:text-[#E56E2E] text-[0.85rem] font-bold tracking-widest uppercase">
+                      {webCard.section}
+                    </p>
+                    <span className="text-[#D9D6D5] dark:text-[#07282A] text-[0.8rem] font-bold tracking-widest">MODULE {idx + 1}</span>
+                  </div>
+                  <h2 className="font-heading text-[1.6rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] leading-snug">
+                    {webCard.title}
+                  </h2>
+                </div>
+
+                {/* Content body */}
+                <div className="px-8 py-6 space-y-6">
+                  {/* Objective */}
+                  <div className="border-l-[3px] border-l-[#007970] dark:border-l-[#64F4F5] pl-5 py-1">
+                    <h3 className="text-[#007970] dark:text-[#64F4F5] font-heading font-bold text-[0.95rem] uppercase tracking-widest mb-1">Learning Objective</h3>
+                    <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.1rem] leading-relaxed">{webCard.objective}</p>
+                  </div>
+
+                  {/* Key Points + Clinical Lens side by side */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="border-l-[3px] border-l-[#524048] dark:border-l-[#64F4F5] pl-5 py-1">
+                      <h3 className="text-[#747474] dark:text-[#D9D6D5] font-heading font-bold text-[0.85rem] uppercase tracking-widest mb-3">Key Points</h3>
+                      <ul className="space-y-2 list-none">
+                        {webCard.bullets.map((b: string, bi: number) => (
+                          <li key={bi} className="text-[#524048] dark:text-[#FAFBF8] text-[1.02rem] leading-relaxed">{b}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="border-l-[3px] border-l-[#C74601] dark:border-l-[#E56E2E] pl-5 py-1">
+                      <h3 className="text-[#C74601] dark:text-[#E56E2E] font-heading font-bold text-[0.85rem] uppercase tracking-widest mb-3">Clinical Lens</h3>
+                      <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.02rem] leading-relaxed">Translate this concept into clear, patient-specific, defensible documentation language.</p>
+                    </div>
+                  </div>
+
+                  {/* Additional content (collapsed) */}
+                  {additionalBody && (
+                    <details className="group">
+                      <summary className="cursor-pointer text-[#007970] dark:text-[#64F4F5] font-bold text-[0.9rem] tracking-widest uppercase flex items-center gap-2 select-none hover:text-[#005E57] dark:hover:text-[#C4F4F5] transition-colors">
+                        <span className="inline-block transition-transform duration-200 group-open:rotate-90">&rsaquo;</span>
+                        Additional Content
+                      </summary>
+                      <div className="mt-3 pl-4 border-l-[2px] border-l-[#E5E4E3] dark:border-l-[#07282A]">
+                        <p className="text-[#524048] dark:text-[#D9D6D5] text-[1rem] leading-relaxed whitespace-pre-line">{additionalBody}</p>
+                      </div>
+                    </details>
+                  )}
+
+                  {/* Challenge */}
+                  <details className="group">
+                    <summary className="cursor-pointer text-[#C74601] dark:text-[#E56E2E] font-bold text-[0.9rem] tracking-widest uppercase flex items-center gap-2 select-none hover:text-[#E56E2E] dark:hover:text-[#FFD5BF] transition-colors">
+                      <span className="inline-block transition-transform duration-200 group-open:rotate-90">&rsaquo;</span>
+                      Knowledge Check
+                    </summary>
+                    <div className="mt-4 space-y-2">
+                      {webCard.challenge.map((opt: ChallengeOption, oi: number) => {
+                        const wKey = idx
+                        const wSelected = (selectedAnswers[wKey] ?? null) === oi
+                        const wSubmitted = Boolean(submittedAnswers[wKey])
+                        const wCorrect = wSubmitted && wSelected && (() => { const sel = selectedAnswers[wKey]; const opts = webCard.challenge as ChallengeOption[]; return sel !== undefined && sel !== null && opts?.[sel]?.isCorrect === true; })()
+                        const wWrong = wSubmitted && wSelected && !wCorrect
+
+                        return (
+                          <button
+                            key={oi}
+                            disabled={wSubmitted}
+                            onClick={() => { sfxClick(); setSelectedAnswers(prev => ({ ...prev, [wKey]: oi })); }}
+                            className={`w-full text-left px-4 py-3 rounded-[12px] transition-all duration-200 flex items-start gap-3 border-l-[3px] ${
+                              wCorrect ? 'border-l-[#00BFB4] bg-[#E5FEFF]/40 dark:bg-[#004142]/20' :
+                              wWrong ? 'border-l-[#D70101] bg-[#FBE6E6]/30 dark:bg-[#3D0000]/20' :
+                              wSelected ? 'border-l-[#00BFB4] bg-[#E5FEFF]/20 dark:bg-[#004142]/10' :
+                              'border-l-[#E5E4E3] dark:border-l-[#07282A] hover:border-l-[#007970] dark:hover:border-l-[#64F4F5] hover:bg-white/30 dark:hover:bg-white/[0.03]'
+                            }`}
+                          >
+                            <div className="mt-0.5 w-4 h-4 flex-shrink-0 flex items-center justify-center">
+                              {wCorrect && <CheckCircle2 className="w-4 h-4 text-[#007970] dark:text-[#64F4F5]" />}
+                              {wWrong && <XCircle className="w-4 h-4 text-[#D70101] dark:text-[#FBE6E6]" />}
+                            </div>
+                            <span className={`text-[1rem] leading-relaxed ${
+                              wCorrect ? 'text-[#004142] dark:text-[#C4F4F5] font-semibold' :
+                              wWrong ? 'text-[#D70101] dark:text-[#FBE6E6]' :
+                              wSelected ? 'text-[#1F1C1B] dark:text-[#FAFBF8] font-medium' :
+                              'text-[#524048] dark:text-[#D9D6D5]'
+                            }`}>{opt.text}</span>
+                          </button>
+                        )
+                      })}
+                      <div className="flex items-center gap-4 mt-3">
+                        <button
+                          onClick={() => { sfxClick(); setSubmittedAnswers(prev => ({ ...prev, [idx]: true })); }}
+                          disabled={Boolean(submittedAnswers[idx]) || selectedAnswers[idx] === undefined || selectedAnswers[idx] === null}
+                          className={`px-5 py-2 rounded-[10px] text-[0.95rem] font-bold tracking-wide transition-all duration-200 ${
+                            !submittedAnswers[idx] && selectedAnswers[idx] !== undefined && selectedAnswers[idx] !== null
+                              ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] glow-orange hover:-translate-y-0.5'
+                              : 'bg-[#E5E4E3] dark:bg-[#07282A] text-[#747474] dark:text-[#D9D6D5] cursor-not-allowed'
+                          }`}
+                        >Submit</button>
+                        {submittedAnswers[idx] && (
+                          <span className={`text-[0.95rem] font-bold flex items-center gap-1.5 ${
+                            (() => { const sel = selectedAnswers[idx]; const opts = webCard.challenge as ChallengeOption[]; return sel !== undefined && sel !== null && opts?.[sel]?.isCorrect === true; })() ? 'text-[#007970] dark:text-[#64F4F5]' : 'text-[#D70101] dark:text-[#FBE6E6]'
+                          }`}>
+                            {(() => { const sel = selectedAnswers[idx]; const opts = webCard.challenge as ChallengeOption[]; return sel !== undefined && sel !== null && opts?.[sel]?.isCorrect === true; })() ? <><CheckCircle2 className="w-4 h-4"/> Correct</> : <><XCircle className="w-4 h-4"/> Incorrect</>}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </details>
+                </div>
+              </motion.article>
+            )
+          })}
+        </div>
+
+        {/* Completion footer */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: cards.filter(c => !(c as any).final).length * 0.08 + 0.1 }}
+          className="mt-16 mb-8 text-center"
+        >
+          <div className="w-16 h-16 rounded-full bg-[#E5FEFF] dark:bg-[#004142] flex items-center justify-center glow-teal mx-auto mb-4">
+            <Check className="w-8 h-8 text-[#007970] dark:text-[#64F4F5]" />
+          </div>
+          <h2 className="font-heading text-[1.6rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8]">End of Modules</h2>
+          <p className="text-[#747474] dark:text-[#D9D6D5] text-[1.05rem] mt-2">Review any section above or switch to Card View for guided navigation.</p>
+        </motion.div>
+      </div>
+      )}
       {/* Dock (center-left) */}
       <Dock items={dockItems} position="center-left" isDarkMode={isDarkMode} />
     </div>
