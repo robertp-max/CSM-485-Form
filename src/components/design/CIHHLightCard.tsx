@@ -2,7 +2,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { sfxClick, sfxSwipe, sfxModeToggle } from '../../utils/sfx';
 import {
-  Play, Pause, Swords, ArrowRight, Volume2,
+  Play, Pause, ArrowRight, Volume2,
   CheckCircle2, XCircle,
   ShieldCheck, FileText, Check,
   Moon, Sun, Layers, Lock, ChevronLeft, ChevronRight, ChevronDown, BookOpen,
@@ -324,7 +324,6 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
   const pointerCurrentX = useRef<number | null>(null)
   const pointerCurrentY = useRef<number | null>(null)
 
-  const [showChallengeOverlay, setShowChallengeOverlay] = useState<'layout' | 'henderson' | null>(null)
   const [audioTested, setAudioTested] = useState(false)
   const [introCompleted, setIntroCompleted] = useState<Record<string, boolean>>({})
 
@@ -742,7 +741,42 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
         </div>
       )}
 
-      {(viewMode === 'card' || isOnIntroCard) ? (
+      {/* ── Challenge cards render full-screen ── */}
+      {card.intro === 'layout-challenge' && (
+        <div className="fixed inset-0 z-[9998]">
+          <LayoutChallenge
+            theme={isDarkMode ? 'night' : 'day'}
+            onComplete={() => {
+              setIntroCompleted(prev => ({ ...prev, 'layout-challenge': true }))
+              sfxSwipe()
+              setNavDirection(1)
+              setCardIndex(cardIndex + 1)
+              setPanelMode('main')
+            }}
+            onBack={() => {
+              sfxSwipe()
+              setNavDirection(-1)
+              setCardIndex(cardIndex - 1)
+              setPanelMode('main')
+            }}
+          />
+        </div>
+      )}
+      {card.intro === 'henderson-challenge' && (
+        <div className="fixed inset-0 z-[9998]">
+          <HendersonChallenge
+            onExit={() => {
+              setIntroCompleted(prev => ({ ...prev, 'henderson-challenge': true }))
+              sfxSwipe()
+              setNavDirection(1)
+              setCardIndex(cardIndex + 1)
+              setPanelMode('main')
+            }}
+          />
+        </div>
+      )}
+
+      {(viewMode === 'card' || isOnIntroCard) && !card.intro?.includes?.('challenge') ? (
       <div className="w-full max-w-[1200px] min-h-[1000px] relative z-10">
         <AnimatePresence mode="wait" custom={navDirection}>
           <motion.div
@@ -929,68 +963,6 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                     <button onClick={handleNext} className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(0,121,112,0.25)] hover:shadow-[0_18px_44px_rgba(0,121,112,0.3)]">
                       Continue <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </button>
-                  </div>
-                )}
-
-                {/* ── 3. Layout Challenge ── */}
-                {card.intro === 'layout-challenge' && (
-                  <div className="space-y-6 max-w-lg w-full">
-                    <div className="w-16 h-16 rounded-2xl bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.12)] flex items-center justify-center mx-auto">
-                      <LayoutGrid className="w-8 h-8 text-[#C74601] dark:text-[#E56E2E]" />
-                    </div>
-                    <div className="space-y-2">
-                      <h2 className="font-heading text-[1.8rem] font-bold">CMS-485 Layout Challenge</h2>
-                      <p className="text-[#524048] dark:text-[#D9D6D5] text-[0.95rem] leading-relaxed max-w-md mx-auto">
-                        Demonstrate your knowledge of the CMS-485 form structure.
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-center gap-3">
-                      <button
-                        onClick={() => setShowChallengeOverlay('layout')}
-                        className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(199,70,1,0.25)]"
-                      >
-                        {introCompleted['layout-challenge'] ? 'Retake Challenge' : 'Begin Challenge'} <Swords className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                      </button>
-                      {introCompleted['layout-challenge'] && (
-                        <>
-                          <p className="text-[#007970] dark:text-[#64F4F5] text-[0.85rem] font-bold flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> Passed</p>
-                          <button onClick={handleNext} className="group inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal">
-                            Continue <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* ── 4. Henderson Challenge ── */}
-                {card.intro === 'henderson-challenge' && (
-                  <div className="space-y-6 max-w-lg w-full">
-                    <div className="w-16 h-16 rounded-2xl bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.12)] flex items-center justify-center mx-auto">
-                      <HeartPulse className="w-8 h-8 text-[#C74601] dark:text-[#E56E2E]" />
-                    </div>
-                    <div className="space-y-2">
-                      <h2 className="font-heading text-[1.8rem] font-bold">Henderson Clinical Challenge</h2>
-                      <p className="text-[#524048] dark:text-[#D9D6D5] text-[0.95rem] leading-relaxed max-w-md mx-auto">
-                        Apply documentation skills to a clinical home health scenario.
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-center gap-3">
-                      <button
-                        onClick={() => setShowChallengeOverlay('henderson')}
-                        className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(199,70,1,0.25)]"
-                      >
-                        {introCompleted['henderson-challenge'] ? 'Retake Challenge' : 'Begin Challenge'} <Swords className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                      </button>
-                      {introCompleted['henderson-challenge'] && (
-                        <>
-                          <p className="text-[#007970] dark:text-[#64F4F5] text-[0.85rem] font-bold flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> Passed</p>
-                          <button onClick={handleNext} className="group inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal">
-                            Continue <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                          </button>
-                        </>
-                      )}
-                    </div>
                   </div>
                 )}
 
@@ -1323,7 +1295,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                         >
                           <div className="flex items-center gap-2">
                             <div className={`w-5 h-5 rounded flex items-center justify-center ${!kcUnlocked ? 'bg-[#747474]/10' : chalOpen ? 'bg-[#C74601]/15' : 'bg-[#C74601]/8'}`}>
-                              {!kcUnlocked ? <Lock className="w-2.5 h-2.5 text-[#747474] dark:text-[#D9D6D5]" /> : <Swords className="w-2.5 h-2.5 text-[#C74601] dark:text-[#E56E2E]" />}
+                              {!kcUnlocked ? <Lock className="w-2.5 h-2.5 text-[#747474] dark:text-[#D9D6D5]" /> : <ShieldCheck className="w-2.5 h-2.5 text-[#C74601] dark:text-[#E56E2E]" />}
                             </div>
                             <span className={`font-heading font-bold text-[0.98rem] tracking-[0.12em] uppercase ${kcUnlocked ? 'text-[#C74601] dark:text-[#E56E2E]' : 'text-[#747474] dark:text-[#D9D6D5]'}`}>Challenge</span>
                             {!kcUnlocked && <span className="text-[#747474] dark:text-[#D9D6D5] text-[0.82rem] normal-case ml-0.5">Listen to unlock</span>}
@@ -1426,30 +1398,6 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
       )}
       {/* Dock (center-left) */}
       <Dock items={dockItems} position="center-left" isDarkMode={isDarkMode} />
-
-      {/* ── Challenge Overlays ── */}
-      {showChallengeOverlay === 'layout' && (
-        <div className="fixed inset-0 z-[9998]">
-          <LayoutChallenge
-            theme={isDarkMode ? 'night' : 'day'}
-            onComplete={() => {
-              setIntroCompleted(prev => ({ ...prev, 'layout-challenge': true }))
-              setShowChallengeOverlay(null)
-            }}
-            onBack={() => setShowChallengeOverlay(null)}
-          />
-        </div>
-      )}
-      {showChallengeOverlay === 'henderson' && (
-        <div className="fixed inset-0 z-[9998]">
-          <HendersonChallenge
-            onExit={() => {
-              setIntroCompleted(prev => ({ ...prev, 'henderson-challenge': true }))
-              setShowChallengeOverlay(null)
-            }}
-          />
-        </div>
-      )}
 
     </div>
   );
