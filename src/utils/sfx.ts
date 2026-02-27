@@ -1,7 +1,8 @@
 /**
- * Subtle, professional UI sound effects using the Web Audio API.
- * All sounds are synthesised — no external files required.
- * Volume is kept intentionally low (≤ 0.08) for a refined feel.
+ * Soft piano-key UI sound effects using the Web Audio API.
+ * Mimics a felt-dampened upright piano — warm sine + triangle harmonics
+ * with a fast attack and long exponential decay.
+ * Volume is kept intentionally low (≤ 0.07) for a refined, subtle feel.
  */
 
 let ctx: AudioContext | null = null
@@ -11,115 +12,101 @@ const getCtx = (): AudioContext => {
   return ctx
 }
 
-/* ── helper: quick gain envelope ── */
-const env = (
+/* ── helper: piano-style ADSR envelope ── */
+const pianoEnv = (
   gain: GainNode,
   peak: number,
-  attackMs: number,
-  holdMs: number,
-  releaseMs: number,
+  decayMs: number,
   t0: number,
 ) => {
   gain.gain.setValueAtTime(0, t0)
-  gain.gain.linearRampToValueAtTime(peak, t0 + attackMs / 1000)
-  gain.gain.setValueAtTime(peak, t0 + (attackMs + holdMs) / 1000)
-  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + (attackMs + holdMs + releaseMs) / 1000)
+  gain.gain.linearRampToValueAtTime(peak, t0 + 0.008)          // ~8 ms attack (hammer strike)
+  gain.gain.exponentialRampToValueAtTime(peak * 0.35, t0 + 0.08) // quick initial drop
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + decayMs / 1000)  // long tail
+}
+
+/* ── helper: single piano note with harmonics ── */
+const playNote = (freq: number, vol: number, decay: number, t0?: number) => {
+  const c = getCtx()
+  const t = t0 ?? c.currentTime
+
+  // Fundamental (warm sine)
+  const osc1 = c.createOscillator()
+  osc1.type = 'sine'
+  osc1.frequency.setValueAtTime(freq, t)
+
+  // 2nd harmonic (softer triangle, adds body)
+  const osc2 = c.createOscillator()
+  osc2.type = 'triangle'
+  osc2.frequency.setValueAtTime(freq * 2, t)
+
+  // 3rd harmonic (very quiet sine, adds shimmer)
+  const osc3 = c.createOscillator()
+  osc3.type = 'sine'
+  osc3.frequency.setValueAtTime(freq * 3, t)
+
+  const g1 = c.createGain()
+  const g2 = c.createGain()
+  const g3 = c.createGain()
+
+  pianoEnv(g1, vol, decay, t)
+  pianoEnv(g2, vol * 0.25, decay * 0.7, t)
+  pianoEnv(g3, vol * 0.08, decay * 0.4, t)
+
+  // Gentle low-pass to soften the attack
+  const lp = c.createBiquadFilter()
+  lp.type = 'lowpass'
+  lp.frequency.setValueAtTime(2800, t)
+  lp.frequency.exponentialRampToValueAtTime(800, t + decay / 1000)
+  lp.Q.setValueAtTime(0.7, t)
+
+  osc1.connect(g1).connect(lp)
+  osc2.connect(g2).connect(lp)
+  osc3.connect(g3).connect(lp)
+  lp.connect(c.destination)
+
+  const dur = decay / 1000 + 0.05
+  osc1.start(t); osc1.stop(t + dur)
+  osc2.start(t); osc2.stop(t + dur)
+  osc3.start(t); osc3.stop(t + dur)
 }
 
 /* ────────────────────────────────────────────────────────────── */
 /*  PUBLIC API                                                   */
 /* ────────────────────────────────────────────────────────────── */
 
-/** Soft tick — dock hover, interactive element hover */
+/** Soft piano tap — dock hover, interactive element hover (C6, very quiet) */
 export const sfxHover = () => {
-  const c = getCtx()
-  const t = c.currentTime
-  const osc = c.createOscillator()
-  const g = c.createGain()
-  osc.type = 'sine'
-  osc.frequency.setValueAtTime(3200, t)
-  osc.frequency.exponentialRampToValueAtTime(2400, t + 0.06)
-  env(g, 0.04, 5, 10, 50, t)
-  osc.connect(g).connect(c.destination)
-  osc.start(t)
-  osc.stop(t + 0.08)
+  playNote(1047, 0.025, 200)
 }
 
-/** Gentle snap — button click, option select */
+/** Gentle piano key — button click, option select (E5) */
 export const sfxClick = () => {
-  const c = getCtx()
-  const t = c.currentTime
-  const osc = c.createOscillator()
-  const g = c.createGain()
-  osc.type = 'triangle'
-  osc.frequency.setValueAtTime(1800, t)
-  osc.frequency.exponentialRampToValueAtTime(900, t + 0.06)
-  env(g, 0.06, 3, 8, 80, t)
-  osc.connect(g).connect(c.destination)
-  osc.start(t)
-  osc.stop(t + 0.1)
+  playNote(659, 0.045, 350)
 }
 
-/** Smooth whoosh — card/panel transitions */
+/** Two-note piano glide — card/panel transitions (C4 → G4) */
 export const sfxSwipe = () => {
   const c = getCtx()
   const t = c.currentTime
-
-  // Filtered noise via oscillator + modulation for a breathy sweep
-  const osc = c.createOscillator()
-  const mod = c.createOscillator()
-  const modG = c.createGain()
-  const g = c.createGain()
-
-  osc.type = 'sawtooth'
-  osc.frequency.setValueAtTime(220, t)
-  osc.frequency.exponentialRampToValueAtTime(80, t + 0.35)
-
-  mod.type = 'sine'
-  mod.frequency.setValueAtTime(40, t)
-  modG.gain.setValueAtTime(60, t)
-  mod.connect(modG).connect(osc.frequency)
-
-  const filter = c.createBiquadFilter()
-  filter.type = 'bandpass'
-  filter.frequency.setValueAtTime(600, t)
-  filter.frequency.exponentialRampToValueAtTime(200, t + 0.35)
-  filter.Q.setValueAtTime(1.5, t)
-
-  env(g, 0.05, 20, 40, 300, t)
-  osc.connect(filter).connect(g).connect(c.destination)
-  osc.start(t)
-  osc.stop(t + 0.4)
-  mod.start(t)
-  mod.stop(t + 0.4)
+  playNote(262, 0.04, 500, t)
+  playNote(392, 0.04, 500, t + 0.12)
 }
 
-/** Atmospheric chime — night ↔ light mode toggle */
+/** Piano chord — night ↔ light mode toggle */
 export const sfxModeToggle = (toNight: boolean) => {
   const c = getCtx()
   const t = c.currentTime
 
-  // Two-note chime: descending for night, ascending for light
-  const freqs = toNight ? [660, 440] : [440, 660]
-
-  freqs.forEach((freq, i) => {
-    const osc = c.createOscillator()
-    const g = c.createGain()
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(freq, t + i * 0.18)
-    env(g, 0.06, 10, 60, 600, t + i * 0.18)
-    osc.connect(g).connect(c.destination)
-    osc.start(t + i * 0.18)
-    osc.stop(t + i * 0.18 + 0.7)
-  })
-
-  // Sub-harmonic bed for depth
-  const sub = c.createOscillator()
-  const sg = c.createGain()
-  sub.type = 'sine'
-  sub.frequency.setValueAtTime(toNight ? 110 : 165, t)
-  env(sg, 0.035, 50, 200, 800, t)
-  sub.connect(sg).connect(c.destination)
-  sub.start(t)
-  sub.stop(t + 1.1)
+  if (toNight) {
+    // Descending: Am chord feeling — A4, E4, C4
+    playNote(440, 0.05, 1200, t)
+    playNote(330, 0.045, 1200, t + 0.15)
+    playNote(262, 0.04, 1400, t + 0.30)
+  } else {
+    // Ascending: C major — C4, E4, G4
+    playNote(262, 0.04, 1200, t)
+    playNote(330, 0.045, 1200, t + 0.15)
+    playNote(392, 0.05, 1400, t + 0.30)
+  }
 }

@@ -40,24 +40,26 @@ const StyleInjector = () => (
         transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
       }
 
-      /* ── dramatic sky-rotation transition ── */
-      @keyframes skyRotateToNight {
-        0%   { opacity: 0; transform: rotate(0deg) scale(1); }
-        20%  { opacity: 1; }
-        60%  { opacity: 1; transform: rotate(-120deg) scale(1.6); }
-        100% { opacity: 0; transform: rotate(-180deg) scale(2.2); }
+      /* ── edge-sweep mode transition ── */
+      @keyframes edgeSweepToNight {
+        0%   { clip-path: inset(0 100% 0 0); opacity: 0; }
+        8%   { opacity: 1; }
+        50%  { clip-path: inset(0 0% 0 0); opacity: 0.92; }
+        70%  { clip-path: inset(0 0% 0 0); opacity: 0.7; }
+        100% { clip-path: inset(0 0% 0 100%); opacity: 0; }
       }
-      @keyframes skyRotateToDay {
-        0%   { opacity: 0; transform: rotate(0deg) scale(1); }
-        20%  { opacity: 1; }
-        60%  { opacity: 1; transform: rotate(120deg) scale(1.6); }
-        100% { opacity: 0; transform: rotate(180deg) scale(2.2); }
+      @keyframes edgeSweepToDay {
+        0%   { clip-path: inset(0 0 0 100%); opacity: 0; }
+        8%   { opacity: 1; }
+        50%  { clip-path: inset(0 0% 0 0); opacity: 0.92; }
+        70%  { clip-path: inset(0 0% 0 0); opacity: 0.7; }
+        100% { clip-path: inset(0 100% 0 0); opacity: 0; }
       }
-      .sky-rotate-night {
-        animation: skyRotateToNight 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      .edge-sweep-night {
+        animation: edgeSweepToNight 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
-      .sky-rotate-day {
-        animation: skyRotateToDay 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      .edge-sweep-day {
+        animation: edgeSweepToDay 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
 
       @keyframes auroraFloatA {
@@ -305,8 +307,8 @@ export default function CIHHLightCard() {
       setCurtainDirection(goingToNight ? 'night' : 'day');
       setShowCurtain(true);
       setModeTransitionKey(k => k + 1);
-      setTimeout(() => setIsDarkMode(prev => !prev), 600);
-      setTimeout(() => setShowCurtain(false), 2200);
+      setTimeout(() => setIsDarkMode(prev => !prev), 500);
+      setTimeout(() => setShowCurtain(false), 2000);
     }, isActive: isDarkMode },
     { icon: <Activity className="w-5 h-5" />, label: 'Top', onClick: () => {
       setNavDirection(cardIndex > 0 ? -1 : 1)
@@ -503,15 +505,15 @@ export default function CIHHLightCard() {
     <div className={`night-transition min-h-screen bg-[radial-gradient(circle_at_top_right,_#FAFBF8_0%,_#D9D6D5_100%)] dark:bg-[radial-gradient(circle_at_top_right,_#020F10_0%,_#010808_100%)] text-[#1F1C1B] dark:text-[#FAFBF8] font-body p-4 md:p-8 flex items-center justify-center relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
       <StyleInjector />
 
-      {/* ── Cinematic sky-rotation overlay ── */}
+      {/* ── Cinematic edge-sweep overlay ── */}
       {showCurtain && (
         <div
           key={modeTransitionKey}
-          className={`${curtainDirection === 'night' ? 'sky-rotate-night' : 'sky-rotate-day'} fixed inset-[-50%] z-[9999] pointer-events-none`}
+          className={`${curtainDirection === 'night' ? 'edge-sweep-night' : 'edge-sweep-day'} fixed inset-0 z-[9999] pointer-events-none`}
           style={{
             background: curtainDirection === 'night'
-              ? 'conic-gradient(from 0deg, #020F10 0%, #004142 25%, #011011 50%, transparent 75%)'
-              : 'conic-gradient(from 0deg, #FAFBF8 0%, #E5FEFF 25%, #D9D6D5 50%, transparent 75%)'
+              ? 'linear-gradient(135deg, #020F10 0%, #004142 40%, #010808 100%)'
+              : 'linear-gradient(135deg, #FAFBF8 0%, #E5FEFF 40%, #D9D6D5 100%)'
           }}
         />
       )}
