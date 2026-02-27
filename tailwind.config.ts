@@ -34,16 +34,16 @@ const config: Config = {
             skyBorder: '#C4F4F5',
             input: '#E5E4E3',
           },
-          // Night Mode Design Tokens (brand kit)
+          // Night Mode Design Tokens (brand kit – teal-based)
           nm: {
-            bg: '#1F1C1B',       // Deep charcoal background
-            card: '#2A2524',     // Card surface
-            stroke: '#524048',   // Borders
+            bg: '#041E1F',       // Deep dark teal background
+            card: '#0A2E2F',     // Card surface
+            stroke: '#0A3D3E',   // Borders
             text: '#FAFBF8',     // Primary text
             textSoft: '#D9D6D5', // Secondary text
             accent: '#64F4F5',   // Teal 400 accent
             accentWarm: '#E56E2E', // Orange 400 accent
-            input: '#3A3432',    // Input surfaces
+            input: '#0D3536',    // Input surfaces
           }
         },
       },

@@ -21,9 +21,9 @@ const StyleInjector = () => (
       ::-webkit-scrollbar-thumb { background: #D9D6D5; border-radius: 4px; }
       ::-webkit-scrollbar-thumb:hover { background: #747474; }
 
-      .dark ::-webkit-scrollbar-track { background: #1F1C1B; }
-      .dark ::-webkit-scrollbar-thumb { background: #524048; }
-      .dark ::-webkit-scrollbar-thumb:hover { background: #747474; }
+      .dark ::-webkit-scrollbar-track { background: #041E1F; }
+      .dark ::-webkit-scrollbar-thumb { background: #0A3D3E; }
+      .dark ::-webkit-scrollbar-thumb:hover { background: #007970; }
 
       .glow-orange { box-shadow: 0 9px 28px -6px rgba(199, 70, 1, 0.46); }
       .glow-teal { box-shadow: 0 9px 28px -6px rgba(0, 121, 112, 0.345); }
@@ -34,9 +34,19 @@ const StyleInjector = () => (
       /* ── cinematic night-mode transition ── */
       .night-transition,
       .night-transition *:not(svg):not(path) {
-        transition-property: background-color, color, border-color, box-shadow, opacity, fill, stroke;
-        transition-duration: 1.2s;
-        transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+        transition-property: background-color, color, border-color, box-shadow, opacity, fill, stroke, filter;
+        transition-duration: 1.8s;
+        transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      /* ── dramatic overlay curtain ── */
+      @keyframes nightCurtainIn {
+        0%   { opacity: 0; backdrop-filter: blur(0px); }
+        40%  { opacity: 1; backdrop-filter: blur(12px); }
+        100% { opacity: 0; backdrop-filter: blur(0px); }
+      }
+      .night-curtain {
+        animation: nightCurtainIn 1.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
       }
 
       @keyframes auroraFloatA {
@@ -240,6 +250,9 @@ const cardShellVariants = {
 
 export default function CIHHLightCard() {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [modeTransitionKey, setModeTransitionKey] = useState(0);
+  const [showCurtain, setShowCurtain] = useState(false);
+  const curtainColor = useRef('#004142');
   const [cardIndex, setCardIndex] = useState(0);
   const [panelMode, setPanelMode] = useState('main');
   const [navDirection, setNavDirection] = useState(1)
@@ -275,7 +288,13 @@ export default function CIHHLightCard() {
   const dockItems = [
     { icon: <FileText className="w-5 h-5" />, label: 'Help', onClick: () => alert('Open help') },
     { icon: <ShieldCheck className="w-5 h-5" />, label: debugMode ? 'QA: ON' : 'QA: OFF', onClick: () => setStatusMsg(prev => prev === 'QA: ON' ? 'QA: OFF' : 'QA: ON'), isActive: debugMode },
-    { icon: isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />, label: isDarkMode ? 'Light' : 'Night', onClick: () => setIsDarkMode(prev => !prev), isActive: isDarkMode },
+    { icon: isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />, label: isDarkMode ? 'Light' : 'Night', onClick: () => {
+      curtainColor.current = isDarkMode ? '#FAFBF8' : '#004142';
+      setShowCurtain(true);
+      setModeTransitionKey(k => k + 1);
+      setTimeout(() => setIsDarkMode(prev => !prev), 500);
+      setTimeout(() => setShowCurtain(false), 1600);
+    }, isActive: isDarkMode },
     { icon: <Activity className="w-5 h-5" />, label: 'Top', onClick: () => {
       setNavDirection(cardIndex > 0 ? -1 : 1)
       setCardIndex(0)
@@ -463,14 +482,23 @@ export default function CIHHLightCard() {
   }, [panelMode, cardIndex, hasAudio, audioUrl]);
 
   return (
-    <div className={`night-transition min-h-screen bg-[radial-gradient(circle_at_top_right,_#FAFBF8_0%,_#D9D6D5_100%)] dark:bg-[radial-gradient(circle_at_top_right,_#1F1C1B_0%,_#0E0C0B_100%)] text-[#1F1C1B] dark:text-[#FAFBF8] font-body p-4 md:p-8 flex items-center justify-center relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`night-transition min-h-screen bg-[radial-gradient(circle_at_top_right,_#FAFBF8_0%,_#D9D6D5_100%)] dark:bg-[radial-gradient(circle_at_top_right,_#041E1F_0%,_#011011_100%)] text-[#1F1C1B] dark:text-[#FAFBF8] font-body p-4 md:p-8 flex items-center justify-center relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
       <StyleInjector />
+
+      {/* ── Cinematic mode-switch curtain ── */}
+      {showCurtain && (
+        <div
+          key={modeTransitionKey}
+          className="night-curtain fixed inset-0 z-[9999] pointer-events-none"
+          style={{ background: `radial-gradient(ellipse at center, ${curtainColor.current} 0%, transparent 100%)` }}
+        />
+      )}
 
       <div className="absolute top-[-10%] left-[-10%] w-[44%] h-[44%] bg-[#007970] rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[150px] opacity-[0.13] dark:opacity-[0.18] animate-aurora-a pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[44%] h-[44%] bg-[#C74601] rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[150px] opacity-[0.13] dark:opacity-[0.18] animate-aurora-b pointer-events-none"></div>
 
       {debugMode && (
-        <div className="absolute top-6 right-6 flex items-center gap-2 bg-[#FFEEE5] dark:bg-[#421700]/80 text-[#C74601] dark:text-[#FFD5BF] px-4 py-2 rounded-full text-[0.9075rem] font-bold tracking-widest uppercase backdrop-blur-md shadow-sm z-50">
+        <div className="absolute top-6 right-6 flex items-center gap-2 bg-[#FFEEE5] dark:bg-[#003333]/80 text-[#C74601] dark:text-[#FFD5BF] px-4 py-2 rounded-full text-[0.9075rem] font-bold tracking-widest uppercase backdrop-blur-md shadow-sm z-50">
           <ShieldCheck className="w-4 h-4" /> QA: ON (Debug)
         </div>
       )}
@@ -491,7 +519,7 @@ export default function CIHHLightCard() {
             onPointerCancel={handlePointerUp}
             onClick={handleCardEdgeClick}
             style={{ touchAction: 'pan-y' }}
-            className="relative w-full min-h-[1000px] bg-white/0 dark:bg-[#1F1C1B]/60 backdrop-blur-2xl rounded-[32px] shadow-[0_24px_60px_rgba(31,28,27,0.12)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.55)] overflow-hidden flex flex-col border-l-[4.3px] border-l-[#C74601]"
+            className="relative w-full min-h-[1000px] bg-white/0 dark:bg-[#041E1F]/60 backdrop-blur-2xl rounded-[32px] shadow-[0_24px_60px_rgba(31,28,27,0.12)] dark:shadow-[0_24px_80px_rgba(0,20,21,0.65)] overflow-hidden flex flex-col border-l-[4.3px] border-l-[#C74601]"
           >
         <header className="px-8 pt-8 pb-4 flex justify-between items-end">
           <div>
@@ -520,8 +548,8 @@ export default function CIHHLightCard() {
                 i === progressActiveIndex
                   ? 'w-12 bg-[#C74601] glow-orange'
                   : i < progressActiveIndex
-                    ? 'w-6 bg-[#FFD5BF] dark:bg-[#421700]'
-                    : 'w-2 bg-[#E5E4E3] dark:bg-[#524048]'
+                    ? 'w-6 bg-[#FFD5BF] dark:bg-[#003333]'
+                    : 'w-2 bg-[#E5E4E3] dark:bg-[#0A3D3E]'
               }`}
             />
           ))}
@@ -564,7 +592,7 @@ export default function CIHHLightCard() {
                             key={i}
                             disabled={submitted}
                             onClick={() => setSelectedAnswers(prev => ({ ...prev, [cardIndex]: i }))}
-                            className={`w-full text-left p-5 rounded-[16px] transition-all duration-300 flex items-start gap-4 bg-transparent border-l-[3.3px] ${showCorrect || showWrong || isSelected ? 'border-l-[#00BFB4]' : 'border-l-[#747474] dark:border-l-[#524048] hover:border-l-[#007970] dark:hover:border-l-[#64F4F5]'} shadow-[0_6px_14px_-10px_rgba(31,28,27,0.2)] dark:shadow-[0_6px_14px_-10px_rgba(0,0,0,0.4)] hover:bg-white/[0.30] dark:hover:bg-white/[0.04] hover:shadow-[0_0_26px_-6px_rgba(0,121,112,0.62),0_12px_26px_-12px_rgba(31,28,27,0.28)] dark:hover:shadow-[0_0_26px_-6px_rgba(100,244,245,0.35),0_12px_26px_-12px_rgba(0,0,0,0.5)] ${
+                            className={`w-full text-left p-5 rounded-[16px] transition-all duration-300 flex items-start gap-4 bg-transparent border-l-[3.3px] ${showCorrect || showWrong || isSelected ? 'border-l-[#00BFB4]' : 'border-l-[#747474] dark:border-l-[#0A3D3E] hover:border-l-[#007970] dark:hover:border-l-[#64F4F5]'} shadow-[0_6px_14px_-10px_rgba(31,28,27,0.2)] dark:shadow-[0_6px_14px_-10px_rgba(0,0,0,0.4)] hover:bg-white/[0.30] dark:hover:bg-white/[0.04] hover:shadow-[0_0_26px_-6px_rgba(0,121,112,0.62),0_12px_26px_-12px_rgba(31,28,27,0.28)] dark:hover:shadow-[0_0_26px_-6px_rgba(100,244,245,0.35),0_12px_26px_-12px_rgba(0,0,0,0.5)] ${
                               showCorrect ? 'glow-teal border-l-[#00BFB4] shadow-[0_0_32px_-4px_rgba(0,191,180,0.78),0_12px_28px_-12px_rgba(31,28,27,0.32)]' :
                               showWrong ? 'border-l-[#00BFB4] shadow-[0_0_30px_-5px_rgba(0,191,180,0.72),0_12px_28px_-12px_rgba(31,28,27,0.32)]' :
                               isSelected ? 'border-l-[#00BFB4] shadow-[0_0_30px_-5px_rgba(0,191,180,0.72),0_12px_28px_-12px_rgba(31,28,27,0.32)]' :
@@ -598,7 +626,7 @@ export default function CIHHLightCard() {
                         className={`px-8 py-3 rounded-[12px] text-[1.1rem] font-bold tracking-wide transition-all duration-300 ${
                           !submittedAnswers[cardIndex]
                             ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] glow-orange hover:-translate-y-0.5'
-                            : 'bg-[#E5E4E3] dark:bg-[#524048] text-[#747474] dark:text-[#D9D6D5] cursor-not-allowed'
+                            : 'bg-[#E5E4E3] dark:bg-[#0A3D3E] text-[#747474] dark:text-[#D9D6D5] cursor-not-allowed'
                         }`}
                       >
                         Submit
@@ -627,7 +655,7 @@ export default function CIHHLightCard() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
-                      <div className="bg-transparent rounded-[24px] p-6 -translate-y-[1px] hover:-translate-y-[2px] border-l-[3.3px] border-l-[#524048] dark:border-l-[#D9D6D5] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_16px_-10px_rgba(82,64,72,0.3)] dark:shadow-[0_7px_17px_-5px_rgba(0,0,0,0.4),0_0_16px_-10px_rgba(217,214,213,0.12)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_28px_-6px_rgba(82,64,72,0.62)] dark:hover:shadow-[0_14px_34px_-10px_rgba(0,0,0,0.5),0_0_28px_-6px_rgba(217,214,213,0.25)] transition-all duration-300 hover:bg-white/[0.30] dark:hover:bg-white/[0.04]">
+                      <div className="bg-transparent rounded-[24px] p-6 -translate-y-[1px] hover:-translate-y-[2px] border-l-[3.3px] border-l-[#524048] dark:border-l-[#64F4F5] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_16px_-10px_rgba(82,64,72,0.3)] dark:shadow-[0_7px_17px_-5px_rgba(0,0,0,0.4),0_0_16px_-10px_rgba(217,214,213,0.12)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_28px_-6px_rgba(82,64,72,0.62)] dark:hover:shadow-[0_14px_34px_-10px_rgba(0,0,0,0.5),0_0_28px_-6px_rgba(217,214,213,0.25)] transition-all duration-300 hover:bg-white/[0.30] dark:hover:bg-white/[0.04]">
                         <h2 className="text-[#747474] dark:text-[#D9D6D5] font-heading font-bold text-[1.059rem] uppercase tracking-widest mb-4 pb-2">Key Points</h2>
                         <ul className="space-y-3 list-none">
                           {card.bullets.map((b: string, i: number) => (
