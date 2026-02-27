@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { sfxClick, sfxSwipe, sfxModeToggle } from '../../utils/sfx';
 import {
-  Play, Pause,
-  Square, RotateCcw, Swords,
+  Play, Pause, Swords,
   CheckCircle2, XCircle,
   ShieldCheck, FileText, Activity, Check,
-  Moon, Sun, Layers, LayoutGrid, Lock, ChevronLeft, ChevronRight, ChevronDown, BookOpen
+  Moon, Sun, Layers, Lock, ChevronLeft, ChevronRight, ChevronDown, BookOpen,
+  ArrowRight, GraduationCap, BarChart3, HeartPulse, Volume2
 } from 'lucide-react';
 
 const StyleInjector = () => (
@@ -86,6 +86,8 @@ const StyleInjector = () => (
 const debugMode = true;
 import { Dock } from '../Dock';
 import { TRAINING_CARDS } from '../../data/trainingCards';
+import HendersonChallenge from '../HendersonChallenge';
+import LayoutChallenge from '../LayoutChallenge';
 import { FINAL_TEST_TITLE, FINAL_TEST_OBJECTIVE, FINAL_TEST_KEY_POINTS, FINAL_TEST_QUESTIONS } from '../../data/finalTest';
 import fullAdditionalContent from '../../assets/Additional Content.txt?raw';
 
@@ -238,7 +240,94 @@ const mapCardFromTraining = (c: any) => {
   }
 }
 
+// ── Metrics Persistence ──────────────────────────────────────
+const METRICS_KEY = 'cms485.lc.metrics.v1'
+const GATING_KEY = 'cms485.lc.gating.v1'
+
+type MetricsData = {
+  preScore: number | null
+  preTotal: number
+  hendersonScore: number | null
+  hendersonTotal: number
+  layoutScore: number | null
+  layoutTotal: number
+}
+
+const defaultMetrics = (): MetricsData => ({
+  preScore: null, preTotal: 3,
+  hendersonScore: null, hendersonTotal: 0,
+  layoutScore: null, layoutTotal: 0,
+})
+
+const loadMetrics = (): MetricsData => {
+  try {
+    const raw = localStorage.getItem(METRICS_KEY)
+    if (!raw) return defaultMetrics()
+    return { ...defaultMetrics(), ...JSON.parse(raw) }
+  } catch { return defaultMetrics() }
+}
+const saveMetrics = (m: MetricsData) => localStorage.setItem(METRICS_KEY, JSON.stringify(m))
+
+type GatingData = {
+  hendersonComplete: boolean
+  layoutComplete: boolean
+  configComplete: boolean
+}
+
+const defaultGating = (): GatingData => ({ hendersonComplete: false, layoutComplete: false, configComplete: false })
+
+const loadGating = (): GatingData => {
+  try {
+    const raw = localStorage.getItem(GATING_KEY)
+    if (!raw) return defaultGating()
+    return { ...defaultGating(), ...JSON.parse(raw) }
+  } catch { return defaultGating() }
+}
+const saveGating = (g: GatingData) => localStorage.setItem(GATING_KEY, JSON.stringify(g))
+
+// ── Pre-Assessment (baseline knowledge check) ───────────────
+const PRE_ASSESSMENT = [
+  {
+    question: 'What is the primary purpose of the CMS-485 form?',
+    options: [
+      'To document the patient\'s Plan of Care',
+      'To submit insurance claims directly',
+      'To record nursing shift schedules',
+    ],
+    correctIdx: 0,
+  },
+  {
+    question: 'Which element must be documented before wound care can begin?',
+    options: [
+      'Patient\'s food preferences',
+      'Safety assessment and 911 protocols',
+      'Physician\'s office hours',
+    ],
+    correctIdx: 1,
+  },
+  {
+    question: 'What does "medical necessity" require in home health documentation?',
+    options: [
+      'Only listing the patient\'s diagnoses',
+      'Skilled services tied to documented condition and risk',
+      'Completing a standard template without changes',
+    ],
+    correctIdx: 1,
+  },
+]
+
+// ── Intro card type ─────────────────────────────────────────
+type IntroKind = 'welcome' | 'config' | 'challenge-gate' | 'forms'
+
+const INTRO_CARDS: Array<{ title: string; kind: IntroKind; section: string; objective: string; bullets: string[]; additional: string; challenge: ChallengeOption[] }> = [
+  { title: 'Welcome to CMS-485 Training', kind: 'welcome', section: 'Getting Started', objective: '', bullets: [], additional: '', challenge: [] },
+  { title: 'System Configuration', kind: 'config', section: 'Setup', objective: '', bullets: [], additional: '', challenge: [] },
+  { title: 'Challenge Gateway', kind: 'challenge-gate', section: 'Competency', objective: '', bullets: [], additional: '', challenge: [] },
+  { title: 'Interactive CMS-485 Form', kind: 'forms', section: 'Practice', objective: '', bullets: [], additional: '', challenge: [] },
+]
+
 const cards = [
+  ...INTRO_CARDS,
   ...TRAINING_CARDS.map(mapCardFromTraining),
   {
     title: FINAL_TEST_TITLE,
@@ -302,23 +391,41 @@ export default function CIHHLightCard() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number | null>>(() => ({}));
   const [submittedAnswers, setSubmittedAnswers] = useState<Record<number, boolean>>(() => ({}));
-  const [statusMsg, setStatusMsg] = useState('QA mode bypasses locks');
+  const [, setStatusMsg] = useState('QA mode bypasses locks');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pointerStartX = useRef<number | null>(null)
   const pointerStartY = useRef<number | null>(null)
   const pointerCurrentX = useRef<number | null>(null)
   const pointerCurrentY = useRef<number | null>(null)
 
+  // ── Gating & Metrics state ──
+  const [gating, setGating] = useState<GatingData>(() => loadGating())
+  const [metrics, setMetrics] = useState<MetricsData>(() => loadMetrics())
+  const [preAnswers, setPreAnswers] = useState<Record<number, number>>({})
+  const [preSubmitted, setPreSubmitted] = useState(() => loadMetrics().preScore !== null)
+  const [activeChallenge, setActiveChallenge] = useState<'henderson' | 'layout' | null>(null)
+  const [audioTestPlaying, setAudioTestPlaying] = useState(false)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+
+  const isIntroCard = Boolean((cards[cardIndex] as any)?.kind)
+
   const card = cards[cardIndex] as any;
-  const visibleCardTotal = cards.filter(entry => !(entry as any).final).length
+  const introCount = INTRO_CARDS.length
+  const trainingCards = cards.filter(entry => !(entry as any).final && !(entry as any).kind)
+  const visibleCardTotal = trainingCards.length
   const visibleStepTotal = visibleCardTotal * 3
+  const trainingRelIndex = Math.max(0, cardIndex - introCount)
   const panelStepOffset = panelMode === 'main' ? 0 : panelMode === 'additional' ? 1 : 2
   const displayStepNumber = card?.final
     ? visibleStepTotal
-    : Math.min(cardIndex * 3 + panelStepOffset + 1, visibleStepTotal)
+    : isIntroCard
+      ? 0
+      : Math.min(trainingRelIndex * 3 + panelStepOffset + 1, visibleStepTotal)
   const progressActiveIndex = card?.final
     ? Math.max(0, visibleCardTotal - 1)
-    : Math.max(0, Math.min(cardIndex, visibleCardTotal - 1))
+    : isIntroCard
+      ? -1
+      : Math.max(0, Math.min(trainingRelIndex, visibleCardTotal - 1))
   const audioUrl = card?.title ? findAudioForTitle(card.title) : null;
   const hasAudio = Boolean(audioUrl);
   const normalizedCardTitle = normalizeText(card?.title ?? '')
@@ -333,7 +440,6 @@ export default function CIHHLightCard() {
   const totalSpreads = Math.ceil(webCards.length / 2)
   const leftIdx = webCardIndex * 2
   const rightIdx = webCardIndex * 2 + 1
-  const leftCard = (webCards[leftIdx] ?? null) as any
   const rightCard = rightIdx < webCards.length ? (webCards[rightIdx] as any) : null
 
   const getCardNarration = (c: any) => {
@@ -441,6 +547,28 @@ export default function CIHHLightCard() {
   }
 
   const handleNext = () => {
+    // ── Intro cards advance directly (no panels) ──
+    if (isIntroCard) {
+      const kind = (card as any).kind as IntroKind
+      // Gating: challenge-gate requires both challenges
+      if (kind === 'challenge-gate' && !gating.hendersonComplete && !gating.layoutComplete && !debugMode) {
+        setStatusMsg('Complete both challenges to continue')
+        return
+      }
+      // Gating: welcome requires pre-assessment submitted
+      if (kind === 'welcome' && !preSubmitted && !debugMode) {
+        setStatusMsg('Complete the baseline assessment first')
+        return
+      }
+      if (cardIndex < cards.length - 1) {
+        stopAudio()
+        sfxSwipe()
+        setNavDirection(1)
+        setCardIndex(cardIndex + 1)
+        setPanelMode('main')
+      }
+      return
+    }
     if (!card.final && panelMode === 'main') {
       stopAudio()
       sfxSwipe()
@@ -496,6 +624,60 @@ export default function CIHHLightCard() {
     if (sel === undefined || sel === null || !options?.[sel]) return false
     return options[sel].isCorrect
   }
+
+  // ── Pre-assessment submit ──
+  const handlePreAssessmentSubmit = () => {
+    let score = 0
+    PRE_ASSESSMENT.forEach((q, i) => {
+      if (preAnswers[i] === q.correctIdx) score++
+    })
+    const updated = { ...metrics, preScore: score, preTotal: PRE_ASSESSMENT.length }
+    setMetrics(updated)
+    saveMetrics(updated)
+    setPreSubmitted(true)
+  }
+
+  // ── Audio test for config card ──
+  const handleTestAudioInline = () => {
+    setAudioTestPlaying(true)
+    const ctx = audioCtxRef.current || new AudioContext()
+    audioCtxRef.current = ctx
+    const osc = ctx.createOscillator()
+    const gainNode = ctx.createGain()
+    osc.type = 'sine'
+    osc.frequency.value = 659.25
+    gainNode.gain.value = 0.12
+    osc.connect(gainNode).connect(ctx.destination)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.25)
+    setTimeout(() => setAudioTestPlaying(false), 500)
+  }
+
+  // ── Henderson challenge completion ──
+  const handleHendersonExit = () => {
+    const updatedGating = { ...gating, hendersonComplete: true }
+    setGating(updatedGating)
+    saveGating(updatedGating)
+    // Update metrics
+    const updatedMetrics = { ...metrics, hendersonScore: 1, hendersonTotal: 1 }
+    setMetrics(updatedMetrics)
+    saveMetrics(updatedMetrics)
+    setActiveChallenge(null)
+  }
+
+  // ── Layout challenge completion ──
+  const handleLayoutComplete = (_score: number, correct: number, total: number) => {
+    const updatedGating = { ...gating, layoutComplete: true }
+    setGating(updatedGating)
+    saveGating(updatedGating)
+    const updatedMetrics = { ...metrics, layoutScore: correct, layoutTotal: total }
+    setMetrics(updatedMetrics)
+    saveMetrics(updatedMetrics)
+    setActiveChallenge(null)
+  }
+
+  // ── Training Not Available gate ──
+  // Both challenges must be completed before training cards unlock
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     pointerStartX.current = event.clientX
@@ -679,11 +861,15 @@ export default function CIHHLightCard() {
         <header className="px-8 pt-8 pb-4 flex justify-between items-end">
           <div>
             <p className="text-[#007970] dark:text-[#64F4F5] font-bold text-[1.059rem] tracking-widest uppercase mb-2 flex items-center gap-2">
-              <FileText className="w-4 h-4" /> CMS-485 Designer
+              <FileText className="w-4 h-4" /> CMS-485 Training
             </p>
+            {isIntroCard ? (
+              <p className="font-heading text-[1.6rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] tracking-tight">{card.section}</p>
+            ) : (
             <p className="font-heading text-[2.7225rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] tracking-tight" aria-live="polite" aria-label={`Step ${displayStepNumber} of ${visibleStepTotal}`}>
               {displayStepNumber} <span className="text-[#747474] dark:text-[#D9D6D5] text-[1.815rem]">/ {visibleStepTotal}</span>
             </p>
+            )}
           </div>
           <img
             className="h-[2.8rem] w-auto object-contain"
@@ -718,9 +904,298 @@ export default function CIHHLightCard() {
                 <div className="w-24 h-24 rounded-full bg-[#E5FEFF] dark:bg-[#004142] flex items-center justify-center glow-teal mb-4 -translate-y-[1px] hover:-translate-y-[2px] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3)] transition-all duration-300">
                   <Check className="w-12 h-12 text-[#007970] dark:text-[#64F4F5]" />
                 </div>
-                <h1 className="font-heading text-[2.7225rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">Course Complete</h1>
+                <h1 className="font-heading text-[2.7225rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">Training Complete</h1>
                 <p className="text-[#524048] dark:text-[#D9D6D5] max-w-md text-[1.3613rem] font-light -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">
-                  You have successfully completed the sample flow. Excellent work mastering the CMS-485 foundations.
+                  You have completed the CMS-485 documentation training. Excellent work mastering the Plan of Care.
+                </p>
+
+                {/* ── Before / After Metrics ── */}
+                {metrics.preScore !== null && (
+                  <div className="w-full max-w-lg mt-6 space-y-4">
+                    <h2 className="font-heading text-[1.4rem] font-bold text-[#007970] dark:text-[#64F4F5] flex items-center gap-2 justify-center"><BarChart3 className="w-5 h-5" /> Performance Comparison</h2>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="rounded-2xl p-5 border border-[#E5E4E3] dark:border-[#07282A] bg-white/30 dark:bg-white/5 text-center">
+                        <p className="text-[0.85rem] font-bold tracking-widest uppercase text-[#747474] dark:text-[#D9D6D5] mb-2">Before Training</p>
+                        <p className="text-[2.4rem] font-bold text-[#C74601] dark:text-[#E56E2E]">{metrics.preScore}<span className="text-[1.2rem] text-[#747474]">/{metrics.preTotal}</span></p>
+                        <p className="text-[0.9rem] text-[#524048] dark:text-[#D9D6D5]">{Math.round((metrics.preScore / metrics.preTotal) * 100)}%</p>
+                      </div>
+                      <div className="rounded-2xl p-5 border border-[#E5E4E3] dark:border-[#07282A] bg-white/30 dark:bg-white/5 text-center">
+                        <p className="text-[0.85rem] font-bold tracking-widest uppercase text-[#747474] dark:text-[#D9D6D5] mb-2">After Training</p>
+                        {(() => {
+                          const postScore = (metrics.hendersonScore ?? 0) + (metrics.layoutScore ?? 0)
+                          const postTotal = Math.max(1, (metrics.hendersonTotal || 1) + (metrics.layoutTotal || 1))
+                          return (
+                            <>
+                              <p className="text-[2.4rem] font-bold text-[#007970] dark:text-[#64F4F5]">{postScore}<span className="text-[1.2rem] text-[#747474]">/{postTotal}</span></p>
+                              <p className="text-[0.9rem] text-[#524048] dark:text-[#D9D6D5]">{Math.round((postScore / postTotal) * 100)}%</p>
+                            </>
+                          )
+                        })()}
+                      </div>
+                    </div>
+                    {(() => {
+                      const prePct = Math.round((metrics.preScore / metrics.preTotal) * 100)
+                      const postScore = (metrics.hendersonScore ?? 0) + (metrics.layoutScore ?? 0)
+                      const postTotal = Math.max(1, (metrics.hendersonTotal || 1) + (metrics.layoutTotal || 1))
+                      const postPct = Math.round((postScore / postTotal) * 100)
+                      const delta = postPct - prePct
+                      return (
+                        <div className={`rounded-xl p-3 text-center font-bold text-[1.1rem] ${delta >= 0 ? 'bg-[#E5FEFF] dark:bg-[#004142]/50 text-[#007970] dark:text-[#64F4F5]' : 'bg-[#FFEEE5] dark:bg-[#C74601]/20 text-[#C74601]'}`}>
+                          {delta >= 0 ? '+' : ''}{delta}% Improvement
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+              </div>
+            ) : card.kind === 'welcome' ? (
+              /* ── WELCOME BANNER ── */
+              <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6 max-w-2xl mx-auto">
+                <img
+                  className="h-12 w-auto object-contain mb-2"
+                  src={isDarkMode
+                    ? "https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png"
+                    : "https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_Gray.png"}
+                  alt="CareIndeed Home Health"
+                />
+                <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/40 dark:bg-white/5 border border-[#E5E4E3] dark:border-[#07282A] text-[#C74601] dark:text-[#E56E2E] text-xs font-bold uppercase tracking-[0.16em]">
+                  <BookOpen className="w-4 h-4" /> CMS-485 Master Challenge
+                </div>
+                <h1 className="font-heading text-[2.5rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] leading-tight">
+                  Master the{' '}
+                  <span className="bg-gradient-to-r from-[#007970] to-[#64F4F5] bg-clip-text text-transparent">Plan of Care</span>
+                </h1>
+                <p className="text-[1.15rem] text-[#524048] dark:text-[#D9D6D5] leading-relaxed font-light max-w-lg">
+                  Welcome to CareIndeed's CMS-485 clinical documentation training. Navigate content in Card View or Book View, complete the Henderson and Layout challenges, and prove your competency.
+                </p>
+                <div className="grid grid-cols-2 gap-3 w-full max-w-md mt-2">
+                  {[
+                    { icon: FileText, label: 'Card & Book Views', desc: 'Two ways to learn' },
+                    { icon: ShieldCheck, label: 'System Calibration', desc: 'Configure your environment' },
+                    { icon: HeartPulse, label: 'Henderson Challenge', desc: 'High-acuity clinical case' },
+                    { icon: GraduationCap, label: 'Layout Challenge', desc: 'CMS-485 form mastery' },
+                  ].map((h, i) => (
+                    <div key={i} className="rounded-xl p-3 border border-[#E5E4E3] dark:border-[#07282A] bg-white/20 dark:bg-white/5 text-left">
+                      <h.icon className="w-4 h-4 text-[#007970] dark:text-[#64F4F5] mb-1" />
+                      <p className="font-semibold text-[0.85rem] text-[#1F1C1B] dark:text-[#FAFBF8]">{h.label}</p>
+                      <p className="text-[0.75rem] text-[#747474] dark:text-[#D9D6D5]">{h.desc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── Pre-Assessment Baseline Quiz ── */}
+                {!preSubmitted ? (
+                  <div className="w-full max-w-lg mt-4 text-left space-y-4">
+                    <h2 className="font-heading text-[1.1rem] font-bold text-[#007970] dark:text-[#64F4F5] flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Baseline Knowledge Check</h2>
+                    {PRE_ASSESSMENT.map((q, qi) => (
+                      <div key={qi} className="space-y-2">
+                        <p className="text-[0.95rem] font-medium text-[#1F1C1B] dark:text-[#FAFBF8]">{qi + 1}. {q.question}</p>
+                        {q.options.map((opt, oi) => (
+                          <button
+                            key={oi}
+                            onClick={() => setPreAnswers(prev => ({ ...prev, [qi]: oi }))}
+                            className={`w-full text-left px-4 py-2.5 rounded-xl text-[0.9rem] transition-all border ${
+                              preAnswers[qi] === oi
+                                ? 'border-[#007970] dark:border-[#64F4F5] bg-[#E5FEFF] dark:bg-[#004142]/40 text-[#007970] dark:text-[#64F4F5] font-medium'
+                                : 'border-[#E5E4E3] dark:border-[#07282A] text-[#524048] dark:text-[#D9D6D5] hover:border-[#007970]/40'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                    <button
+                      onClick={handlePreAssessmentSubmit}
+                      disabled={Object.keys(preAnswers).length < PRE_ASSESSMENT.length}
+                      className="w-full py-3 rounded-xl font-bold text-white bg-[#C74601] hover:bg-[#E56E2E] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    >
+                      Submit Baseline
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-[#007970] dark:text-[#64F4F5] font-bold text-[1rem]">
+                    <CheckCircle2 className="w-5 h-5" /> Baseline recorded: {metrics.preScore}/{metrics.preTotal}
+                  </div>
+                )}
+              </div>
+            ) : card.kind === 'config' ? (
+              /* ── SYSTEM CONFIGURATION ── */
+              <div className="flex-1 flex flex-col items-center justify-center space-y-6 max-w-xl mx-auto w-full">
+                <div className="w-16 h-16 rounded-2xl bg-[#E5FEFF] dark:bg-[#004142] flex items-center justify-center">
+                  <ShieldCheck className="w-8 h-8 text-[#007970] dark:text-[#64F4F5]" />
+                </div>
+                <h2 className="font-heading text-[1.8rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8]">System Configuration</h2>
+                <p className="text-[1rem] text-[#524048] dark:text-[#D9D6D5] text-center">Choose your preferred display theme, layout, and verify audio.</p>
+
+                {/* Theme toggle */}
+                <div className="w-full grid grid-cols-2 gap-3">
+                  {[
+                    { id: false, label: 'Light Mode', icon: Sun, desc: 'Clean, bright interface' },
+                    { id: true, label: 'Night Mode', icon: Moon, desc: 'Easy on the eyes' },
+                  ].map((m) => (
+                    <button
+                      key={String(m.id)}
+                      onClick={() => {
+                        if (isDarkMode !== m.id) {
+                          const goingToNight = m.id
+                          sfxModeToggle(goingToNight)
+                          setCurtainDirection(goingToNight ? 'night' : 'day')
+                          setShowCurtain(true)
+                          setModeTransitionKey(k => k + 1)
+                          setTimeout(() => setIsDarkMode(m.id), 500)
+                          setTimeout(() => setShowCurtain(false), 2000)
+                        }
+                      }}
+                      className={`rounded-xl p-4 border-2 transition-all text-left ${
+                        isDarkMode === m.id
+                          ? 'border-[#007970] dark:border-[#64F4F5] bg-[#E5FEFF] dark:bg-[#004142]/40'
+                          : 'border-[#E5E4E3] dark:border-[#07282A]'
+                      }`}
+                    >
+                      <m.icon className={`w-6 h-6 mb-2 ${isDarkMode === m.id ? 'text-[#007970] dark:text-[#64F4F5]' : 'text-[#747474]'}`} />
+                      <p className="font-semibold text-[0.9rem] text-[#1F1C1B] dark:text-[#FAFBF8]">{m.label}</p>
+                      <p className="text-[0.75rem] text-[#747474] dark:text-[#D9D6D5]">{m.desc}</p>
+                    </button>
+                  ))}
+                </div>
+
+                {/* View preference */}
+                <div className="w-full grid grid-cols-2 gap-3">
+                  {[
+                    { id: 'card' as const, label: 'Card View', desc: 'Focused, one-at-a-time' },
+                    { id: 'web' as const, label: 'Book View', desc: 'Two-page spread layout' },
+                  ].map((v) => (
+                    <button
+                      key={v.id}
+                      onClick={() => { sfxClick(); setViewMode(v.id) }}
+                      className={`rounded-xl p-4 border-2 transition-all text-left ${
+                        viewMode === v.id
+                          ? 'border-[#007970] dark:border-[#64F4F5] bg-[#E5FEFF] dark:bg-[#004142]/40'
+                          : 'border-[#E5E4E3] dark:border-[#07282A]'
+                      }`}
+                    >
+                      <p className="font-semibold text-[0.9rem] text-[#1F1C1B] dark:text-[#FAFBF8]">{v.label}</p>
+                      <p className="text-[0.75rem] text-[#747474] dark:text-[#D9D6D5]">{v.desc}</p>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Audio check */}
+                <button
+                  onClick={handleTestAudioInline}
+                  className={`w-full py-3 rounded-xl font-semibold text-[0.95rem] transition-all flex items-center justify-center gap-2 border-2 ${
+                    audioTestPlaying
+                      ? 'border-[#007970] dark:border-[#64F4F5] text-[#007970] dark:text-[#64F4F5] bg-[#E5FEFF] dark:bg-[#004142]/30'
+                      : 'border-[#E5E4E3] dark:border-[#07282A] text-[#1F1C1B] dark:text-[#FAFBF8]'
+                  }`}
+                >
+                  <Volume2 className={`w-4 h-4 ${audioTestPlaying ? 'animate-bounce' : ''}`} />
+                  {audioTestPlaying ? 'Playing Tone…' : 'Test Audio'}
+                </button>
+              </div>
+            ) : card.kind === 'challenge-gate' ? (
+              /* ── CHALLENGE GATEWAY ── */
+              <div className="flex-1 flex flex-col items-center justify-center space-y-6 max-w-xl mx-auto w-full">
+                <div className="w-16 h-16 rounded-2xl bg-[#FFEEE5] dark:bg-[#C74601]/20 flex items-center justify-center">
+                  <Swords className="w-8 h-8 text-[#C74601] dark:text-[#E56E2E]" />
+                </div>
+                <h2 className="font-heading text-[1.8rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8]">Competency Challenges</h2>
+                <p className="text-[1rem] text-[#524048] dark:text-[#D9D6D5] text-center">Complete both challenges to unlock the training modules. These assess your clinical documentation competency.</p>
+
+                <div className="w-full space-y-3">
+                  {/* Henderson Challenge */}
+                  <div className={`w-full rounded-xl p-5 border-2 transition-all flex items-center gap-4 ${
+                    gating.hendersonComplete
+                      ? 'border-[#007970] dark:border-[#64F4F5] bg-[#E5FEFF] dark:bg-[#004142]/30'
+                      : 'border-[#E5E4E3] dark:border-[#07282A]'
+                  }`}>
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                      gating.hendersonComplete ? 'bg-[#007970]/15 dark:bg-[#64F4F5]/15' : 'bg-[#FFEEE5] dark:bg-[#C74601]/15'
+                    }`}>
+                      {gating.hendersonComplete ? <CheckCircle2 className="w-6 h-6 text-[#007970] dark:text-[#64F4F5]" /> : <HeartPulse className="w-6 h-6 text-[#C74601]" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-[1rem] text-[#1F1C1B] dark:text-[#FAFBF8]">Henderson Clinical Challenge</p>
+                      <p className="text-[0.8rem] text-[#747474] dark:text-[#D9D6D5]">
+                        {gating.hendersonComplete ? 'Completed' : 'Map clinical findings to CMS-485 boxes'}
+                      </p>
+                    </div>
+                    {!gating.hendersonComplete && (
+                      <button
+                        onClick={() => setActiveChallenge('henderson')}
+                        className="px-5 py-2 rounded-xl bg-[#C74601] text-white font-bold text-[0.85rem] hover:bg-[#E56E2E] transition-all flex items-center gap-1"
+                      >
+                        Launch <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Layout Challenge */}
+                  <div className={`w-full rounded-xl p-5 border-2 transition-all flex items-center gap-4 ${
+                    gating.layoutComplete
+                      ? 'border-[#007970] dark:border-[#64F4F5] bg-[#E5FEFF] dark:bg-[#004142]/30'
+                      : 'border-[#E5E4E3] dark:border-[#07282A]'
+                  }`}>
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                      gating.layoutComplete ? 'bg-[#007970]/15 dark:bg-[#64F4F5]/15' : 'bg-[#FFEEE5] dark:bg-[#C74601]/15'
+                    }`}>
+                      {gating.layoutComplete ? <CheckCircle2 className="w-6 h-6 text-[#007970] dark:text-[#64F4F5]" /> : <GraduationCap className="w-6 h-6 text-[#C74601]" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-[1rem] text-[#1F1C1B] dark:text-[#FAFBF8]">CMS-485 Layout Challenge</p>
+                      <p className="text-[0.8rem] text-[#747474] dark:text-[#D9D6D5]">
+                        {gating.layoutComplete ? 'Completed' : 'Place form sections in the correct order'}
+                      </p>
+                    </div>
+                    {!gating.layoutComplete && (
+                      <button
+                        onClick={() => setActiveChallenge('layout')}
+                        className="px-5 py-2 rounded-xl bg-[#C74601] text-white font-bold text-[0.85rem] hover:bg-[#E56E2E] transition-all flex items-center gap-1"
+                      >
+                        Launch <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Gating message */}
+                {!gating.hendersonComplete || !gating.layoutComplete ? (
+                  <p className="text-[0.85rem] text-[#747474] dark:text-[#D9D6D5] flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5" /> Complete both challenges to unlock training content
+                  </p>
+                ) : (
+                  <p className="text-[0.95rem] font-bold text-[#007970] dark:text-[#64F4F5] flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4" /> All challenges complete — training unlocked
+                  </p>
+                )}
+              </div>
+            ) : card.kind === 'forms' ? (
+              /* ── INTERACTIVE CMS-485 FORM ── */
+              <div className="flex-1 flex flex-col items-center justify-center space-y-6 max-w-xl mx-auto w-full">
+                <div className="w-16 h-16 rounded-2xl bg-[#E5FEFF] dark:bg-[#004142] flex items-center justify-center">
+                  <FileText className="w-8 h-8 text-[#007970] dark:text-[#64F4F5]" />
+                </div>
+                <h2 className="font-heading text-[1.8rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8]">Interactive CMS-485 Form</h2>
+                <p className="text-[1rem] text-[#524048] dark:text-[#D9D6D5] text-center leading-relaxed">
+                  The CMS-485 form is the structured Plan of Care used in home health. Each box serves a specific compliance and clinical documentation purpose.
+                </p>
+                <div className="w-full space-y-2 text-left">
+                  {[
+                    { box: 'Boxes 1–6', desc: 'Patient demographics, dates, and identification' },
+                    { box: 'Boxes 11–12', desc: 'Principal and secondary diagnoses' },
+                    { box: 'Boxes 14–16', desc: 'DME, functional limitations, and mental status' },
+                    { box: 'Boxes 18–22', desc: 'Skilled nursing orders, frequency, and goals' },
+                    { box: 'Boxes 23–28', desc: 'Signatures, certification, and federal penalty' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/20 dark:bg-white/5 border border-[#E5E4E3] dark:border-[#07282A]">
+                      <span className="font-bold text-[0.85rem] text-[#007970] dark:text-[#64F4F5] min-w-[80px]">{item.box}</span>
+                      <span className="text-[0.9rem] text-[#524048] dark:text-[#D9D6D5]">{item.desc}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[0.85rem] text-[#747474] dark:text-[#D9D6D5] italic">
+                  You will practice completing these boxes throughout the training modules.
                 </p>
               </div>
             ) : (
@@ -877,7 +1352,7 @@ export default function CIHHLightCard() {
                   <BookOpen className="w-3.5 h-3.5 text-[#007970] dark:text-[#64F4F5]" />
                 </div>
                 <div>
-                  <p className="text-[#007970] dark:text-[#64F4F5] font-bold text-[1.1rem] tracking-[0.15em] uppercase leading-none">CMS-485 Designer</p>
+                  <p className="text-[#007970] dark:text-[#64F4F5] font-bold text-[1.1rem] tracking-[0.15em] uppercase leading-none">CMS-485 Training</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
@@ -896,7 +1371,7 @@ export default function CIHHLightCard() {
                 const c = webCards[pageIdx] as any
                 if (!c) {
                   return (
-                    <div key={`empty-${sideIdx}`} className={`w-1/2 flex items-center justify-center ${sideIdx === 0 ? 'border-r border-[#C74601]/10 dark:border-[#C74601]/20' : ''}`}>
+                    <div key={`empty-${sideIdx}`} className="w-1/2 flex items-center justify-center">
                       <div className="text-center space-y-2">
                         <Check className="w-8 h-8 mx-auto text-[#007970] dark:text-[#64F4F5]" />
                         <p className="text-[#007970] dark:text-[#64F4F5] font-heading font-bold text-[1.12rem]">All Topics Complete</p>
@@ -913,8 +1388,98 @@ export default function CIHHLightCard() {
                 const chalOpen = webChallengeOpen[pageIdx]
                 const isPagePlaying = isPlaying && playingCardIdx === pageIdx
 
+                // ── Intro card rendering for Book View ──
+                if (c.kind) {
+                  return (
+                    <div key={pageIdx} className="w-1/2 flex flex-col min-h-0 items-center justify-center">
+                      <div className="flex-1 w-full max-w-[640px] overflow-hidden px-6 py-4 flex flex-col gap-3 justify-center">
+                        {c.kind === 'welcome' && (
+                          <div className="flex flex-col items-center text-center gap-3">
+                            <img
+                              className="h-10 w-auto object-contain mb-1"
+                              src={isDarkMode
+                                ? "https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png"
+                                : "https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_Gray.png"}
+                              alt="CareIndeed"
+                            />
+                            <h2 className="font-heading text-[1.7rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] leading-tight">
+                              Master the <span className="text-[#007970] dark:text-[#64F4F5]">Plan of Care</span>
+                            </h2>
+                            <p className="text-[1.1rem] text-[#524048] dark:text-[#D9D6D5] leading-relaxed">
+                              CMS-485 clinical documentation training with Card View, Book View, Henderson Clinical Challenge, and Layout Challenge.
+                            </p>
+                            {preSubmitted && (
+                              <p className="text-[0.9rem] font-bold text-[#007970] dark:text-[#64F4F5] flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Baseline: {metrics.preScore}/{metrics.preTotal}</p>
+                            )}
+                          </div>
+                        )}
+                        {c.kind === 'config' && (
+                          <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <ShieldCheck className="w-5 h-5 text-[#007970] dark:text-[#64F4F5]" />
+                              <h2 className="font-heading text-[1.5rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8]">System Configuration</h2>
+                            </div>
+                            <p className="text-[1rem] text-[#524048] dark:text-[#D9D6D5]">Theme, layout, and audio preferences are configured via Card View or the dock controls.</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="rounded-lg p-3 border border-[#E5E4E3] dark:border-[#07282A] bg-white/20 dark:bg-white/5">
+                                <Sun className="w-4 h-4 text-[#007970] dark:text-[#64F4F5] mb-1" />
+                                <p className="text-[0.85rem] font-semibold text-[#1F1C1B] dark:text-[#FAFBF8]">Light / Night</p>
+                              </div>
+                              <div className="rounded-lg p-3 border border-[#E5E4E3] dark:border-[#07282A] bg-white/20 dark:bg-white/5">
+                                <Layers className="w-4 h-4 text-[#007970] dark:text-[#64F4F5] mb-1" />
+                                <p className="text-[0.85rem] font-semibold text-[#1F1C1B] dark:text-[#FAFBF8]">Card / Book</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {c.kind === 'challenge-gate' && (
+                          <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Swords className="w-5 h-5 text-[#C74601] dark:text-[#E56E2E]" />
+                              <h2 className="font-heading text-[1.5rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8]">Competency Challenges</h2>
+                            </div>
+                            <div className={`rounded-lg p-3 flex items-center gap-3 border ${gating.hendersonComplete ? 'border-[#007970] dark:border-[#64F4F5] bg-[#E5FEFF]/50 dark:bg-[#004142]/30' : 'border-[#E5E4E3] dark:border-[#07282A]'}`}>
+                              {gating.hendersonComplete ? <CheckCircle2 className="w-5 h-5 text-[#007970] dark:text-[#64F4F5]" /> : <HeartPulse className="w-5 h-5 text-[#C74601]" />}
+                              <span className="text-[1rem] text-[#1F1C1B] dark:text-[#FAFBF8]">Henderson Challenge {gating.hendersonComplete ? '✓' : '— pending'}</span>
+                            </div>
+                            <div className={`rounded-lg p-3 flex items-center gap-3 border ${gating.layoutComplete ? 'border-[#007970] dark:border-[#64F4F5] bg-[#E5FEFF]/50 dark:bg-[#004142]/30' : 'border-[#E5E4E3] dark:border-[#07282A]'}`}>
+                              {gating.layoutComplete ? <CheckCircle2 className="w-5 h-5 text-[#007970] dark:text-[#64F4F5]" /> : <GraduationCap className="w-5 h-5 text-[#C74601]" />}
+                              <span className="text-[1rem] text-[#1F1C1B] dark:text-[#FAFBF8]">Layout Challenge {gating.layoutComplete ? '✓' : '— pending'}</span>
+                            </div>
+                            {gating.hendersonComplete && gating.layoutComplete && (
+                              <p className="text-[0.9rem] font-bold text-[#007970] dark:text-[#64F4F5] flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Training unlocked</p>
+                            )}
+                          </div>
+                        )}
+                        {c.kind === 'forms' && (
+                          <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <FileText className="w-5 h-5 text-[#007970] dark:text-[#64F4F5]" />
+                              <h2 className="font-heading text-[1.5rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8]">CMS-485 Form Structure</h2>
+                            </div>
+                            <div className="space-y-1.5">
+                              {[
+                                { box: '1–6', desc: 'Demographics & dates' },
+                                { box: '11–12', desc: 'Diagnoses' },
+                                { box: '14–16', desc: 'DME, limitations, mental status' },
+                                { box: '18–22', desc: 'Orders, frequency, goals' },
+                                { box: '23–28', desc: 'Signatures & certification' },
+                              ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-2 text-[0.95rem]">
+                                  <span className="font-bold text-[#007970] dark:text-[#64F4F5] min-w-[50px]">{item.box}</span>
+                                  <span className="text-[#524048] dark:text-[#D9D6D5]">{item.desc}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                }
+
                 return (
-                  <div key={pageIdx} className={`w-1/2 flex flex-col min-h-0 items-center justify-center ${sideIdx === 0 ? 'border-r border-[#C74601]/10 dark:border-[#C74601]/20' : ''}`}>
+                  <div key={pageIdx} className="w-1/2 flex flex-col min-h-0 items-center justify-center">
                     {/* Page content - scrollable */}
                     <div className="flex-1 w-full max-w-[640px] overflow-hidden px-6 py-4 flex flex-col gap-3 justify-center">
 
@@ -1096,6 +1661,30 @@ export default function CIHHLightCard() {
       )}
       {/* Dock (center-left) */}
       <Dock items={dockItems} position="center-left" isDarkMode={isDarkMode} />
+
+      {/* ── Challenge Overlay ── */}
+      {activeChallenge && (
+        <div className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-6xl h-[90vh] bg-white dark:bg-[#010809] rounded-2xl overflow-auto shadow-2xl relative">
+            <button
+              onClick={() => setActiveChallenge(null)}
+              className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-[#E5E4E3] dark:bg-[#07282A] flex items-center justify-center hover:bg-[#D9D6D5] dark:hover:bg-[#004142] transition-colors"
+            >
+              <XCircle className="w-5 h-5 text-[#747474] dark:text-[#D9D6D5]" />
+            </button>
+            {activeChallenge === 'henderson' && (
+              <HendersonChallenge onExit={handleHendersonExit} />
+            )}
+            {activeChallenge === 'layout' && (
+              <LayoutChallenge
+                theme={isDarkMode ? 'night' : 'day'}
+                onComplete={handleLayoutComplete}
+                onBack={() => setActiveChallenge(null)}
+              />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

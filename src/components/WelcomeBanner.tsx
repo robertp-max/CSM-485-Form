@@ -23,10 +23,10 @@ export default function WelcomeBanner({ onStart }: WelcomeBannerProps) {
   const [hovered, setHovered] = useState(false)
 
   const highlights = [
-    { icon: FileText, label: 'Interactive CMS-485 Form', desc: 'Practice filling out a real Plan of Care' },
+    { icon: FileText, label: 'Card & Book Views', desc: 'Two ways to explore training content' },
     { icon: ShieldCheck, label: 'Systems Calibration', desc: 'Configure your learning environment' },
-    { icon: HeartPulse, label: 'Henderson Clinical Case', desc: 'High-acuity patient scenario' },
-    { icon: GraduationCap, label: 'Competency Challenge', desc: 'Prove your documentation mastery' },
+    { icon: HeartPulse, label: 'Henderson Challenge', desc: 'High-acuity clinical case study' },
+    { icon: GraduationCap, label: 'Layout Challenge', desc: 'CMS-485 form structure mastery' },
   ]
 
   return (
@@ -78,8 +78,8 @@ export default function WelcomeBanner({ onStart }: WelcomeBannerProps) {
             </h1>
             <p className="text-lg md:text-xl text-[#524048] max-w-2xl mx-auto leading-relaxed font-light">
               Welcome to CareIndeed's CMS-485 clinical documentation training.
-              Configure your environment, practice on an interactive form, and
-              prove your competency through a real-world patient scenario.
+              Explore content in Card View or Book View, complete the Henderson and
+              Layout challenges, and prove your competency through real-world scenarios.
             </p>
           </div>
 

@@ -263,7 +263,7 @@ export default function SystemsCalibration({ onComplete }: SystemsCalibrationPro
           <div className="grid grid-cols-2 gap-4 w-full max-w-md mx-auto">
             {[
               { id: 'card' as const, label: 'Card View', desc: 'Focused, one-at-a-time cards' },
-              { id: 'web' as const, label: 'Web View', desc: 'Full-page scrollable layout' },
+              { id: 'web' as const, label: 'Book View', desc: 'Two-page spread layout' },
             ].map((v) => (
               <button
                 key={v.id}
@@ -473,7 +473,7 @@ export default function SystemsCalibration({ onComplete }: SystemsCalibrationPro
     </div>
   )
 
-  // ─── Web View Wrapper ──────────────────────────────────────
+  // ─── Book View Wrapper ──────────────────────────────────────
   const webWrapper = (content: React.ReactNode) => (
     <div
       className="min-h-screen flex flex-col overflow-hidden"
