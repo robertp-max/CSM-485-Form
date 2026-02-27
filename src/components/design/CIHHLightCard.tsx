@@ -326,12 +326,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
 
   const [showChallengeOverlay, setShowChallengeOverlay] = useState<'layout' | 'henderson' | null>(null)
   const [audioTested, setAudioTested] = useState(false)
-  const [introCompleted, setIntroCompleted] = useState<Record<string, boolean>>(() => {
-    try {
-      const stored = localStorage.getItem(GATING_KEY)
-      return stored ? JSON.parse(stored) : {}
-    } catch { return {} }
-  })
+  const [introCompleted, setIntroCompleted] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     localStorage.setItem(GATING_KEY, JSON.stringify(introCompleted))
@@ -393,21 +388,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
     submittedAnswers[leftIdx] && (!rightCard || submittedAnswers[rightIdx])
   )
 
-  // Course Selection: topic groups, progress tracking, resume index
-  const sectionGroups = (() => {
-    const groups: { section: string; cards: { title: string; globalIndex: number; completed: boolean }[] }[] = [];
-    TRAINING_CARDS.forEach((tc, i) => {
-      const globalIndex = introCardCount + i;
-      const completed = Boolean(submittedAnswers[globalIndex]);
-      const last = groups[groups.length - 1];
-      if (last && last.section === tc.section) {
-        last.cards.push({ title: tc.title, globalIndex, completed });
-      } else {
-        groups.push({ section: tc.section, cards: [{ title: tc.title, globalIndex, completed }] });
-      }
-    });
-    return groups;
-  })();
+  // Course Selection: progress tracking, resume index
   const completedTopicCount = TRAINING_CARDS.filter((_, i) => submittedAnswers[introCardCount + i]).length;
   const firstIncompleteIdx = TRAINING_CARDS.findIndex((_, i) => !submittedAnswers[introCardCount + i]);
   const resumeCardIndex = firstIncompleteIdx >= 0 ? introCardCount + firstIncompleteIdx : introCardCount;
@@ -953,105 +934,80 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
 
                 {/* ── 3. Layout Challenge ── */}
                 {card.intro === 'layout-challenge' && (
-                  <div className="space-y-8 max-w-lg w-full">
-                    <div className="w-20 h-20 rounded-2xl bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.12)] flex items-center justify-center mx-auto shadow-[0_8px_24px_rgba(199,70,1,0.15)]">
-                      <LayoutGrid className="w-10 h-10 text-[#C74601] dark:text-[#E56E2E]" />
+                  <div className="space-y-6 max-w-lg w-full">
+                    <div className="w-16 h-16 rounded-2xl bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.12)] flex items-center justify-center mx-auto">
+                      <LayoutGrid className="w-8 h-8 text-[#C74601] dark:text-[#E56E2E]" />
                     </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-center gap-3">
-                        <span className="px-3 py-1 rounded-full text-[0.7rem] font-bold uppercase tracking-wider bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.12)] text-[#C74601] dark:text-[#E56E2E] border border-[#FFD5BF] dark:border-[rgba(199,70,1,0.3)]">Competency Check</span>
-                        <span className="px-3 py-1 rounded-full text-[0.7rem] font-bold uppercase tracking-wider bg-white/50 dark:bg-white/[0.04] text-[#747474] dark:text-[#D9D6D5] border border-[#E5E4E3] dark:border-[#07282A]">~5 min</span>
-                      </div>
+                    <div className="space-y-2">
                       <h2 className="font-heading text-[1.8rem] font-bold">CMS-485 Layout Challenge</h2>
-                      <p className="text-[#524048] dark:text-[#D9D6D5] text-base leading-relaxed max-w-md mx-auto">
-                        Demonstrate your understanding of the CMS-485 form structure. Match fields to correct locations, identify required sections, and validate documentation placement.
+                      <p className="text-[#524048] dark:text-[#D9D6D5] text-[0.95rem] leading-relaxed max-w-md mx-auto">
+                        Demonstrate your knowledge of the CMS-485 form structure.
                       </p>
                     </div>
-                    {introCompleted['layout-challenge'] ? (
-                      <div className="p-4 rounded-2xl bg-[#E5FEFF] dark:bg-[#002B2C] border border-[#C4F4F5] dark:border-[#007970] inline-flex items-center gap-3">
-                        <CheckCircle2 className="w-6 h-6 text-[#007970] dark:text-[#64F4F5]" />
-                        <span className="text-[#007970] dark:text-[#64F4F5] font-bold text-base">Challenge Completed Successfully</span>
-                      </div>
-                    ) : (
+                    <div className="flex flex-col items-center gap-3">
                       <button
                         onClick={() => setShowChallengeOverlay('layout')}
-                        className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(199,70,1,0.25)] hover:shadow-[0_18px_44px_rgba(199,70,1,0.3)]"
+                        className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(199,70,1,0.25)]"
                       >
-                        Begin Challenge <Swords className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                        {introCompleted['layout-challenge'] ? 'Retake Challenge' : 'Begin Challenge'} <Swords className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                       </button>
-                    )}
-                    {introCompleted['layout-challenge'] && (
-                      <button onClick={handleNext} className="group inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal">
-                        Continue <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                      </button>
-                    )}
+                      {introCompleted['layout-challenge'] && (
+                        <>
+                          <p className="text-[#007970] dark:text-[#64F4F5] text-[0.85rem] font-bold flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> Passed</p>
+                          <button onClick={handleNext} className="group inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal">
+                            Continue <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {/* ── 4. Henderson Challenge ── */}
                 {card.intro === 'henderson-challenge' && (
-                  <div className="space-y-8 max-w-lg w-full">
-                    <div className="w-20 h-20 rounded-2xl bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.12)] flex items-center justify-center mx-auto shadow-[0_8px_24px_rgba(199,70,1,0.15)]">
-                      <HeartPulse className="w-10 h-10 text-[#C74601] dark:text-[#E56E2E]" />
+                  <div className="space-y-6 max-w-lg w-full">
+                    <div className="w-16 h-16 rounded-2xl bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.12)] flex items-center justify-center mx-auto">
+                      <HeartPulse className="w-8 h-8 text-[#C74601] dark:text-[#E56E2E]" />
                     </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-center gap-3">
-                        <span className="px-3 py-1 rounded-full text-[0.7rem] font-bold uppercase tracking-wider bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.12)] text-[#C74601] dark:text-[#E56E2E] border border-[#FFD5BF] dark:border-[rgba(199,70,1,0.3)]">Clinical Scenario</span>
-                        <span className="px-3 py-1 rounded-full text-[0.7rem] font-bold uppercase tracking-wider bg-white/50 dark:bg-white/[0.04] text-[#747474] dark:text-[#D9D6D5] border border-[#E5E4E3] dark:border-[#07282A]">~8 min</span>
-                      </div>
+                    <div className="space-y-2">
                       <h2 className="font-heading text-[1.8rem] font-bold">Henderson Clinical Challenge</h2>
-                      <p className="text-[#524048] dark:text-[#D9D6D5] text-base leading-relaxed max-w-md mx-auto">
-                        Apply clinical documentation skills to the Henderson case &mdash; a high-acuity home health patient requiring skilled nursing, therapy coordination, and precise Plan of Care documentation.
+                      <p className="text-[#524048] dark:text-[#D9D6D5] text-[0.95rem] leading-relaxed max-w-md mx-auto">
+                        Apply documentation skills to a clinical home health scenario.
                       </p>
                     </div>
-                    {introCompleted['henderson-challenge'] ? (
-                      <div className="p-4 rounded-2xl bg-[#E5FEFF] dark:bg-[#002B2C] border border-[#C4F4F5] dark:border-[#007970] inline-flex items-center gap-3">
-                        <CheckCircle2 className="w-6 h-6 text-[#007970] dark:text-[#64F4F5]" />
-                        <span className="text-[#007970] dark:text-[#64F4F5] font-bold text-base">Challenge Completed Successfully</span>
-                      </div>
-                    ) : (
+                    <div className="flex flex-col items-center gap-3">
                       <button
                         onClick={() => setShowChallengeOverlay('henderson')}
-                        className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(199,70,1,0.25)] hover:shadow-[0_18px_44px_rgba(199,70,1,0.3)]"
+                        className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(199,70,1,0.25)]"
                       >
-                        Begin Challenge <Swords className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                        {introCompleted['henderson-challenge'] ? 'Retake Challenge' : 'Begin Challenge'} <Swords className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                       </button>
-                    )}
-                    {introCompleted['henderson-challenge'] && (
-                      <button onClick={handleNext} className="group inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal">
-                        Continue <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                      </button>
-                    )}
+                      {introCompleted['henderson-challenge'] && (
+                        <>
+                          <p className="text-[#007970] dark:text-[#64F4F5] text-[0.85rem] font-bold flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> Passed</p>
+                          <button onClick={handleNext} className="group inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal">
+                            Continue <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {/* ── 5. Course Selection ── */}
                 {card.intro === 'course-selection' && (
-                  <div className="space-y-5 w-full max-w-4xl">
-                    <div className="text-center space-y-3">
-                      <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#E5FEFF] dark:bg-[#002B2C] border border-[#C4F4F5] dark:border-[#007970] text-[#007970] dark:text-[#64F4F5] text-[0.75rem] font-bold uppercase tracking-[0.16em]">
-                        <GraduationCap className="w-4 h-4" /> Course Map
-                      </div>
-                      <h2 className="font-heading text-[1.8rem] font-bold">CMS-485 Training Topics</h2>
-                      <p className="text-[#524048] dark:text-[#D9D6D5] text-[0.95rem] max-w-lg mx-auto">
-                        {completedTopicCount} of {TRAINING_CARDS.length} topics completed &mdash; select any topic or resume where you left off.
-                      </p>
-                      <div className="w-full max-w-sm mx-auto">
-                        <div className="h-2.5 rounded-full bg-[#E5E4E3] dark:bg-[#07282A] overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-[#007970] to-[#00A89D] rounded-full transition-all duration-700 ease-out" style={{ width: `${TRAINING_CARDS.length > 0 ? (completedTopicCount / TRAINING_CARDS.length) * 100 : 0}%` }} />
-                        </div>
-                        <p className="text-[0.75rem] text-[#747474] dark:text-[#D9D6D5] mt-1.5">{Math.round(TRAINING_CARDS.length > 0 ? (completedTopicCount / TRAINING_CARDS.length) * 100 : 0)}% complete</p>
-                      </div>
+                  <div className="w-full max-w-4xl space-y-5">
+                    <div className="text-center space-y-2">
+                      <h2 className="font-heading text-[1.6rem] font-bold">Select a Topic</h2>
+                      <p className="text-[#747474] dark:text-[#D9D6D5] text-[0.85rem]">{completedTopicCount}/{TRAINING_CARDS.length} completed</p>
                     </div>
-
-                    {/* View toggle + Resume */}
-                    <div className="flex items-center justify-center gap-3 flex-wrap">
-                      <div className="flex gap-1.5 p-1 rounded-xl bg-[#E5E4E3]/50 dark:bg-[#07282A]/50">
-                        <button onClick={() => setViewMode('card')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[0.8rem] font-bold tracking-wide transition-all ${viewMode === 'card' ? 'bg-[#007970] text-white shadow-sm' : 'text-[#747474] dark:text-[#D9D6D5] hover:text-[#007970]'}`}>
-                          <Layers className="w-3.5 h-3.5" /> Card
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="flex gap-1 p-1 rounded-lg bg-[#E5E4E3]/40 dark:bg-[#07282A]/40">
+                        <button onClick={() => setViewMode('card')} className={`px-3 py-1.5 rounded-md text-[0.75rem] font-bold transition-all ${viewMode === 'card' ? 'bg-[#007970] text-white' : 'text-[#747474] dark:text-[#D9D6D5]'}`}>
+                          Card
                         </button>
-                        <button onClick={() => setViewMode('web')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[0.8rem] font-bold tracking-wide transition-all ${viewMode === 'web' ? 'bg-[#007970] text-white shadow-sm' : 'text-[#747474] dark:text-[#D9D6D5] hover:text-[#007970]'}`}>
-                          <BookOpen className="w-3.5 h-3.5" /> Book
+                        <button onClick={() => setViewMode('web')} className={`px-3 py-1.5 rounded-md text-[0.75rem] font-bold transition-all ${viewMode === 'web' ? 'bg-[#007970] text-white' : 'text-[#747474] dark:text-[#D9D6D5]'}`}>
+                          Book
                         </button>
                       </div>
                       <button
@@ -1062,49 +1018,26 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                           setPanelMode('main');
                           if (viewMode === 'web') setWebCardIndex(Math.floor((resumeCardIndex - introCardCount) / 2));
                         }}
-                        className="group flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C74601] hover:bg-[#E56E2E] text-white text-[0.8rem] font-bold tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_6px_20px_rgba(199,70,1,0.2)]"
+                        className="group flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#C74601] hover:bg-[#E56E2E] text-white text-[0.75rem] font-bold transition-all duration-200 hover:-translate-y-0.5"
                       >
-                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                        {completedTopicCount === 0 ? 'Start Training' : completedTopicCount >= TRAINING_CARDS.length ? 'Review Topics' : 'Resume'}
+                        {completedTopicCount === 0 ? 'Start' : 'Resume'} <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
-
-                    {/* Section-grouped topic grid */}
-                    <div className="max-h-[46vh] overflow-y-auto space-y-4 pr-1 text-left">
-                      {sectionGroups.map((group) => (
-                        <div key={group.section}>
-                          <div className="flex items-center gap-2 mb-2 sticky top-0 bg-white/80 dark:bg-[#020F10]/80 backdrop-blur-sm py-1 z-10">
-                            <span className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[#C74601] dark:text-[#E56E2E]">{group.section}</span>
-                            <span className="flex-1 h-px bg-[#E5E4E3] dark:bg-[#07282A]" />
-                            <span className="text-[0.7rem] text-[#747474] dark:text-[#D9D6D5] tabular-nums">{group.cards.filter(c => c.completed).length}/{group.cards.length}</span>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                            {group.cards.map((tc) => (
-                              <button
-                                key={tc.globalIndex}
-                                onClick={() => {
-                                  sfxClick();
-                                  setNavDirection(1);
-                                  setCardIndex(tc.globalIndex);
-                                  setPanelMode('main');
-                                  if (viewMode === 'web') setWebCardIndex(Math.floor((tc.globalIndex - introCardCount) / 2));
-                                }}
-                                className={`group flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 text-left w-full ${
-                                  tc.completed
-                                    ? 'border-[#C4F4F5]/60 dark:border-[#007970]/40 bg-[#E5FEFF]/20 dark:bg-[#002B2C]/20'
-                                    : 'border-[#E5E4E3] dark:border-[#07282A] hover:border-[#007970]/40 dark:hover:border-[#64F4F5]/30 hover:bg-white/50 dark:hover:bg-white/[0.03]'
-                                } hover:shadow-[0_3px_12px_rgba(0,121,112,0.06)] hover:-translate-y-px`}
-                              >
-                                <div className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 ${tc.completed ? 'bg-[#007970] dark:bg-[#64F4F5]' : 'bg-[#E5E4E3] dark:bg-[#07282A]'}`}>
-                                  {tc.completed ? <Check className="w-3 h-3 text-white dark:text-[#010809]" /> : <span className="text-[0.55rem] font-bold text-[#747474] dark:text-[#D9D6D5]">{tc.globalIndex - introCardCount + 1}</span>}
-                                </div>
-                                <p className={`font-heading font-medium text-[0.82rem] leading-snug flex-1 ${tc.completed ? 'text-[#007970] dark:text-[#64F4F5]' : ''}`}>{tc.title}</p>
-                                <ArrowRight className="w-3 h-3 text-[#D9D6D5] dark:text-[#07282A] group-hover:text-[#007970] dark:group-hover:text-[#64F4F5] flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all" />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-[#E5E4E3]/60 dark:bg-[#07282A]/60 rounded-2xl overflow-hidden">
+                      {TRAINING_CARDS.map((tc, i) => {
+                        const gi = introCardCount + i;
+                        const done = Boolean(submittedAnswers[gi]);
+                        return (
+                          <button
+                            key={gi}
+                            onClick={() => { sfxClick(); setNavDirection(1); setCardIndex(gi); setPanelMode('main'); if (viewMode === 'web') setWebCardIndex(Math.floor((gi - introCardCount) / 2)); }}
+                            className={`flex items-center gap-2 px-3 py-2.5 text-left transition-all duration-150 ${done ? 'bg-[#E5FEFF]/60 dark:bg-[#002B2C]/40' : 'bg-white/80 dark:bg-[#020F10]/80 hover:bg-[#E5FEFF]/30 dark:hover:bg-[#002B2C]/20'}`}
+                          >
+                            {done ? <CheckCircle2 className="w-3.5 h-3.5 text-[#007970] dark:text-[#64F4F5] flex-shrink-0" /> : <span className="w-3.5 h-3.5 rounded-full border border-[#D9D6D5] dark:border-[#07282A] flex-shrink-0" />}
+                            <span className={`text-[0.78rem] leading-tight ${done ? 'text-[#007970] dark:text-[#64F4F5] font-medium' : 'text-[#524048] dark:text-[#D9D6D5]'}`}>{tc.title}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
