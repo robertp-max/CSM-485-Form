@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { ReactNode, CSSProperties } from 'react'
+import { sfxHover, sfxClick } from '../utils/sfx'
 
 export type DockItem = {
   icon: ReactNode
@@ -136,8 +137,8 @@ export const Dock = ({ items, position = 'bottom-right', isDarkMode = false }: D
 
               <button
                 style={itemStyle}
-                onMouseEnter={() => setHoveredIndex(index)}
-                onClick={item.onClick}
+                onMouseEnter={() => { setHoveredIndex(index); sfxHover(); }}
+                onClick={() => { sfxClick(); item.onClick(); }}
                 className={`flex items-center justify-center w-11 h-11 rounded-xl transition-colors duration-200 ${
                   item.isActive
                     ? 'bg-[#007970] text-white shadow-[0_2px_8px_rgba(0,121,112,0.3)]'

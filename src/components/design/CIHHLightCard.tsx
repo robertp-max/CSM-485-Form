@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { sfxClick, sfxSwipe, sfxModeToggle } from '../../utils/sfx';
 import {
   Play, Pause,
   Square, RotateCcw, Swords,
@@ -21,9 +22,9 @@ const StyleInjector = () => (
       ::-webkit-scrollbar-thumb { background: #D9D6D5; border-radius: 4px; }
       ::-webkit-scrollbar-thumb:hover { background: #747474; }
 
-      .dark ::-webkit-scrollbar-track { background: #041E1F; }
-      .dark ::-webkit-scrollbar-thumb { background: #0A3D3E; }
-      .dark ::-webkit-scrollbar-thumb:hover { background: #007970; }
+      .dark ::-webkit-scrollbar-track { background: #020F10; }
+      .dark ::-webkit-scrollbar-thumb { background: #07282A; }
+      .dark ::-webkit-scrollbar-thumb:hover { background: #004142; }
 
       .glow-orange { box-shadow: 0 9px 28px -6px rgba(199, 70, 1, 0.46); }
       .glow-teal { box-shadow: 0 9px 28px -6px rgba(0, 121, 112, 0.345); }
@@ -39,14 +40,24 @@ const StyleInjector = () => (
         transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
       }
 
-      /* ── dramatic overlay curtain ── */
-      @keyframes nightCurtainIn {
-        0%   { opacity: 0; backdrop-filter: blur(0px); }
-        40%  { opacity: 1; backdrop-filter: blur(12px); }
-        100% { opacity: 0; backdrop-filter: blur(0px); }
+      /* ── dramatic sky-rotation transition ── */
+      @keyframes skyRotateToNight {
+        0%   { opacity: 0; transform: rotate(0deg) scale(1); }
+        20%  { opacity: 1; }
+        60%  { opacity: 1; transform: rotate(-120deg) scale(1.6); }
+        100% { opacity: 0; transform: rotate(-180deg) scale(2.2); }
       }
-      .night-curtain {
-        animation: nightCurtainIn 1.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      @keyframes skyRotateToDay {
+        0%   { opacity: 0; transform: rotate(0deg) scale(1); }
+        20%  { opacity: 1; }
+        60%  { opacity: 1; transform: rotate(120deg) scale(1.6); }
+        100% { opacity: 0; transform: rotate(180deg) scale(2.2); }
+      }
+      .sky-rotate-night {
+        animation: skyRotateToNight 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      .sky-rotate-day {
+        animation: skyRotateToDay 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
 
       @keyframes auroraFloatA {
@@ -252,7 +263,7 @@ export default function CIHHLightCard() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [modeTransitionKey, setModeTransitionKey] = useState(0);
   const [showCurtain, setShowCurtain] = useState(false);
-  const curtainColor = useRef('#004142');
+  const [curtainDirection, setCurtainDirection] = useState<'night' | 'day'>('night');
   const [cardIndex, setCardIndex] = useState(0);
   const [panelMode, setPanelMode] = useState('main');
   const [navDirection, setNavDirection] = useState(1)
@@ -289,11 +300,13 @@ export default function CIHHLightCard() {
     { icon: <FileText className="w-5 h-5" />, label: 'Help', onClick: () => alert('Open help') },
     { icon: <ShieldCheck className="w-5 h-5" />, label: debugMode ? 'QA: ON' : 'QA: OFF', onClick: () => setStatusMsg(prev => prev === 'QA: ON' ? 'QA: OFF' : 'QA: ON'), isActive: debugMode },
     { icon: isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />, label: isDarkMode ? 'Light' : 'Night', onClick: () => {
-      curtainColor.current = isDarkMode ? '#FAFBF8' : '#004142';
+      const goingToNight = !isDarkMode;
+      sfxModeToggle(goingToNight);
+      setCurtainDirection(goingToNight ? 'night' : 'day');
       setShowCurtain(true);
       setModeTransitionKey(k => k + 1);
-      setTimeout(() => setIsDarkMode(prev => !prev), 500);
-      setTimeout(() => setShowCurtain(false), 1600);
+      setTimeout(() => setIsDarkMode(prev => !prev), 600);
+      setTimeout(() => setShowCurtain(false), 2200);
     }, isActive: isDarkMode },
     { icon: <Activity className="w-5 h-5" />, label: 'Top', onClick: () => {
       setNavDirection(cardIndex > 0 ? -1 : 1)
@@ -316,6 +329,7 @@ export default function CIHHLightCard() {
       setStatusMsg('Select an answer to continue')
       return
     }
+    sfxClick()
     setSubmittedAnswers(prev => ({ ...prev, [cardIndex]: true }))
   }
 
@@ -343,12 +357,14 @@ export default function CIHHLightCard() {
   const handleNext = () => {
     if (!card.final && panelMode === 'main') {
       stopAudio()
+      sfxSwipe()
       setNavDirection(1)
       setPanelMode('additional');
       return
     }
     if (!card.final && panelMode === 'additional') {
       stopAudio()
+      sfxSwipe()
       setNavDirection(1)
       setPanelMode('challenge');
       return
@@ -364,6 +380,7 @@ export default function CIHHLightCard() {
     }
     if (cardIndex < cards.length - 1) {
       stopAudio()
+      sfxSwipe()
       setNavDirection(1)
       setCardIndex(cardIndex + 1);
       setPanelMode('main');
@@ -373,6 +390,7 @@ export default function CIHHLightCard() {
 
   const handleBack = () => {
     stopAudio()
+    sfxSwipe()
     if (panelMode === 'challenge') {
       setNavDirection(-1)
       setPanelMode('additional');
@@ -482,15 +500,19 @@ export default function CIHHLightCard() {
   }, [panelMode, cardIndex, hasAudio, audioUrl]);
 
   return (
-    <div className={`night-transition min-h-screen bg-[radial-gradient(circle_at_top_right,_#FAFBF8_0%,_#D9D6D5_100%)] dark:bg-[radial-gradient(circle_at_top_right,_#041E1F_0%,_#011011_100%)] text-[#1F1C1B] dark:text-[#FAFBF8] font-body p-4 md:p-8 flex items-center justify-center relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`night-transition min-h-screen bg-[radial-gradient(circle_at_top_right,_#FAFBF8_0%,_#D9D6D5_100%)] dark:bg-[radial-gradient(circle_at_top_right,_#020F10_0%,_#010808_100%)] text-[#1F1C1B] dark:text-[#FAFBF8] font-body p-4 md:p-8 flex items-center justify-center relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
       <StyleInjector />
 
-      {/* ── Cinematic mode-switch curtain ── */}
+      {/* ── Cinematic sky-rotation overlay ── */}
       {showCurtain && (
         <div
           key={modeTransitionKey}
-          className="night-curtain fixed inset-0 z-[9999] pointer-events-none"
-          style={{ background: `radial-gradient(ellipse at center, ${curtainColor.current} 0%, transparent 100%)` }}
+          className={`${curtainDirection === 'night' ? 'sky-rotate-night' : 'sky-rotate-day'} fixed inset-[-50%] z-[9999] pointer-events-none`}
+          style={{
+            background: curtainDirection === 'night'
+              ? 'conic-gradient(from 0deg, #020F10 0%, #004142 25%, #011011 50%, transparent 75%)'
+              : 'conic-gradient(from 0deg, #FAFBF8 0%, #E5FEFF 25%, #D9D6D5 50%, transparent 75%)'
+          }}
         />
       )}
 
@@ -498,7 +520,7 @@ export default function CIHHLightCard() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[44%] h-[44%] bg-[#C74601] rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[150px] opacity-[0.13] dark:opacity-[0.18] animate-aurora-b pointer-events-none"></div>
 
       {debugMode && (
-        <div className="absolute top-6 right-6 flex items-center gap-2 bg-[#FFEEE5] dark:bg-[#003333]/80 text-[#C74601] dark:text-[#FFD5BF] px-4 py-2 rounded-full text-[0.9075rem] font-bold tracking-widest uppercase backdrop-blur-md shadow-sm z-50">
+        <div className="absolute top-6 right-6 flex items-center gap-2 bg-[#FFEEE5] dark:bg-[#021A1B]/80 text-[#C74601] dark:text-[#FFD5BF] px-4 py-2 rounded-full text-[0.9075rem] font-bold tracking-widest uppercase backdrop-blur-md shadow-sm z-50">
           <ShieldCheck className="w-4 h-4" /> QA: ON (Debug)
         </div>
       )}
@@ -519,7 +541,7 @@ export default function CIHHLightCard() {
             onPointerCancel={handlePointerUp}
             onClick={handleCardEdgeClick}
             style={{ touchAction: 'pan-y' }}
-            className="relative w-full min-h-[1000px] bg-white/0 dark:bg-[#041E1F]/60 backdrop-blur-2xl rounded-[32px] shadow-[0_24px_60px_rgba(31,28,27,0.12)] dark:shadow-[0_24px_80px_rgba(0,20,21,0.65)] overflow-hidden flex flex-col border-l-[4.3px] border-l-[#C74601]"
+            className="relative w-full min-h-[1000px] bg-white/0 dark:bg-[#020F10]/60 backdrop-blur-2xl rounded-[32px] shadow-[0_24px_60px_rgba(31,28,27,0.12)] dark:shadow-[0_24px_80px_rgba(0,10,10,0.75)] overflow-hidden flex flex-col border-l-[4.3px] border-l-[#C74601]"
           >
         <header className="px-8 pt-8 pb-4 flex justify-between items-end">
           <div>
@@ -548,8 +570,8 @@ export default function CIHHLightCard() {
                 i === progressActiveIndex
                   ? 'w-12 bg-[#C74601] glow-orange'
                   : i < progressActiveIndex
-                    ? 'w-6 bg-[#FFD5BF] dark:bg-[#003333]'
-                    : 'w-2 bg-[#E5E4E3] dark:bg-[#0A3D3E]'
+                    ? 'w-6 bg-[#FFD5BF] dark:bg-[#021A1B]'
+                    : 'w-2 bg-[#E5E4E3] dark:bg-[#07282A]'
               }`}
             />
           ))}
@@ -591,8 +613,8 @@ export default function CIHHLightCard() {
                           <button
                             key={i}
                             disabled={submitted}
-                            onClick={() => setSelectedAnswers(prev => ({ ...prev, [cardIndex]: i }))}
-                            className={`w-full text-left p-5 rounded-[16px] transition-all duration-300 flex items-start gap-4 bg-transparent border-l-[3.3px] ${showCorrect || showWrong || isSelected ? 'border-l-[#00BFB4]' : 'border-l-[#747474] dark:border-l-[#0A3D3E] hover:border-l-[#007970] dark:hover:border-l-[#64F4F5]'} shadow-[0_6px_14px_-10px_rgba(31,28,27,0.2)] dark:shadow-[0_6px_14px_-10px_rgba(0,0,0,0.4)] hover:bg-white/[0.30] dark:hover:bg-white/[0.04] hover:shadow-[0_0_26px_-6px_rgba(0,121,112,0.62),0_12px_26px_-12px_rgba(31,28,27,0.28)] dark:hover:shadow-[0_0_26px_-6px_rgba(100,244,245,0.35),0_12px_26px_-12px_rgba(0,0,0,0.5)] ${
+                            onClick={() => { sfxClick(); setSelectedAnswers(prev => ({ ...prev, [cardIndex]: i })); }}
+                            className={`w-full text-left p-5 rounded-[16px] transition-all duration-300 flex items-start gap-4 bg-transparent border-l-[3.3px] ${showCorrect || showWrong || isSelected ? 'border-l-[#00BFB4]' : 'border-l-[#747474] dark:border-l-[#07282A] hover:border-l-[#007970] dark:hover:border-l-[#64F4F5]'} shadow-[0_6px_14px_-10px_rgba(31,28,27,0.2)] dark:shadow-[0_6px_14px_-10px_rgba(0,0,0,0.4)] hover:bg-white/[0.30] dark:hover:bg-white/[0.04] hover:shadow-[0_0_26px_-6px_rgba(0,121,112,0.62),0_12px_26px_-12px_rgba(31,28,27,0.28)] dark:hover:shadow-[0_0_26px_-6px_rgba(100,244,245,0.35),0_12px_26px_-12px_rgba(0,0,0,0.5)] ${
                               showCorrect ? 'glow-teal border-l-[#00BFB4] shadow-[0_0_32px_-4px_rgba(0,191,180,0.78),0_12px_28px_-12px_rgba(31,28,27,0.32)]' :
                               showWrong ? 'border-l-[#00BFB4] shadow-[0_0_30px_-5px_rgba(0,191,180,0.72),0_12px_28px_-12px_rgba(31,28,27,0.32)]' :
                               isSelected ? 'border-l-[#00BFB4] shadow-[0_0_30px_-5px_rgba(0,191,180,0.72),0_12px_28px_-12px_rgba(31,28,27,0.32)]' :
@@ -626,7 +648,7 @@ export default function CIHHLightCard() {
                         className={`px-8 py-3 rounded-[12px] text-[1.1rem] font-bold tracking-wide transition-all duration-300 ${
                           !submittedAnswers[cardIndex]
                             ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] glow-orange hover:-translate-y-0.5'
-                            : 'bg-[#E5E4E3] dark:bg-[#0A3D3E] text-[#747474] dark:text-[#D9D6D5] cursor-not-allowed'
+                            : 'bg-[#E5E4E3] dark:bg-[#07282A] text-[#747474] dark:text-[#D9D6D5] cursor-not-allowed'
                         }`}
                       >
                         Submit
