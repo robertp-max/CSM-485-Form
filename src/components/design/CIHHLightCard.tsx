@@ -393,6 +393,25 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
     submittedAnswers[leftIdx] && (!rightCard || submittedAnswers[rightIdx])
   )
 
+  // Course Selection: topic groups, progress tracking, resume index
+  const sectionGroups = (() => {
+    const groups: { section: string; cards: { title: string; globalIndex: number; completed: boolean }[] }[] = [];
+    TRAINING_CARDS.forEach((tc, i) => {
+      const globalIndex = introCardCount + i;
+      const completed = Boolean(submittedAnswers[globalIndex]);
+      const last = groups[groups.length - 1];
+      if (last && last.section === tc.section) {
+        last.cards.push({ title: tc.title, globalIndex, completed });
+      } else {
+        groups.push({ section: tc.section, cards: [{ title: tc.title, globalIndex, completed }] });
+      }
+    });
+    return groups;
+  })();
+  const completedTopicCount = TRAINING_CARDS.filter((_, i) => submittedAnswers[introCardCount + i]).length;
+  const firstIncompleteIdx = TRAINING_CARDS.findIndex((_, i) => !submittedAnswers[introCardCount + i]);
+  const resumeCardIndex = firstIncompleteIdx >= 0 ? introCardCount + firstIncompleteIdx : introCardCount;
+
   const dockItems = [
     { icon: <FileText className="w-5 h-5" />, label: 'Help', onClick: () => alert('Open help') },
     ...(!isOnIntroCard ? [{ icon: viewMode === 'card' ? <BookOpen className="w-5 h-5" /> : <Layers className="w-5 h-5" />, label: viewMode === 'card' ? 'Book' : 'Card', onClick: () => { sfxClick(); stopAudio(); setViewMode(prev => prev === 'card' ? 'web' : 'card'); }, isActive: viewMode === 'web' }] : []),
@@ -495,7 +514,17 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
   const handleNext = () => {
     if (isOnIntroCard) {
       const introKind = card.intro as string
-      if (!debugMode && (introKind === 'layout-challenge' || introKind === 'henderson-challenge') && !introCompleted[introKind]) return
+      if ((introKind === 'layout-challenge' || introKind === 'henderson-challenge') && !introCompleted[introKind]) return
+      if (introKind === 'course-selection') {
+        stopAudio()
+        sfxSwipe()
+        setNavDirection(1)
+        setIntroCompleted(prev => ({ ...prev, [introKind]: true }))
+        setCardIndex(resumeCardIndex)
+        setPanelMode('main')
+        if (viewMode === 'web') setWebCardIndex(Math.floor((resumeCardIndex - introCardCount) / 2))
+        return
+      }
       if (cardIndex < cards.length - 1) {
         stopAudio()
         sfxSwipe()
@@ -951,7 +980,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                         Begin Challenge <Swords className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                       </button>
                     )}
-                    {(introCompleted['layout-challenge'] || debugMode) && (
+                    {introCompleted['layout-challenge'] && (
                       <button onClick={handleNext} className="group inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal">
                         Continue <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                       </button>
@@ -988,7 +1017,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                         Begin Challenge <Swords className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                       </button>
                     )}
-                    {(introCompleted['henderson-challenge'] || debugMode) && (
+                    {introCompleted['henderson-challenge'] && (
                       <button onClick={handleNext} className="group inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal">
                         Continue <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                       </button>
@@ -998,39 +1027,84 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
 
                 {/* ── 5. Course Selection ── */}
                 {card.intro === 'course-selection' && (
-                  <div className="space-y-8 max-w-xl w-full">
-                    <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#E5FEFF] dark:bg-[#002B2C] border border-[#C4F4F5] dark:border-[#007970] text-[#007970] dark:text-[#64F4F5] text-[0.75rem] font-bold uppercase tracking-[0.16em]">
-                      <CheckCircle2 className="w-4 h-4" /> All Steps Complete
-                    </div>
-                    <div className="space-y-3">
-                      <h2 className="font-heading text-[1.8rem] font-bold">Choose Your Training Path</h2>
-                      <p className="text-[#524048] dark:text-[#D9D6D5] text-base max-w-md mx-auto">You&apos;ve completed onboarding. Select a training module to begin your CMS-485 documentation mastery.</p>
-                    </div>
-                    {/* Completed steps */}
-                    <div className="flex items-center justify-center gap-2 flex-wrap">
-                      {['Calibration', 'Layout', 'Henderson'].map((label) => (
-                        <span key={label} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.72rem] font-bold uppercase tracking-wider bg-[#E5FEFF] dark:bg-[#002B2C] text-[#007970] dark:text-[#64F4F5] border border-[#C4F4F5] dark:border-[#007970]">
-                          <CheckCircle2 className="w-3 h-3" /> {label}
-                        </span>
-                      ))}
-                    </div>
-                    {/* Module grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
-                      <button onClick={handleNext} className="group p-5 rounded-2xl border-2 border-[#007970] dark:border-[#64F4F5] bg-[#E5FEFF]/50 dark:bg-[#002B2C]/50 hover:shadow-[0_8px_30px_rgba(0,121,112,0.12)] transition-all duration-300 hover:-translate-y-0.5 text-left relative overflow-hidden">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Layers className="w-5 h-5 text-[#007970] dark:text-[#64F4F5]" />
-                          <span className="px-2 py-0.5 rounded-full text-[0.65rem] font-bold uppercase bg-[#007970] dark:bg-[#64F4F5] text-white dark:text-[#010809]">Recommended</span>
+                  <div className="space-y-5 w-full max-w-4xl">
+                    <div className="text-center space-y-3">
+                      <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#E5FEFF] dark:bg-[#002B2C] border border-[#C4F4F5] dark:border-[#007970] text-[#007970] dark:text-[#64F4F5] text-[0.75rem] font-bold uppercase tracking-[0.16em]">
+                        <GraduationCap className="w-4 h-4" /> Course Map
+                      </div>
+                      <h2 className="font-heading text-[1.8rem] font-bold">CMS-485 Training Topics</h2>
+                      <p className="text-[#524048] dark:text-[#D9D6D5] text-[0.95rem] max-w-lg mx-auto">
+                        {completedTopicCount} of {TRAINING_CARDS.length} topics completed &mdash; select any topic or resume where you left off.
+                      </p>
+                      <div className="w-full max-w-sm mx-auto">
+                        <div className="h-2.5 rounded-full bg-[#E5E4E3] dark:bg-[#07282A] overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-[#007970] to-[#00A89D] rounded-full transition-all duration-700 ease-out" style={{ width: `${TRAINING_CARDS.length > 0 ? (completedTopicCount / TRAINING_CARDS.length) * 100 : 0}%` }} />
                         </div>
-                        <p className="font-heading font-bold text-[0.95rem] mb-1">Card Training</p>
-                        <p className="text-[0.78rem] text-[#747474] dark:text-[#D9D6D5] leading-snug">Step-by-step cards with quizzes, audio narration, and key-point breakdowns.</p>
-                        <p className="text-[0.72rem] text-[#007970] dark:text-[#64F4F5] font-bold mt-2 flex items-center gap-1">Start <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" /></p>
+                        <p className="text-[0.75rem] text-[#747474] dark:text-[#D9D6D5] mt-1.5">{Math.round(TRAINING_CARDS.length > 0 ? (completedTopicCount / TRAINING_CARDS.length) * 100 : 0)}% complete</p>
+                      </div>
+                    </div>
+
+                    {/* View toggle + Resume */}
+                    <div className="flex items-center justify-center gap-3 flex-wrap">
+                      <div className="flex gap-1.5 p-1 rounded-xl bg-[#E5E4E3]/50 dark:bg-[#07282A]/50">
+                        <button onClick={() => setViewMode('card')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[0.8rem] font-bold tracking-wide transition-all ${viewMode === 'card' ? 'bg-[#007970] text-white shadow-sm' : 'text-[#747474] dark:text-[#D9D6D5] hover:text-[#007970]'}`}>
+                          <Layers className="w-3.5 h-3.5" /> Card
+                        </button>
+                        <button onClick={() => setViewMode('web')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[0.8rem] font-bold tracking-wide transition-all ${viewMode === 'web' ? 'bg-[#007970] text-white shadow-sm' : 'text-[#747474] dark:text-[#D9D6D5] hover:text-[#007970]'}`}>
+                          <BookOpen className="w-3.5 h-3.5" /> Book
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => {
+                          sfxClick();
+                          setNavDirection(1);
+                          setCardIndex(resumeCardIndex);
+                          setPanelMode('main');
+                          if (viewMode === 'web') setWebCardIndex(Math.floor((resumeCardIndex - introCardCount) / 2));
+                        }}
+                        className="group flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C74601] hover:bg-[#E56E2E] text-white text-[0.8rem] font-bold tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_6px_20px_rgba(199,70,1,0.2)]"
+                      >
+                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        {completedTopicCount === 0 ? 'Start Training' : completedTopicCount >= TRAINING_CARDS.length ? 'Review Topics' : 'Resume'}
                       </button>
-                      <button onClick={() => { setViewMode('web'); handleNext(); }} className="group p-5 rounded-2xl border border-[#E5E4E3] dark:border-[#07282A] bg-white/40 dark:bg-white/[0.02] hover:border-[#007970]/30 dark:hover:border-[#64F4F5]/20 hover:shadow-[0_6px_24px_rgba(0,121,112,0.08)] transition-all duration-300 hover:-translate-y-0.5 text-left">
-                        <BookOpen className="w-5 h-5 text-[#007970] dark:text-[#64F4F5] mb-2" />
-                        <p className="font-heading font-bold text-[0.95rem] mb-1">Book Training</p>
-                        <p className="text-[0.78rem] text-[#747474] dark:text-[#D9D6D5] leading-snug">Two-page spread layout for an immersive reading experience with full content depth.</p>
-                        <p className="text-[0.72rem] text-[#007970] dark:text-[#64F4F5] font-bold mt-2 flex items-center gap-1">Start <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" /></p>
-                      </button>
+                    </div>
+
+                    {/* Section-grouped topic grid */}
+                    <div className="max-h-[46vh] overflow-y-auto space-y-4 pr-1 text-left">
+                      {sectionGroups.map((group) => (
+                        <div key={group.section}>
+                          <div className="flex items-center gap-2 mb-2 sticky top-0 bg-white/80 dark:bg-[#020F10]/80 backdrop-blur-sm py-1 z-10">
+                            <span className="text-[0.7rem] font-bold uppercase tracking-[0.18em] text-[#C74601] dark:text-[#E56E2E]">{group.section}</span>
+                            <span className="flex-1 h-px bg-[#E5E4E3] dark:bg-[#07282A]" />
+                            <span className="text-[0.7rem] text-[#747474] dark:text-[#D9D6D5] tabular-nums">{group.cards.filter(c => c.completed).length}/{group.cards.length}</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {group.cards.map((tc) => (
+                              <button
+                                key={tc.globalIndex}
+                                onClick={() => {
+                                  sfxClick();
+                                  setNavDirection(1);
+                                  setCardIndex(tc.globalIndex);
+                                  setPanelMode('main');
+                                  if (viewMode === 'web') setWebCardIndex(Math.floor((tc.globalIndex - introCardCount) / 2));
+                                }}
+                                className={`group flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 text-left w-full ${
+                                  tc.completed
+                                    ? 'border-[#C4F4F5]/60 dark:border-[#007970]/40 bg-[#E5FEFF]/20 dark:bg-[#002B2C]/20'
+                                    : 'border-[#E5E4E3] dark:border-[#07282A] hover:border-[#007970]/40 dark:hover:border-[#64F4F5]/30 hover:bg-white/50 dark:hover:bg-white/[0.03]'
+                                } hover:shadow-[0_3px_12px_rgba(0,121,112,0.06)] hover:-translate-y-px`}
+                              >
+                                <div className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 ${tc.completed ? 'bg-[#007970] dark:bg-[#64F4F5]' : 'bg-[#E5E4E3] dark:bg-[#07282A]'}`}>
+                                  {tc.completed ? <Check className="w-3 h-3 text-white dark:text-[#010809]" /> : <span className="text-[0.55rem] font-bold text-[#747474] dark:text-[#D9D6D5]">{tc.globalIndex - introCardCount + 1}</span>}
+                                </div>
+                                <p className={`font-heading font-medium text-[0.82rem] leading-snug flex-1 ${tc.completed ? 'text-[#007970] dark:text-[#64F4F5]' : ''}`}>{tc.title}</p>
+                                <ArrowRight className="w-3 h-3 text-[#D9D6D5] dark:text-[#07282A] group-hover:text-[#007970] dark:group-hover:text-[#64F4F5] flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
