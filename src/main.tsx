@@ -1,10 +1,11 @@
 import { Component, StrictMode, lazy, Suspense } from 'react'
 import type { ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { HashRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
+import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import './index.css'
 import App from './App'
 import { applyTheme, getStoredTheme } from './theme'
+import { useTheme } from './hooks/useTheme'
 import { GlossaryProvider } from './components/GlossaryProvider'
 import { GlossaryDebugPanel } from './components/GlossaryDebugPanel'
 
@@ -53,6 +54,155 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
   }
 }
 
+type DockTarget =
+  | 'welcome-banner'
+  | 'system-calibration'
+  | 'interactive-form'
+  | 'night-card'
+  | 'light-card'
+  | 'night-web'
+  | 'light-web'
+  | 'course-selection'
+  | 'first-card'
+  | 'final-exam'
+  | 'quiz'
+  | 'glossary'
+  | 'cms-485'
+
+function GlobalDock() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const activeTarget = (new URLSearchParams(location.search).get('dock') as DockTarget | null) ?? 'welcome-banner'
+
+  const links: Array<{ target: DockTarget; label: string }> = [
+    { target: 'welcome-banner', label: 'WELCOME BANNER' },
+    { target: 'system-calibration', label: 'SYSTEM CALIBRATION' },
+    { target: 'interactive-form', label: 'INTERACTIVE FORM' },
+    { target: 'course-selection', label: 'COURSE SELECTION' },
+    { target: 'first-card', label: 'FIRST CARD' },
+    { target: 'final-exam', label: 'FINAL EXAM (CLINICAL AUDIT)' },
+    { target: 'night-card', label: 'NIGHT CARD' },
+    { target: 'light-card', label: 'LIGHT CARD' },
+    { target: 'night-web', label: 'NIGHT WEB' },
+    { target: 'light-web', label: 'LIGHT WEB' },
+    { target: 'quiz', label: 'QUIZ' },
+    { target: 'glossary', label: 'GLOSSARY' },
+    { target: 'cms-485', label: 'CMS-485' },
+  ]
+
+  const { isDarkMode, toggle: toggleThemeMode } = useTheme()
+  const isCardWebView = ['night-card', 'light-card', 'night-web', 'light-web'].includes(activeTarget)
+  const visualTarget: DockTarget = isCardWebView
+    ? activeTarget
+    : (isDarkMode ? 'night-card' : 'light-card')
+  const isWebMode = visualTarget === 'light-web' || visualTarget === 'night-web'
+
+  const goToTarget = (target: DockTarget) => {
+    const nonce = Date.now()
+    navigate({ pathname: '/', search: `?dock=${target}&n=${nonce}` })
+    window.location.hash = `/?dock=${target}&n=${nonce}`
+  }
+
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: '20px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      zIndex: 99999,
+      display: 'flex',
+      gap: '8px',
+      padding: '8px',
+      background: 'rgba(0,0,0,0.85)',
+      borderRadius: '99px',
+      border: '1px solid rgba(255,255,255,0.2)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      backdropFilter: 'blur(8px)',
+      pointerEvents: 'auto'
+    }}>
+      <button
+        onClick={() => {
+          toggleThemeMode()
+          if (isCardWebView) {
+            const willBeLight = isDarkMode
+            const nextTarget: DockTarget = isWebMode
+              ? (willBeLight ? 'light-web' : 'night-web')
+              : (willBeLight ? 'light-card' : 'night-card')
+            goToTarget(nextTarget)
+          }
+        }}
+        style={{
+          padding: '6px 14px',
+          borderRadius: '99px',
+          color: '#fff',
+          fontSize: '11px',
+          fontWeight: 'bold',
+          background: !isDarkMode ? 'rgba(199,70,1,0.95)' : 'rgba(0,121,112,0.95)',
+          boxShadow: '0 0 0 1px rgba(255,255,255,0.2)',
+          transition: 'all 0.2s',
+          border: 'none',
+          cursor: 'pointer'
+        }}
+        aria-pressed={true}
+      >
+        THEME: {isDarkMode ? 'NIGHT' : 'LIGHT'}
+      </button>
+
+      <button
+        onClick={() => {
+          const nextTarget: DockTarget = isWebMode
+            ? (isDarkMode ? 'night-card' : 'light-card')
+            : (isDarkMode ? 'night-web' : 'light-web')
+          goToTarget(nextTarget)
+        }}
+        style={{
+          padding: '6px 14px',
+          borderRadius: '99px',
+          color: '#fff',
+          fontSize: '11px',
+          fontWeight: 'bold',
+          background: isWebMode ? 'rgba(79,70,229,0.95)' : 'rgba(20,20,20,0.95)',
+          boxShadow: '0 0 0 1px rgba(255,255,255,0.2)',
+          transition: 'all 0.2s',
+          border: 'none',
+          cursor: 'pointer'
+        }}
+        aria-pressed={true}
+      >
+        LAYOUT: {isWebMode ? 'WEB' : 'CARD'}
+      </button>
+
+      {links.map(link => {
+        const isActive = activeTarget === link.target
+        return (
+          <button
+            key={link.target}
+            onClick={() => {
+              goToTarget(link.target)
+            }}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '99px',
+              color: '#fff',
+              textDecoration: 'none',
+              fontSize: '11px',
+              fontWeight: 'bold',
+              background: isActive ? 'rgba(0,121,112,0.95)' : 'rgba(255,255,255,0.1)',
+              boxShadow: isActive ? '0 0 0 1px rgba(100,244,245,0.35), 0 6px 18px rgba(0,121,112,0.45)' : 'none',
+              transition: 'all 0.2s',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+            aria-pressed={isActive}
+          >
+            {link.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
@@ -67,45 +217,7 @@ createRoot(document.getElementById('root')!).render(
           </Suspense>
 
           {/* Master Site-Wide Shortcuts */}
-          <div style={{
-            position: 'fixed',
-            bottom: '20px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 99999,
-            display: 'flex',
-            gap: '8px',
-            padding: '8px',
-            background: 'rgba(0,0,0,0.85)',
-            borderRadius: '99px',
-            border: '1px solid rgba(255,255,255,0.2)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(8px)',
-            pointerEvents: 'auto'
-          }}>
-            {[
-              { to: '/', label: 'ENGINE' },
-              { to: '/learning', label: 'LEARN' },
-              { to: '/help', label: 'HELP' },
-            ].map(link => (
-              <Link 
-                key={link.to} 
-                to={link.to}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '99px',
-                  color: '#fff',
-                  textDecoration: 'none',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  background: 'rgba(255,255,255,0.1)',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
+          <GlobalDock />
         </HashRouter>
         <GlossaryDebugPanel />
       </GlossaryProvider>

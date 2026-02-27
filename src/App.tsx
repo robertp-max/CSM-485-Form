@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
   Activity,
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
+  Bug,
   CheckCircle2,
   ClipboardCheck,
   Droplets,
@@ -16,6 +18,8 @@ import {
   Moon,
   MousePointer2,
   Music,
+  Minimize2,
+  Maximize2,
   ShieldAlert,
   ShieldCheck,
   Sun,
@@ -31,11 +35,13 @@ const CIHHLightWeb = lazy(() => import('./components/design/CIHHLightWeb'))
 const LearningProfessional = lazy(() => import('./LearningProfessional'))
 const HelpCenter = lazy(() => import('./components/HelpCenter'))
 const Interactive485Form = lazy(() => import('./components/Interactive485Form'))
+const FinalExamWeb = lazy(() => import('./components/FinalExamWeb'))
 const WelcomeBanner = lazy(() => import('./components/WelcomeBanner'))
 const SystemsCalibration = lazy(() => import('./components/SystemsCalibration'))
 const BlobCursor = lazy(() => import('./components/BlobCursor'))
 const SplashCursor = lazy(() => import('./components/SplashCursor'))
 const RewardToggle = lazy(() => import('./components/RewardToggle'))
+import { getStoredTheme } from './theme'
 
 // Design tokens and animation primitives
 const CSS_STYLES = `
@@ -262,15 +268,35 @@ const Cursor = ({ utility, mousePos, theme }) => {
 
 // ─── App Phase: welcome → calibration → practice → training ───
 type AppPhase = 'welcome' | 'calibration' | 'practice' | 'training'
+type LearningStartTarget = 'course-selection' | 'first-card' | 'quiz'
+type DockNavigationTarget =
+  | 'welcome-banner'
+  | 'system-calibration'
+  | 'interactive-form'
+  | 'night-card'
+  | 'light-card'
+  | 'night-web'
+  | 'light-web'
+  | 'final-exam'
+  | 'course-selection'
+  | 'first-card'
+  | 'quiz'
+  | 'glossary'
+  | 'cms-485'
 type PrizeId = 'retake-challenge' | 'blob-cursor' | 'splash-cursor' | null
 
 export default function App() {
+  const location = useLocation()
   const [appPhase, setAppPhase] = useState<AppPhase>('welcome')
   const [activePrize, setActivePrize] = useState<PrizeId>(null)
   const [cursorEnabled, setCursorEnabled] = useState(true)
   const [viewMode, setViewMode] = useState('DEFAULT')
+  const [learningStartTarget, setLearningStartTarget] = useState<LearningStartTarget>('course-selection')
+  const [learningNavigationNonce, setLearningNavigationNonce] = useState(0)
+  const [qaModeEnabled, setQaModeEnabled] = useState(true)
+  const [isDebugDockMinimized, setIsDebugDockMinimized] = useState(false)
   const [stage, setStage] = useState(0)
-  const [theme, setTheme] = useState('night')
+  const [theme, setTheme] = useState(getStoredTheme() === 'night' ? 'night' : 'day')
   const [layout, setLayout] = useState('Tactical View')
   const [utility, setUtility] = useState(null)
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
@@ -287,6 +313,16 @@ export default function App() {
   const [modal, setModal] = useState(null)
   const lifelineUsedRef = useRef(false)
   const audioCtxRef = useRef(null)
+
+  useEffect(() => {
+    const handleThemeChanged = (event: Event) => {
+      const detail = (event as CustomEvent<'light' | 'night'>).detail
+      setTheme(detail === 'night' ? 'night' : 'day')
+    }
+
+    window.addEventListener('theme-changed', handleThemeChanged)
+    return () => window.removeEventListener('theme-changed', handleThemeChanged)
+  }, [])
 
   useEffect(() => {
     const handleMove = (e) => setMousePos({ x: e.clientX, y: e.clientY })
@@ -626,13 +662,108 @@ export default function App() {
 
   const completeProtocol = () => setModal('success')
 
+  const navigateFromDock = (target: DockNavigationTarget) => {
+    switch (target) {
+      case 'welcome-banner':
+        setAppPhase('welcome')
+        return
+      case 'system-calibration':
+        setAppPhase('calibration')
+        return
+      case 'interactive-form':
+        setAppPhase('practice')
+        return
+      case 'night-card':
+        setAppPhase('training')
+        setViewMode('NC')
+        return
+      case 'light-card':
+        setAppPhase('training')
+        setViewMode('LC')
+        return
+      case 'night-web':
+        setAppPhase('training')
+        setViewMode('NW')
+        return
+      case 'light-web':
+        setAppPhase('training')
+        setViewMode('LW')
+        return
+      case 'final-exam':
+        setAppPhase('training')
+        setViewMode('FE')
+        return
+      case 'course-selection':
+        setLearningStartTarget('course-selection')
+        setLearningNavigationNonce(prev => prev + 1)
+        setAppPhase('training')
+        setViewMode('LP')
+        return
+      case 'first-card':
+        setLearningStartTarget('first-card')
+        setLearningNavigationNonce(prev => prev + 1)
+        setAppPhase('training')
+        setViewMode('LP')
+        return
+      case 'quiz':
+        setLearningStartTarget('quiz')
+        setLearningNavigationNonce(prev => prev + 1)
+        setAppPhase('training')
+        setViewMode('LP')
+        return
+      case 'glossary':
+        setAppPhase('training')
+        setViewMode('HELP')
+        return
+      case 'cms-485':
+        setAppPhase('training')
+        setViewMode('485')
+        return
+      default:
+        return
+    }
+  }
+
+  useEffect(() => {
+    const hashQuery = (() => {
+      const hash = window.location.hash ?? ''
+      const queryStart = hash.indexOf('?')
+      if (queryStart === -1) return ''
+      return hash.slice(queryStart + 1)
+    })()
+
+    const params = new URLSearchParams(location.search || hashQuery)
+    const rawTarget = params.get('dock')
+    const allowedTargets: DockNavigationTarget[] = [
+      'welcome-banner',
+      'system-calibration',
+      'interactive-form',
+      'night-card',
+      'light-card',
+      'night-web',
+      'light-web',
+      'final-exam',
+      'course-selection',
+      'first-card',
+      'quiz',
+      'glossary',
+      'cms-485',
+    ]
+    const target = allowedTargets.includes(rawTarget as DockNavigationTarget)
+      ? (rawTarget as DockNavigationTarget)
+      : null
+    if (!target) return
+    navigateFromDock(target)
+  }, [location.search])
+
   const renderViewContent = () => {
     switch (viewMode) {
       case 'NC': return <CIHHNightCard />
       case 'LC': return <CIHHLightCard />
       case 'NW': return <CIHHNightWeb />
       case 'LW': return <CIHHLightWeb />
-      case 'LP': return <LearningProfessional />
+      case 'FE': return <FinalExamWeb theme={theme as 'night' | 'day'} onExit={() => setViewMode(theme === 'day' ? 'LW' : 'NW')} />
+      case 'LP': return <LearningProfessional qaEnabled={qaModeEnabled} startAtModuleSelection={learningStartTarget === 'course-selection'} startTarget={learningStartTarget} navigationNonce={learningNavigationNonce} />
       case 'HELP': return <HelpCenter />
       case '485': return <Interactive485Form theme={theme as 'night' | 'day'} />
       default: return null
@@ -723,7 +854,7 @@ export default function App() {
         <div className="absolute bottom-[-140px] right-[8%] w-[420px] h-[420px] bg-[var(--accent-2)]/12 blur-[130px]" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 py-10 lg:py-14 flex flex-col gap-6">
+      <div className={viewMode !== 'DEFAULT' ? 'relative z-10 w-full h-screen' : 'relative z-10 max-w-7xl mx-auto px-4 py-10 lg:py-14 flex flex-col gap-6'}>
         {viewMode === 'DEFAULT' && headerRibbon}
 
         <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center bg-transparent text-white font-mono uppercase tracking-widest animate-pulse">Loading View...</div>}>
@@ -1062,7 +1193,42 @@ export default function App() {
     <Cursor utility={selectedUtility} mousePos={mousePos} theme={theme} />
 
     {/* Debug Shortcuts */}
+    {viewMode === 'DEFAULT' && (
     <DraggableWrapper className="group fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none">
+        {/* Debug toolbar */}
+        <div className="flex items-center gap-2 p-2 bg-black/85 backdrop-blur-md rounded-full border border-white/20 pointer-events-auto">
+          <button
+            onClick={() => setQaModeEnabled(prev => !prev)}
+            className={`px-3 h-8 rounded-full text-[10px] font-black uppercase tracking-wide transition-all ${
+              qaModeEnabled
+                ? 'bg-emerald-500 text-slate-950 ring-2 ring-emerald-300/40'
+                : 'bg-slate-700 text-slate-200'
+            }`}
+            title="Toggle QA mode"
+          >
+            QA: {qaModeEnabled ? 'ON' : 'OFF'}
+          </button>
+          <button
+            onClick={() => setIsDebugDockMinimized(prev => !prev)}
+            className="w-8 h-8 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-colors"
+            title={isDebugDockMinimized ? 'Expand debug dock' : 'Minimize debug dock'}
+            aria-label={isDebugDockMinimized ? 'Expand debug dock' : 'Minimize debug dock'}
+          >
+            {isDebugDockMinimized ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
+          </button>
+        </div>
+
+        {isDebugDockMinimized ? (
+          <button
+            onClick={() => setIsDebugDockMinimized(false)}
+            className="w-12 h-12 rounded-full bg-black/90 border-2 border-red-500 text-red-300 shadow-[0_0_30px_rgba(239,68,68,0.35)] hover:scale-105 transition-all flex items-center justify-center pointer-events-auto"
+            title="Open debug dock"
+            aria-label="Open debug dock"
+          >
+            <Bug size={18} />
+          </button>
+        ) : (
+        <>
         {/* Module/Simulation Stage Shortcuts (Only in DEFAULT view) */}
         {viewMode === 'DEFAULT' && (
           <div className="flex gap-2 p-2 bg-black/60 backdrop-blur-sm rounded-full border border-white/20 shadow-2xl scale-75 hover:scale-100 transition-all pointer-events-auto">
@@ -1148,7 +1314,10 @@ export default function App() {
             </button>
           ))}
         </div>
+        </>
+        )}
       </DraggableWrapper>
+    )}
     </div>
     </>
   )

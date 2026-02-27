@@ -20,6 +20,7 @@ export const applyTheme = (appearance: ThemeAppearance) => {
 
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(THEME_STORAGE_KEY, appearance)
+    window.dispatchEvent(new CustomEvent('theme-changed', { detail: appearance }))
   }
 }
 

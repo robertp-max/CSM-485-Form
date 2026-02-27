@@ -13,16 +13,7 @@ import {
   Target,
   ShieldCheck,
   XCircle,
-  HelpCircle,
-  Zap,
-  BookOpen,
-  Layers,
-  GraduationCap,
-  Award,
-  LayoutGrid,
 } from 'lucide-react'
-import { Dock } from './components/Dock'
-import type { DockItem } from './components/Dock'
 import { SettingsPanel } from './components/SettingsPanel'
 import type { SettingsState } from './components/SettingsPanel'
 import BookCarousel from './components/BookCarousel'
@@ -38,17 +29,11 @@ import { TRAINING_CARDS } from './data/trainingCards'
 import { CARD_METADATA } from './data/cardMetadata'
 import { useTheme } from './hooks/useTheme'
 
-/* ─── URL Constants ─── */
-const SYSTEMS_DOC_URL = import.meta.env.BASE_URL + 'systems-documentation.html'
-const COURSE_FRAMEWORK_URL = import.meta.env.BASE_URL + 'course-framework.html'
-const MASTERING_CMS485_URL = import.meta.env.BASE_URL + 'mastering-cms485.html'
-const COURSE_DOCUMENTATION_URL = import.meta.env.BASE_URL + 'course-documentation.html'
-const FAQ_HUB_URL = import.meta.env.BASE_URL + 'faq-hub.html'
-
 /* ─── Constants ─── */
 const PROGRESS_STORAGE_KEY = 'cms485.pro.progress.v1'
 
 type PanelMode = 'main' | 'additional' | 'challenge' | 'help'
+type LearningStartTarget = 'course-selection' | 'first-card' | 'quiz'
 
 type ChallengeResult = {
   selectedIndex: number
@@ -236,7 +221,17 @@ const FINAL_TEST_QUESTIONS: FinalTestQuestion[] = [
 ]
 
 /* ─── Professional Learning Page ─── */
-export default function LearningProfessional() {
+export default function LearningProfessional({
+  qaEnabled = true,
+  startAtModuleSelection = false,
+  startTarget,
+  navigationNonce = 0,
+}: {
+  qaEnabled?: boolean
+  startAtModuleSelection?: boolean
+  startTarget?: LearningStartTarget
+  navigationNonce?: number
+} = {}) {
   const { resetClaims } = useGlossary()
   const metadataByTitle = useMemo(() => new Map(CARD_METADATA.map(item => [item.title, item])), [])
   const { theme, isDarkMode, setTheme } = useTheme()
@@ -279,7 +274,7 @@ export default function LearningProfessional() {
   const audioElementRef = useRef<HTMLAudioElement | null>(null)
   const touchStartXRef = useRef<number | null>(null)
 
-  const isDebugMode = true // QA mode on by default in professional view
+  const isDebugMode = qaEnabled
   const reducedMotion = settings.reducedMotion
 
   useEffect(() => {
@@ -490,6 +485,33 @@ export default function LearningProfessional() {
     setShowReportGrid(true)
   }
 
+  const navigateLearningTarget = (target: LearningStartTarget) => {
+    if (target === 'course-selection') {
+      const coverIndex = cards.findIndex(i => i.kind === 'cover')
+      if (coverIndex >= 0) {
+        setCurrentIndex(coverIndex)
+        setShowReportGrid(true)
+        setViewedCardIndexes(new Set([coverIndex]))
+      }
+      return
+    }
+
+    if (target === 'first-card') {
+      if (trainingStartIndex >= 0) {
+        setCurrentIndex(trainingStartIndex)
+        setShowReportGrid(false)
+      }
+      return
+    }
+
+    const finalTestIndex = cards.findIndex(i => i.kind === 'final-test')
+    if (finalTestIndex >= 0) {
+      setCurrentIndex(finalTestIndex)
+      setFinalTestPageIndex(0)
+      setShowReportGrid(false)
+    }
+  }
+
   /* ─── Effects ─── */
   useEffect(() => {
     if (!currentIsTrainingCard) return
@@ -511,6 +533,16 @@ export default function LearningProfessional() {
   useEffect(() => () => { stopCurrentAudioPlayback() }, [])
 
   useEffect(() => {
+    if (!startAtModuleSelection) return
+    navigateLearningTarget('course-selection')
+  }, [startAtModuleSelection, cards])
+
+  useEffect(() => {
+    if (!startTarget) return
+    navigateLearningTarget(startTarget)
+  }, [startTarget, navigationNonce, cards, trainingStartIndex])
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') {
         if (currentCard?.kind === 'cover' && !showReportGrid) { handleViewFromCover(); return }
@@ -521,16 +553,6 @@ export default function LearningProfessional() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [currentIndex, showReportGrid, canAdvanceFromCurrent, currentPanelMode, currentIsFinalTestCard, finalTestPageIndex, finalTestAnswers, currentCard])
-
-  /* ─── Dock items ─── */
-  const dockItems: DockItem[] = [
-    { icon: <HelpCircle className="h-5 w-5" />, label: 'FAQ Hub', onClick: () => window.open(FAQ_HUB_URL, '_blank') },
-    { icon: <BookOpen className="h-5 w-5" />, label: 'Course Docs', onClick: () => window.open(COURSE_DOCUMENTATION_URL, '_blank') },
-    { icon: <Layers className="h-5 w-5" />, label: 'Systems', onClick: () => window.open(SYSTEMS_DOC_URL, '_blank') },
-    { icon: <LayoutGrid className="h-5 w-5" />, label: 'Framework', onClick: () => window.open(COURSE_FRAMEWORK_URL, '_blank') },
-    { icon: <GraduationCap className="h-5 w-5" />, label: 'Mastering', onClick: () => window.open(MASTERING_CMS485_URL, '_blank') },
-    { icon: <Award className="h-5 w-5" />, label: 'Architect', onClick: () => window.open(SYSTEMS_DOC_URL, '_blank') },
-  ]
 
   /* ─── Audio status label ─── */
   const getAudioStatusLabel = () => {
@@ -899,8 +921,6 @@ export default function LearningProfessional() {
       {/* Virtual Form Overlay */}
       {showVirtualForm && <Cms485VirtualForm onClose={() => setShowVirtualForm(false)} />}
 
-      {/* Dock - bottom right */}
-      <Dock items={dockItems} position="bottom-right" isDarkMode={isDarkMode} />
     </div>
   )
 }
