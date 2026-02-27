@@ -6,7 +6,7 @@ import {
   Square, RotateCcw, Swords,
   CheckCircle2, XCircle,
   ShieldCheck, FileText, Activity, Check,
-  Moon, Sun, Layers, LayoutGrid
+  Moon, Sun, Layers, LayoutGrid, Lock, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 const StyleInjector = () => (
@@ -76,6 +76,9 @@ const StyleInjector = () => (
 
       .animate-aurora-a { animation: auroraFloatA 10s ease-in-out infinite; }
       .animate-aurora-b { animation: auroraFloatB 12s ease-in-out infinite; }
+
+      details summary::-webkit-details-marker { display: none; }
+      details summary { list-style: none; }
     `}
   </style>
 );
@@ -267,6 +270,8 @@ export default function CIHHLightCard() {
   const [showCurtain, setShowCurtain] = useState(false);
   const [curtainDirection, setCurtainDirection] = useState<'night' | 'day'>('night');
   const [viewMode, setViewMode] = useState<'card' | 'web'>('card');
+  const [webCardIndex, setWebCardIndex] = useState(0);
+  const [webAudioCompleted, setWebAudioCompleted] = useState<Record<number, boolean>>({});
   const [cardIndex, setCardIndex] = useState(0);
   const [panelMode, setPanelMode] = useState('main');
   const [navDirection, setNavDirection] = useState(1)
@@ -299,9 +304,22 @@ export default function CIHHLightCard() {
   })
   const currentAdditionalContent = matchedAdditionalSection?.body || card.additional || ''
 
+  // ── Web view computed values ──
+  const webCards = cards.filter(c => !(c as any).final)
+  const webCard = (webCards[webCardIndex] ?? webCards[0]) as any
+  const webAudioUrl = webCard?.title ? findAudioForTitle(webCard.title) : null
+  const webHasAudio = Boolean(webAudioUrl)
+  const webNormTitle = normalizeText(webCard?.title ?? '')
+  const webMatchedSection = ADDITIONAL_SECTIONS.find(section => {
+    const ns = normalizeText(section.title)
+    return ns.includes(webNormTitle) || webNormTitle.includes(ns)
+  })
+  const webNarrationContent = webMatchedSection?.body || webCard?.additional || ''
+  const knowledgeCheckUnlocked = !webHasAudio || webAudioCompleted[webCardIndex]
+
   const dockItems = [
     { icon: <FileText className="w-5 h-5" />, label: 'Help', onClick: () => alert('Open help') },
-    { icon: viewMode === 'card' ? <LayoutGrid className="w-5 h-5" /> : <Layers className="w-5 h-5" />, label: viewMode === 'card' ? 'Web' : 'Card', onClick: () => { sfxClick(); setViewMode(prev => prev === 'card' ? 'web' : 'card'); }, isActive: viewMode === 'web' },
+    { icon: viewMode === 'card' ? <LayoutGrid className="w-5 h-5" /> : <Layers className="w-5 h-5" />, label: viewMode === 'card' ? 'Web' : 'Card', onClick: () => { sfxClick(); stopAudio(); setViewMode(prev => prev === 'card' ? 'web' : 'card'); }, isActive: viewMode === 'web' },
     { icon: <ShieldCheck className="w-5 h-5" />, label: debugMode ? 'QA: ON' : 'QA: OFF', onClick: () => setStatusMsg(prev => prev === 'QA: ON' ? 'QA: OFF' : 'QA: ON'), isActive: debugMode },
     { icon: isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />, label: isDarkMode ? 'Light' : 'Night', onClick: () => {
       const goingToNight = !isDarkMode;
@@ -325,6 +343,23 @@ export default function CIHHLightCard() {
       audioRef.current.currentTime = 0;
     }
     setIsPlaying(false)
+  }
+
+  const handleNarrationToggle = (e: React.SyntheticEvent<HTMLDetailsElement>) => {
+    const isOpen = e.currentTarget.open
+    if (isOpen && webAudioUrl) {
+      if (!audioRef.current) audioRef.current = new Audio()
+      audioRef.current.src = webAudioUrl
+      audioRef.current.onended = () => {
+        setIsPlaying(false)
+        setWebAudioCompleted(prev => ({ ...prev, [webCardIndex]: true }))
+      }
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {})
+    } else if (!isOpen) {
+      stopAudio()
+    }
   }
 
   const handleSubmitChallenge = () => {
@@ -473,13 +508,14 @@ export default function CIHHLightCard() {
   }
 
   useEffect(() => {
+    if (viewMode !== 'card') return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') handleNext()
       if (e.key === 'ArrowLeft') handleBack()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [cardIndex, panelMode])
+  }, [cardIndex, panelMode, viewMode])
 
   useEffect(() => {
     // Stop audio when card changes
@@ -503,8 +539,17 @@ export default function CIHHLightCard() {
     }
   }, [panelMode, cardIndex, hasAudio, audioUrl]);
 
+  // Stop audio when web card or view mode changes
+  useEffect(() => {
+    if (viewMode === 'web') stopAudio()
+  }, [webCardIndex])
+
+  useEffect(() => {
+    stopAudio()
+  }, [viewMode])
+
   return (
-    <div className={`night-transition min-h-screen bg-[radial-gradient(circle_at_top_right,_#FAFBF8_0%,_#D9D6D5_100%)] dark:bg-[radial-gradient(circle_at_top_right,_#020F10_0%,_#010808_100%)] text-[#1F1C1B] dark:text-[#FAFBF8] font-body p-4 md:p-8 flex items-center justify-center relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`night-transition min-h-screen bg-[radial-gradient(circle_at_top_right,_#FAFBF8_0%,_#D9D6D5_100%)] dark:bg-[radial-gradient(circle_at_top_right,_#020F10_0%,_#010808_100%)] text-[#1F1C1B] dark:text-[#FAFBF8] font-body p-4 md:p-8 flex ${viewMode === 'web' ? 'items-start overflow-y-auto' : 'items-center overflow-hidden'} justify-center relative ${isDarkMode ? 'dark' : ''}`}>
       <StyleInjector />
 
       {/* ── Cinematic edge-sweep overlay ── */}
@@ -728,177 +773,230 @@ export default function CIHHLightCard() {
         </AnimatePresence>
       </div>
       ) : (
-      /* ═══════════════════════════════════════════════════════ */
-      /*  WEB VIEW — scrollable full-page documentation layout */
-      /* ═══════════════════════════════════════════════════════ */
-      <div className="w-full max-w-[960px] relative z-10 py-8">
-        {/* Web view header */}
-        <header className="mb-12 flex justify-between items-end">
-          <div>
-            <p className="text-[#007970] dark:text-[#64F4F5] font-bold text-[1.059rem] tracking-widest uppercase mb-2 flex items-center gap-2">
-              <FileText className="w-4 h-4" /> CMS-485 Designer
-            </p>
-            <h1 className="font-heading text-[2.7225rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] tracking-tight leading-tight">
-              Course Overview
-            </h1>
-            <p className="text-[#747474] dark:text-[#D9D6D5] text-[1.1rem] mt-2">{cards.filter(c => !(c as any).final).length} modules &middot; Web View</p>
-          </div>
-          <img
-            className="h-[2.8rem] w-auto object-contain"
-            src={isDarkMode
-              ? "https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png"
-              : "https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_Gray.png"
-            }
-            alt="CareIndeed Logo"
-          />
-        </header>
+      /* ═══ WEB VIEW — one module per page ═══ */
+      <div className="w-full max-w-[960px] min-h-[1000px] relative z-10 py-4">
+        <AnimatePresence mode="wait" custom={navDirection}>
+          <motion.div
+            key={webCardIndex}
+            custom={navDirection}
+            variants={cardShellVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.55, ease: 'easeInOut' }}
+            className="relative w-full min-h-[900px] bg-white/0 dark:bg-[#020F10]/60 backdrop-blur-2xl rounded-[32px] shadow-[0_24px_60px_rgba(31,28,27,0.12)] dark:shadow-[0_24px_80px_rgba(0,10,10,0.75)] overflow-hidden flex flex-col border-l-[4.3px] border-l-[#C74601]"
+          >
+            {/* Header */}
+            <header className="px-8 pt-8 pb-4 flex justify-between items-end">
+              <div>
+                <p className="text-[#007970] dark:text-[#64F4F5] font-bold text-[1.059rem] tracking-widest uppercase mb-2 flex items-center gap-2">
+                  <FileText className="w-4 h-4" /> CMS-485 Designer
+                </p>
+                <p className="font-heading text-[2.7225rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] tracking-tight">
+                  Module {webCardIndex + 1} <span className="text-[#747474] dark:text-[#D9D6D5] text-[1.815rem]">/ {webCards.length}</span>
+                </p>
+              </div>
+              <img
+                className="h-[2.8rem] w-auto object-contain"
+                src={isDarkMode
+                  ? "https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png"
+                  : "https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_Gray.png"
+                }
+                alt="CareIndeed Logo"
+              />
+            </header>
 
-        {/* Module cards */}
-        <div className="space-y-10">
-          {cards.filter(c => !(c as any).final).map((webCard: any, idx: number) => {
-            const matchedSection = ADDITIONAL_SECTIONS.find(section => {
-              const normSection = normalizeText(section.title)
-              const normCard = normalizeText(webCard.title ?? '')
-              return normSection.includes(normCard) || normCard.includes(normSection)
-            })
-            const additionalBody = matchedSection?.body || webCard.additional || ''
+            {/* Progress dots */}
+            <div className="px-8 py-4 flex gap-3">
+              {webCards.map((_: any, i: number) => (
+                <div
+                  key={i}
+                  className={`h-2 rounded-full transition-all duration-500 ${
+                    i === webCardIndex
+                      ? 'w-12 bg-[#C74601] glow-orange'
+                      : i < webCardIndex
+                        ? 'w-6 bg-[#FFD5BF] dark:bg-[#021A1B]'
+                        : 'w-2 bg-[#E5E4E3] dark:bg-[#07282A]'
+                  }`}
+                />
+              ))}
+            </div>
 
-            return (
-              <motion.article
-                key={idx}
-                initial={{ opacity: 0, y: 32 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: idx * 0.08, ease: 'easeOut' }}
-                className="bg-white/0 dark:bg-[#020F10]/40 backdrop-blur-xl rounded-[28px] border-l-[4.3px] border-l-[#C74601] shadow-[0_12px_40px_rgba(31,28,27,0.08)] dark:shadow-[0_12px_40px_rgba(0,10,10,0.5)] overflow-hidden transition-all duration-300 hover:shadow-[0_20px_60px_rgba(31,28,27,0.16)] dark:hover:shadow-[0_20px_60px_rgba(0,10,10,0.65)]"
-              >
-                {/* Module header */}
-                <div className="px-8 pt-7 pb-4 border-b border-[#E5E4E3]/50 dark:border-[#07282A]/60">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-[#C74601] dark:text-[#E56E2E] text-[0.85rem] font-bold tracking-widest uppercase">
-                      {webCard.section}
-                    </p>
-                    <span className="text-[#D9D6D5] dark:text-[#07282A] text-[0.8rem] font-bold tracking-widest">MODULE {idx + 1}</span>
-                  </div>
-                  <h2 className="font-heading text-[1.6rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] leading-snug">
-                    {webCard.title}
-                  </h2>
+            {/* Content */}
+            <section className="px-8 pb-8 pt-4 flex-1 flex flex-col">
+              <p className="text-[#C74601] dark:text-[#E56E2E] text-[0.9075rem] font-bold tracking-widest uppercase mb-3 -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">
+                {webCard.section}
+              </p>
+              <h1 className="font-heading text-3xl md:text-4xl font-bold text-[#1F1C1B] dark:text-[#FAFBF8] mb-8 leading-tight -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">
+                {webCard.title}
+              </h1>
+
+              {/* Learning Objective */}
+              <div className="mb-6 bg-transparent rounded-[24px] p-6 -translate-y-[1px] hover:-translate-y-[2px] border-l-[3px] border-l-[#007970] dark:border-l-[#64F4F5] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_16px_-10px_rgba(0,121,112,0.3)] dark:shadow-[0_7px_17px_-5px_rgba(0,0,0,0.4),0_0_16px_-10px_rgba(100,244,245,0.15)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_28px_-6px_rgba(0,121,112,0.68)] dark:hover:shadow-[0_14px_34px_-10px_rgba(0,0,0,0.5),0_0_28px_-6px_rgba(100,244,245,0.35)] transition-all duration-300 hover:bg-white/[0.30] dark:hover:bg-white/[0.04]">
+                <h2 className="text-[#007970] dark:text-[#64F4F5] font-heading font-bold text-[1.3613rem] mb-2">Learning Objective</h2>
+                <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.3613rem]">{webCard.objective}</p>
+              </div>
+
+              {/* Key Points + Clinical Lens */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="bg-transparent rounded-[24px] p-6 -translate-y-[1px] hover:-translate-y-[2px] border-l-[3.3px] border-l-[#524048] dark:border-l-[#64F4F5] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_16px_-10px_rgba(82,64,72,0.3)] dark:shadow-[0_7px_17px_-5px_rgba(0,0,0,0.4),0_0_16px_-10px_rgba(217,214,213,0.12)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_28px_-6px_rgba(82,64,72,0.62)] dark:hover:shadow-[0_14px_34px_-10px_rgba(0,0,0,0.5),0_0_28px_-6px_rgba(217,214,213,0.25)] transition-all duration-300 hover:bg-white/[0.30] dark:hover:bg-white/[0.04]">
+                  <h2 className="text-[#747474] dark:text-[#D9D6D5] font-heading font-bold text-[1.059rem] uppercase tracking-widest mb-4 pb-2">Key Points</h2>
+                  <ul className="space-y-3 list-none">
+                    {webCard.bullets.map((b: string, i: number) => (
+                      <li key={i} className="text-[#524048] dark:text-[#FAFBF8] text-[1.21rem]">{b}</li>
+                    ))}
+                  </ul>
                 </div>
+                <div className="bg-transparent rounded-[24px] p-6 -translate-y-[1px] hover:-translate-y-[2px] border-l-[3.3px] border-l-[#C74601] dark:border-l-[#E56E2E] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_16px_-10px_rgba(199,70,1,0.35)] dark:shadow-[0_7px_17px_-5px_rgba(0,0,0,0.4),0_0_16px_-10px_rgba(229,110,46,0.15)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_28px_-6px_rgba(199,70,1,0.72)] dark:hover:shadow-[0_14px_34px_-10px_rgba(0,0,0,0.5),0_0_28px_-6px_rgba(229,110,46,0.35)] transition-all duration-300 hover:bg-white/[0.30] dark:hover:bg-white/[0.04]">
+                  <h2 className="text-[#C74601] dark:text-[#E56E2E] font-heading font-bold text-[1.059rem] uppercase tracking-widest mb-4 pb-2">Clinical Lens</h2>
+                  <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.21rem] leading-relaxed">Translate this concept into clear, patient-specific, defensible documentation language.</p>
+                </div>
+              </div>
 
-                {/* Content body */}
-                <div className="px-8 py-6 space-y-6">
-                  {/* Objective */}
-                  <div className="border-l-[3px] border-l-[#007970] dark:border-l-[#64F4F5] pl-5 py-1">
-                    <h3 className="text-[#007970] dark:text-[#64F4F5] font-heading font-bold text-[0.95rem] uppercase tracking-widest mb-1">Learning Objective</h3>
-                    <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.1rem] leading-relaxed">{webCard.objective}</p>
+              {/* ── Guided Narration (collapsed, auto-plays audio) ── */}
+              {(webHasAudio || webNarrationContent) && (
+              <details className="group mb-6" onToggle={handleNarrationToggle}>
+                <summary className="cursor-pointer select-none flex items-center gap-3 px-5 py-4 rounded-[16px] border-l-[3.3px] border-l-[#007970] dark:border-l-[#64F4F5] shadow-[0_5px_14px_-8px_rgba(31,28,27,0.15)] dark:shadow-[0_5px_14px_-8px_rgba(0,0,0,0.3)] hover:shadow-[0_10px_28px_-8px_rgba(0,121,112,0.4)] dark:hover:shadow-[0_10px_28px_-8px_rgba(100,244,245,0.2)] hover:bg-white/30 dark:hover:bg-white/[0.04] transition-all duration-300">
+                  <span className="inline-block transition-transform duration-200 group-open:rotate-90 text-[#007970] dark:text-[#64F4F5] text-xl font-bold">&rsaquo;</span>
+                  <span className="text-[#007970] dark:text-[#64F4F5] font-bold text-[0.95rem] tracking-widest uppercase">Guided Narration</span>
+                  {isPlaying && viewMode === 'web' && <span className="ml-auto text-[#007970] dark:text-[#64F4F5] text-xs tracking-wide animate-pulse flex items-center gap-1"><Play className="w-3 h-3 fill-current" /> Playing</span>}
+                  {webAudioCompleted[webCardIndex] && !isPlaying && <span className="ml-auto text-[#007970] dark:text-[#64F4F5] text-xs flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Completed</span>}
+                </summary>
+                <div className="mt-4 px-6 pb-2">
+                  <div className="border-l-[2px] border-l-[#E5E4E3] dark:border-l-[#07282A] pl-5">
+                    <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.15rem] leading-relaxed whitespace-pre-line">{webNarrationContent}</p>
                   </div>
-
-                  {/* Key Points + Clinical Lens side by side */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div className="border-l-[3px] border-l-[#524048] dark:border-l-[#64F4F5] pl-5 py-1">
-                      <h3 className="text-[#747474] dark:text-[#D9D6D5] font-heading font-bold text-[0.85rem] uppercase tracking-widest mb-3">Key Points</h3>
-                      <ul className="space-y-2 list-none">
-                        {webCard.bullets.map((b: string, bi: number) => (
-                          <li key={bi} className="text-[#524048] dark:text-[#FAFBF8] text-[1.02rem] leading-relaxed">{b}</li>
-                        ))}
-                      </ul>
+                  {webHasAudio && (
+                    <div className="mt-4 flex items-center gap-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (!audioRef.current) audioRef.current = new Audio()
+                          if (isPlaying) {
+                            audioRef.current.pause()
+                            setIsPlaying(false)
+                          } else if (webAudioUrl) {
+                            audioRef.current.src = webAudioUrl
+                            audioRef.current.onended = () => {
+                              setIsPlaying(false)
+                              setWebAudioCompleted(prev => ({ ...prev, [webCardIndex]: true }))
+                            }
+                            audioRef.current.play()
+                              .then(() => setIsPlaying(true))
+                              .catch(() => {})
+                          }
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-[10px] text-[#007970] dark:text-[#64F4F5] hover:bg-white/30 dark:hover:bg-white/[0.06] transition-all duration-200"
+                      >
+                        {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+                        <span className="text-sm font-bold tracking-wide">{isPlaying ? 'Pause' : 'Resume'}</span>
+                      </button>
                     </div>
-                    <div className="border-l-[3px] border-l-[#C74601] dark:border-l-[#E56E2E] pl-5 py-1">
-                      <h3 className="text-[#C74601] dark:text-[#E56E2E] font-heading font-bold text-[0.85rem] uppercase tracking-widest mb-3">Clinical Lens</h3>
-                      <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.02rem] leading-relaxed">Translate this concept into clear, patient-specific, defensible documentation language.</p>
-                    </div>
-                  </div>
-
-                  {/* Additional content (collapsed) */}
-                  {additionalBody && (
-                    <details className="group">
-                      <summary className="cursor-pointer text-[#007970] dark:text-[#64F4F5] font-bold text-[0.9rem] tracking-widest uppercase flex items-center gap-2 select-none hover:text-[#005E57] dark:hover:text-[#C4F4F5] transition-colors">
-                        <span className="inline-block transition-transform duration-200 group-open:rotate-90">&rsaquo;</span>
-                        Additional Content
-                      </summary>
-                      <div className="mt-3 pl-4 border-l-[2px] border-l-[#E5E4E3] dark:border-l-[#07282A]">
-                        <p className="text-[#524048] dark:text-[#D9D6D5] text-[1rem] leading-relaxed whitespace-pre-line">{additionalBody}</p>
-                      </div>
-                    </details>
                   )}
-
-                  {/* Challenge */}
-                  <details className="group">
-                    <summary className="cursor-pointer text-[#C74601] dark:text-[#E56E2E] font-bold text-[0.9rem] tracking-widest uppercase flex items-center gap-2 select-none hover:text-[#E56E2E] dark:hover:text-[#FFD5BF] transition-colors">
-                      <span className="inline-block transition-transform duration-200 group-open:rotate-90">&rsaquo;</span>
-                      Knowledge Check
-                    </summary>
-                    <div className="mt-4 space-y-2">
-                      {webCard.challenge.map((opt: ChallengeOption, oi: number) => {
-                        const wKey = idx
-                        const wSelected = (selectedAnswers[wKey] ?? null) === oi
-                        const wSubmitted = Boolean(submittedAnswers[wKey])
-                        const wCorrect = wSubmitted && wSelected && (() => { const sel = selectedAnswers[wKey]; const opts = webCard.challenge as ChallengeOption[]; return sel !== undefined && sel !== null && opts?.[sel]?.isCorrect === true; })()
-                        const wWrong = wSubmitted && wSelected && !wCorrect
-
-                        return (
-                          <button
-                            key={oi}
-                            disabled={wSubmitted}
-                            onClick={() => { sfxClick(); setSelectedAnswers(prev => ({ ...prev, [wKey]: oi })); }}
-                            className={`w-full text-left px-4 py-3 rounded-[12px] transition-all duration-200 flex items-start gap-3 border-l-[3px] ${
-                              wCorrect ? 'border-l-[#00BFB4] bg-[#E5FEFF]/40 dark:bg-[#004142]/20' :
-                              wWrong ? 'border-l-[#D70101] bg-[#FBE6E6]/30 dark:bg-[#3D0000]/20' :
-                              wSelected ? 'border-l-[#00BFB4] bg-[#E5FEFF]/20 dark:bg-[#004142]/10' :
-                              'border-l-[#E5E4E3] dark:border-l-[#07282A] hover:border-l-[#007970] dark:hover:border-l-[#64F4F5] hover:bg-white/30 dark:hover:bg-white/[0.03]'
-                            }`}
-                          >
-                            <div className="mt-0.5 w-4 h-4 flex-shrink-0 flex items-center justify-center">
-                              {wCorrect && <CheckCircle2 className="w-4 h-4 text-[#007970] dark:text-[#64F4F5]" />}
-                              {wWrong && <XCircle className="w-4 h-4 text-[#D70101] dark:text-[#FBE6E6]" />}
-                            </div>
-                            <span className={`text-[1rem] leading-relaxed ${
-                              wCorrect ? 'text-[#004142] dark:text-[#C4F4F5] font-semibold' :
-                              wWrong ? 'text-[#D70101] dark:text-[#FBE6E6]' :
-                              wSelected ? 'text-[#1F1C1B] dark:text-[#FAFBF8] font-medium' :
-                              'text-[#524048] dark:text-[#D9D6D5]'
-                            }`}>{opt.text}</span>
-                          </button>
-                        )
-                      })}
-                      <div className="flex items-center gap-4 mt-3">
-                        <button
-                          onClick={() => { sfxClick(); setSubmittedAnswers(prev => ({ ...prev, [idx]: true })); }}
-                          disabled={Boolean(submittedAnswers[idx]) || selectedAnswers[idx] === undefined || selectedAnswers[idx] === null}
-                          className={`px-5 py-2 rounded-[10px] text-[0.95rem] font-bold tracking-wide transition-all duration-200 ${
-                            !submittedAnswers[idx] && selectedAnswers[idx] !== undefined && selectedAnswers[idx] !== null
-                              ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] glow-orange hover:-translate-y-0.5'
-                              : 'bg-[#E5E4E3] dark:bg-[#07282A] text-[#747474] dark:text-[#D9D6D5] cursor-not-allowed'
-                          }`}
-                        >Submit</button>
-                        {submittedAnswers[idx] && (
-                          <span className={`text-[0.95rem] font-bold flex items-center gap-1.5 ${
-                            (() => { const sel = selectedAnswers[idx]; const opts = webCard.challenge as ChallengeOption[]; return sel !== undefined && sel !== null && opts?.[sel]?.isCorrect === true; })() ? 'text-[#007970] dark:text-[#64F4F5]' : 'text-[#D70101] dark:text-[#FBE6E6]'
-                          }`}>
-                            {(() => { const sel = selectedAnswers[idx]; const opts = webCard.challenge as ChallengeOption[]; return sel !== undefined && sel !== null && opts?.[sel]?.isCorrect === true; })() ? <><CheckCircle2 className="w-4 h-4"/> Correct</> : <><XCircle className="w-4 h-4"/> Incorrect</>}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </details>
                 </div>
-              </motion.article>
-            )
-          })}
-        </div>
+              </details>
+              )}
 
-        {/* Completion footer */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: cards.filter(c => !(c as any).final).length * 0.08 + 0.1 }}
-          className="mt-16 mb-8 text-center"
-        >
-          <div className="w-16 h-16 rounded-full bg-[#E5FEFF] dark:bg-[#004142] flex items-center justify-center glow-teal mx-auto mb-4">
-            <Check className="w-8 h-8 text-[#007970] dark:text-[#64F4F5]" />
-          </div>
-          <h2 className="font-heading text-[1.6rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8]">End of Modules</h2>
-          <p className="text-[#747474] dark:text-[#D9D6D5] text-[1.05rem] mt-2">Review any section above or switch to Card View for guided navigation.</p>
-        </motion.div>
+              {/* ── Knowledge Check (locked until narration complete) ── */}
+              <details className={`group mb-8 ${!knowledgeCheckUnlocked ? 'pointer-events-none' : ''}`}>
+                <summary className={`cursor-pointer select-none flex items-center gap-3 px-5 py-4 rounded-[16px] border-l-[3.3px] transition-all duration-300 ${
+                  knowledgeCheckUnlocked
+                    ? 'border-l-[#C74601] dark:border-l-[#E56E2E] shadow-[0_5px_14px_-8px_rgba(31,28,27,0.15)] dark:shadow-[0_5px_14px_-8px_rgba(0,0,0,0.3)] hover:shadow-[0_10px_28px_-8px_rgba(199,70,1,0.35)] dark:hover:shadow-[0_10px_28px_-8px_rgba(229,110,46,0.2)] hover:bg-white/30 dark:hover:bg-white/[0.04]'
+                    : 'border-l-[#E5E4E3] dark:border-l-[#07282A] opacity-40'
+                }`}>
+                  {knowledgeCheckUnlocked
+                    ? <span className="inline-block transition-transform duration-200 group-open:rotate-90 text-[#C74601] dark:text-[#E56E2E] text-xl font-bold">&rsaquo;</span>
+                    : <Lock className="w-4 h-4 text-[#747474] dark:text-[#D9D6D5]" />
+                  }
+                  <span className={`font-bold text-[0.95rem] tracking-widest uppercase ${knowledgeCheckUnlocked ? 'text-[#C74601] dark:text-[#E56E2E]' : 'text-[#747474] dark:text-[#D9D6D5]'}`}>Knowledge Check</span>
+                  {!knowledgeCheckUnlocked && <span className="ml-2 text-[#747474] dark:text-[#D9D6D5] text-xs normal-case tracking-normal font-normal">Complete narration to unlock</span>}
+                </summary>
+                {knowledgeCheckUnlocked && (
+                  <div className="mt-4 px-4 pb-2 space-y-3">
+                    <p className="text-[#524048] dark:text-[#D9D6D5] mb-4 text-[1.21rem]">Which response best aligns with this module's objective?</p>
+                    {webCard.challenge.map((opt: ChallengeOption, oi: number) => {
+                      const wSel = (selectedAnswers[webCardIndex] ?? null) === oi
+                      const wSub = Boolean(submittedAnswers[webCardIndex])
+                      const wIsCorrect = wSub && wSel && isCorrect(webCardIndex)
+                      const wIsWrong = wSub && wSel && !isCorrect(webCardIndex)
+                      return (
+                        <button
+                          key={oi}
+                          disabled={wSub}
+                          onClick={() => { sfxClick(); setSelectedAnswers(prev => ({ ...prev, [webCardIndex]: oi })); }}
+                          className={`w-full text-left p-5 rounded-[16px] transition-all duration-300 flex items-start gap-4 bg-transparent border-l-[3.3px] ${
+                            wIsCorrect || wIsWrong || wSel ? 'border-l-[#00BFB4]' : 'border-l-[#747474] dark:border-l-[#07282A] hover:border-l-[#007970] dark:hover:border-l-[#64F4F5]'
+                          } shadow-[0_6px_14px_-10px_rgba(31,28,27,0.2)] dark:shadow-[0_6px_14px_-10px_rgba(0,0,0,0.4)] hover:bg-white/[0.30] dark:hover:bg-white/[0.04] hover:shadow-[0_0_26px_-6px_rgba(0,121,112,0.62),0_12px_26px_-12px_rgba(31,28,27,0.28)] dark:hover:shadow-[0_0_26px_-6px_rgba(100,244,245,0.35),0_12px_26px_-12px_rgba(0,0,0,0.5)] ${
+                            wIsCorrect ? 'glow-teal' : ''
+                          }`}
+                        >
+                          <div className={`mt-0.5 w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center ${
+                            wIsCorrect ? 'text-[#007970] dark:text-[#64F4F5] bg-transparent' :
+                            wIsWrong ? 'text-[#D70101] dark:text-[#FBE6E6] bg-transparent' : 'bg-transparent'
+                          }`}>
+                            {wIsCorrect && <CheckCircle2 className="w-4 h-4" />}
+                            {wIsWrong && <XCircle className="w-4 h-4" />}
+                          </div>
+                          <span className={`text-[18.15px] leading-relaxed ${
+                            wIsCorrect ? 'text-[#004142] dark:text-[#C4F4F5] font-semibold' :
+                            wIsWrong ? 'text-[#D70101] dark:text-[#FBE6E6]' :
+                            wSel ? 'text-[#421700] dark:text-[#FFD5BF] font-medium' : 'text-[#524048] dark:text-[#D9D6D5]'
+                          }`}>{opt.text}</span>
+                        </button>
+                      )
+                    })}
+                    <div className="mt-6 flex items-center justify-between">
+                      <button
+                        onClick={() => { sfxClick(); setSubmittedAnswers(prev => ({ ...prev, [webCardIndex]: true })); }}
+                        disabled={Boolean(submittedAnswers[webCardIndex]) || selectedAnswers[webCardIndex] === undefined || selectedAnswers[webCardIndex] === null}
+                        className={`px-8 py-3 rounded-[12px] text-[1.1rem] font-bold tracking-wide transition-all duration-300 ${
+                          !submittedAnswers[webCardIndex] && selectedAnswers[webCardIndex] !== undefined && selectedAnswers[webCardIndex] !== null
+                            ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] glow-orange hover:-translate-y-0.5'
+                            : 'bg-[#E5E4E3] dark:bg-[#07282A] text-[#747474] dark:text-[#D9D6D5] cursor-not-allowed'
+                        }`}
+                      >Submit</button>
+                      {submittedAnswers[webCardIndex] && (
+                        <p className={`text-[1.21rem] font-bold flex items-center gap-2 ${isCorrect(webCardIndex) ? 'text-[#007970] dark:text-[#64F4F5]' : 'text-[#D70101] dark:text-[#FBE6E6]'}`}>
+                          {isCorrect(webCardIndex) ? <><CheckCircle2 className="w-5 h-5"/> Correct &mdash; great job.</> : <><XCircle className="w-5 h-5"/> Incorrect &mdash; review before advancing.</>}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </details>
+
+              {/* Navigation */}
+              <div className="flex items-center justify-between mt-auto pt-6 border-t border-[#E5E4E3]/30 dark:border-[#07282A]/50">
+                <button
+                  onClick={() => { sfxSwipe(); setNavDirection(-1); setWebCardIndex(prev => prev - 1); }}
+                  disabled={webCardIndex === 0}
+                  className="flex items-center gap-2 px-6 py-3 rounded-[12px] text-[1rem] font-bold tracking-wide transition-all duration-300 text-[#524048] dark:text-[#D9D6D5] hover:bg-white/30 dark:hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" /> Previous
+                </button>
+                {webCardIndex < webCards.length - 1 ? (
+                  <button
+                    onClick={() => { sfxSwipe(); setNavDirection(1); setWebCardIndex(prev => prev + 1); }}
+                    disabled={!submittedAnswers[webCardIndex]}
+                    className={`flex items-center gap-2 px-6 py-3 rounded-[12px] text-[1rem] font-bold tracking-wide transition-all duration-300 ${
+                      submittedAnswers[webCardIndex]
+                        ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] glow-orange hover:-translate-y-0.5'
+                        : 'bg-[#E5E4E3] dark:bg-[#07282A] text-[#747474] dark:text-[#D9D6D5] cursor-not-allowed'
+                    }`}
+                  >
+                    Next Module <ChevronRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  submittedAnswers[webCardIndex] && (
+                    <div className="flex items-center gap-2 text-[#007970] dark:text-[#64F4F5] font-bold text-[1rem]">
+                      <Check className="w-5 h-5" /> All Modules Complete
+                    </div>
+                  )
+                )}
+              </div>
+            </section>
+          </motion.div>
+        </AnimatePresence>
       </div>
       )}
       {/* Dock (center-left) */}
