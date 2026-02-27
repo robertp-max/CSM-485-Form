@@ -4,7 +4,7 @@ import { sfxClick, sfxSwipe, sfxModeToggle } from '../../utils/sfx';
 import {
   Play, Pause, Swords, ArrowRight, Volume2,
   CheckCircle2, XCircle,
-  ShieldCheck, FileText, Activity, Check,
+  ShieldCheck, FileText, Check,
   Moon, Sun, Layers, Lock, ChevronLeft, ChevronRight, ChevronDown, BookOpen,
   Home, Settings, LayoutGrid, HeartPulse, GraduationCap
 } from 'lucide-react';
@@ -325,6 +325,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
   const pointerCurrentY = useRef<number | null>(null)
 
   const [showChallengeOverlay, setShowChallengeOverlay] = useState<'layout' | 'henderson' | null>(null)
+  const [audioTested, setAudioTested] = useState(false)
   const [introCompleted, setIntroCompleted] = useState<Record<string, boolean>>(() => {
     try {
       const stored = localStorage.getItem(GATING_KEY)
@@ -394,7 +395,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
 
   const dockItems = [
     { icon: <FileText className="w-5 h-5" />, label: 'Help', onClick: () => alert('Open help') },
-    { icon: viewMode === 'card' ? <BookOpen className="w-5 h-5" /> : <Layers className="w-5 h-5" />, label: viewMode === 'card' ? 'Book' : 'Card', onClick: () => { sfxClick(); stopAudio(); setViewMode(prev => prev === 'card' ? 'web' : 'card'); }, isActive: viewMode === 'web' },
+    ...(!isOnIntroCard ? [{ icon: viewMode === 'card' ? <BookOpen className="w-5 h-5" /> : <Layers className="w-5 h-5" />, label: viewMode === 'card' ? 'Book' : 'Card', onClick: () => { sfxClick(); stopAudio(); setViewMode(prev => prev === 'card' ? 'web' : 'card'); }, isActive: viewMode === 'web' }] : []),
     { icon: <ShieldCheck className="w-5 h-5" />, label: debugMode ? 'QA: ON' : 'QA: OFF', onClick: () => setStatusMsg(prev => prev === 'QA: ON' ? 'QA: OFF' : 'QA: ON'), isActive: debugMode },
     { icon: isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />, label: isDarkMode ? 'Light' : 'Night', onClick: () => {
       const goingToNight = !isDarkMode;
@@ -405,16 +406,11 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
       setTimeout(() => setIsDarkMode(prev => !prev), 500);
       setTimeout(() => setShowCurtain(false), 2000);
     }, isActive: isDarkMode },
-    { icon: <Activity className="w-5 h-5" />, label: 'Top', onClick: () => {
-      setNavDirection(cardIndex > 0 ? -1 : 1)
-      setCardIndex(0)
-      setPanelMode('main')
-    } },
-    { icon: <Home className="w-5 h-5" />, label: 'Welcome', onClick: () => { sfxClick(); setNavDirection(cardIndex > 0 ? -1 : 1); setCardIndex(0); setPanelMode('main'); } },
-    { icon: <Settings className="w-5 h-5" />, label: 'Calibrate', onClick: () => { sfxClick(); setNavDirection(cardIndex > 1 ? -1 : 1); setCardIndex(1); setPanelMode('main'); } },
-    { icon: <LayoutGrid className="w-5 h-5" />, label: 'Layout', onClick: () => { sfxClick(); setNavDirection(cardIndex > 2 ? -1 : 1); setCardIndex(2); setPanelMode('main'); } },
-    { icon: <HeartPulse className="w-5 h-5" />, label: 'Henderson', onClick: () => { sfxClick(); setNavDirection(cardIndex > 3 ? -1 : 1); setCardIndex(3); setPanelMode('main'); } },
-    { icon: <GraduationCap className="w-5 h-5" />, label: 'Courses', onClick: () => { sfxClick(); setNavDirection(cardIndex > 4 ? -1 : 1); setCardIndex(4); setPanelMode('main'); } },
+    { icon: <Home className="w-5 h-5" />, label: 'Welcome', onClick: () => { sfxClick(); setNavDirection(cardIndex > 0 ? -1 : 1); setCardIndex(0); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
+    { icon: <Settings className="w-5 h-5" />, label: 'Calibrate', onClick: () => { sfxClick(); setNavDirection(cardIndex > 1 ? -1 : 1); setCardIndex(1); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
+    { icon: <LayoutGrid className="w-5 h-5" />, label: 'Layout', onClick: () => { sfxClick(); setNavDirection(cardIndex > 2 ? -1 : 1); setCardIndex(2); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
+    { icon: <HeartPulse className="w-5 h-5" />, label: 'Henderson', onClick: () => { sfxClick(); setNavDirection(cardIndex > 3 ? -1 : 1); setCardIndex(3); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
+    { icon: <GraduationCap className="w-5 h-5" />, label: 'Courses', onClick: () => { sfxClick(); setNavDirection(cardIndex > 4 ? -1 : 1); setCardIndex(4); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
   ];
 
   const stopAudio = () => {
@@ -492,6 +488,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
       osc.connect(gain).connect(ctx.destination)
       osc.start()
       osc.stop(ctx.currentTime + 0.25)
+      setAudioTested(true)
     } catch {}
   }
 
@@ -735,7 +732,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
         </div>
       )}
 
-      {viewMode === 'card' ? (
+      {(viewMode === 'card' || isOnIntroCard) ? (
       <div className="w-full max-w-[1200px] min-h-[1000px] relative z-10">
         <AnimatePresence mode="wait" custom={navDirection}>
           <motion.div
@@ -816,184 +813,225 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
               /* ── INTRO CARD CONTENT ── */
               <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
 
-                {/* ── Welcome Card ── */}
+                {/* ── 1. Welcome Banner ── */}
                 {card.intro === 'welcome' && (
-                  <div className="space-y-8 max-w-2xl">
-                    <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#E5FEFF] dark:bg-[#002B2C] border border-[#C4F4F5] dark:border-[#007970] text-[#007970] dark:text-[#64F4F5] text-xs font-bold uppercase tracking-[0.16em]">
-                      <BookOpen className="w-4 h-4" /> CMS-485 Master Challenge
+                  <div className="space-y-10 max-w-2xl w-full">
+                    <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#E5FEFF] dark:bg-[#002B2C] border border-[#C4F4F5] dark:border-[#007970] text-[#007970] dark:text-[#64F4F5] text-[0.75rem] font-bold uppercase tracking-[0.18em]">
+                      <BookOpen className="w-4 h-4" /> CMS-485 Documentation Module
                     </div>
-                    <h1 className="font-heading text-[2.7rem] md:text-[3.4rem] font-bold tracking-tight leading-[1.1]">
-                      Master the{' '}
-                      <span className="bg-gradient-to-r from-[#007970] to-[#64F4F5] bg-clip-text text-transparent">Plan of Care</span>
-                    </h1>
-                    <p className="text-[#524048] dark:text-[#D9D6D5] text-lg leading-relaxed font-light max-w-xl mx-auto">
-                      Welcome to CareIndeed&apos;s CMS-485 clinical documentation training.
-                      Complete the onboarding steps, then dive into lessons, challenges, and assessments.
-                    </p>
-                    <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
+                    <div className="space-y-5">
+                      <h1 className="font-heading text-[2.8rem] md:text-[3.6rem] font-bold tracking-tight leading-[1.08]">
+                        Master the{' '}
+                        <span className="bg-gradient-to-r from-[#007970] via-[#00A89D] to-[#64F4F5] bg-clip-text text-transparent">Plan of Care</span>
+                      </h1>
+                      <p className="text-[#524048] dark:text-[#D9D6D5] text-[1.15rem] leading-[1.7] font-light max-w-lg mx-auto">
+                        CareIndeed&apos;s clinical documentation training platform. Build mastery through guided lessons, real&#8209;world challenges, and competency assessments.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
                       {[
-                        { Icon: FileText, label: 'Card & Book Views' },
-                        { Icon: ShieldCheck, label: 'Systems Calibration' },
-                        { Icon: HeartPulse, label: 'Henderson Challenge' },
-                        { Icon: LayoutGrid, label: 'Layout Challenge' },
+                        { Icon: Settings, label: 'Environment Setup', desc: 'Personalize theme & audio' },
+                        { Icon: LayoutGrid, label: 'Form Mastery', desc: 'CMS-485 structure challenge' },
+                        { Icon: HeartPulse, label: 'Clinical Scenario', desc: 'Henderson patient case study' },
+                        { Icon: GraduationCap, label: 'Training Paths', desc: 'Card, Book & Interactive' },
                       ].map((h, i) => (
-                        <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/40 dark:bg-white/[0.04] border border-[#E5E4E3] dark:border-[#07282A] text-left">
-                          <h.Icon className="w-5 h-5 text-[#007970] dark:text-[#64F4F5] flex-shrink-0" />
-                          <span className="text-sm font-medium">{h.label}</span>
+                        <div key={i} className="group flex items-start gap-3.5 p-4 rounded-2xl bg-white/50 dark:bg-white/[0.03] border border-[#E5E4E3] dark:border-[#07282A] hover:border-[#007970]/30 dark:hover:border-[#64F4F5]/20 hover:shadow-[0_6px_24px_rgba(0,121,112,0.08)] transition-all duration-300 text-left">
+                          <div className="w-10 h-10 rounded-xl bg-[#E5FEFF] dark:bg-[#002B2C] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                            <h.Icon className="w-5 h-5 text-[#007970] dark:text-[#64F4F5]" />
+                          </div>
+                          <div>
+                            <p className="font-heading font-semibold text-[0.92rem] mb-0.5">{h.label}</p>
+                            <p className="text-[0.8rem] text-[#747474] dark:text-[#D9D6D5] leading-snug">{h.desc}</p>
+                          </div>
                         </div>
                       ))}
                     </div>
-                    <button
-                      onClick={handleNext}
-                      className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#007970] hover:bg-[#006059] dark:bg-[#64F4F5] dark:hover:bg-[#C4F4F5] dark:text-[#010809] text-white font-bold text-lg tracking-wide transition-all duration-300 hover:-translate-y-1 glow-teal"
-                    >
-                      Begin Training <ArrowRight className="w-5 h-5" />
-                    </button>
-                    <p className="text-sm text-[#747474] dark:text-[#D9D6D5]">Estimated time: 25–35 minutes</p>
+                    <div className="pt-2 space-y-3">
+                      <button onClick={handleNext} className="group inline-flex items-center gap-3 px-12 py-[18px] rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-lg tracking-wide transition-all duration-300 hover:-translate-y-1 shadow-[0_12px_40px_rgba(0,121,112,0.25)] hover:shadow-[0_18px_50px_rgba(0,121,112,0.35)]">
+                        Begin Training <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </button>
+                      <p className="text-[0.82rem] text-[#747474] dark:text-[#D9D6D5]">25-35 min &middot; 5 onboarding steps</p>
+                    </div>
+                    <div className="flex items-center justify-center gap-5 text-[0.72rem] text-[#747474] dark:text-[#D9D6D5] tracking-widest uppercase pt-2">
+                      <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-[#007970] dark:text-[#64F4F5]" /> HIPAA Compliant</span>
+                      <span className="h-3 w-px bg-[#D9D6D5] dark:bg-[#07282A]" />
+                      <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-[#007970] dark:text-[#64F4F5]" /> SCORM Compatible</span>
+                      <span className="h-3 w-px bg-[#D9D6D5] dark:bg-[#07282A]" />
+                      <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-[#007970] dark:text-[#64F4F5]" /> CareIndeed Certified</span>
+                    </div>
                   </div>
                 )}
 
-                {/* ── Calibration Card ── */}
+                {/* ── 2. Systems Calibration ── */}
                 {card.intro === 'calibration' && (
-                  <div className="space-y-6 max-w-lg w-full">
-                    <div className="w-20 h-20 rounded-full bg-[#E5FEFF] dark:bg-[#002B2C] flex items-center justify-center glow-teal mx-auto">
+                  <div className="space-y-8 max-w-md w-full">
+                    <div className="w-20 h-20 rounded-2xl bg-[#E5FEFF] dark:bg-[#002B2C] flex items-center justify-center mx-auto shadow-[0_8px_24px_rgba(0,121,112,0.12)]">
                       <Settings className="w-10 h-10 text-[#007970] dark:text-[#64F4F5]" />
                     </div>
-                    <h2 className="font-heading text-2xl font-bold">Systems Calibration</h2>
-                    <p className="text-[#524048] dark:text-[#D9D6D5] text-lg">
-                      Configure your learning environment before continuing.
-                    </p>
+                    <div className="space-y-2">
+                      <h2 className="font-heading text-[1.8rem] font-bold">Configure Your Environment</h2>
+                      <p className="text-[#524048] dark:text-[#D9D6D5] text-base max-w-sm mx-auto">Personalize your learning experience before starting the training modules.</p>
+                    </div>
                     <div className="space-y-3 text-left">
-                      <div className="flex items-center justify-between p-4 rounded-xl border border-[#E5E4E3] dark:border-[#07282A] bg-white/30 dark:bg-white/[0.03]">
-                        <div className="flex items-center gap-3">
+                      {/* Theme selection */}
+                      <div className="p-5 rounded-2xl border border-[#E5E4E3] dark:border-[#07282A] bg-white/40 dark:bg-white/[0.02] hover:border-[#007970]/30 dark:hover:border-[#64F4F5]/20 transition-all duration-300">
+                        <div className="flex items-center gap-3 mb-3">
                           {isDarkMode ? <Moon className="w-5 h-5 text-[#64F4F5]" /> : <Sun className="w-5 h-5 text-[#C74601]" />}
-                          <span className="font-medium">Display Mode</span>
+                          <div>
+                            <p className="font-heading font-semibold text-[0.95rem]">Display Theme</p>
+                            <p className="text-[0.78rem] text-[#747474] dark:text-[#D9D6D5]">Choose your preferred visual mode</p>
+                          </div>
                         </div>
-                        <button
-                          onClick={() => {
-                            const goingToNight = !isDarkMode;
-                            sfxModeToggle(goingToNight);
-                            setCurtainDirection(goingToNight ? 'night' : 'day');
-                            setShowCurtain(true);
-                            setModeTransitionKey(k => k + 1);
-                            setTimeout(() => setIsDarkMode(prev => !prev), 500);
-                            setTimeout(() => setShowCurtain(false), 2000);
-                          }}
-                          className="px-4 py-2 rounded-lg bg-[#007970] dark:bg-[#64F4F5] text-white dark:text-[#010809] text-sm font-bold hover:opacity-90 transition-opacity"
-                        >
-                          {isDarkMode ? 'Night Mode' : 'Light Mode'}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => { if (isDarkMode) { sfxModeToggle(false); setCurtainDirection('day'); setShowCurtain(true); setModeTransitionKey(k => k + 1); setTimeout(() => setIsDarkMode(false), 500); setTimeout(() => setShowCurtain(false), 2000); } }}
+                            className={`flex-1 py-2.5 rounded-xl text-sm font-bold tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${!isDarkMode ? 'bg-[#007970] text-white shadow-[0_4px_16px_rgba(0,121,112,0.25)]' : 'bg-transparent border border-[#07282A] text-[#D9D6D5] hover:border-[#64F4F5]'}`}
+                          >
+                            <Sun className="w-4 h-4" />Light
+                          </button>
+                          <button
+                            onClick={() => { if (!isDarkMode) { sfxModeToggle(true); setCurtainDirection('night'); setShowCurtain(true); setModeTransitionKey(k => k + 1); setTimeout(() => setIsDarkMode(true), 500); setTimeout(() => setShowCurtain(false), 2000); } }}
+                            className={`flex-1 py-2.5 rounded-xl text-sm font-bold tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${isDarkMode ? 'bg-[#64F4F5] text-[#010809] shadow-[0_4px_16px_rgba(100,244,245,0.25)]' : 'bg-transparent border border-[#E5E4E3] text-[#747474] hover:border-[#007970]'}`}
+                          >
+                            <Moon className="w-4 h-4" />Night
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between p-4 rounded-xl border border-[#E5E4E3] dark:border-[#07282A] bg-white/30 dark:bg-white/[0.03]">
-                        <div className="flex items-center gap-3">
-                          {viewMode === 'card' ? <Layers className="w-5 h-5 text-[#007970] dark:text-[#64F4F5]" /> : <BookOpen className="w-5 h-5 text-[#007970] dark:text-[#64F4F5]" />}
-                          <span className="font-medium">Layout Style</span>
+                      {/* Audio verification */}
+                      <div className="p-5 rounded-2xl border border-[#E5E4E3] dark:border-[#07282A] bg-white/40 dark:bg-white/[0.02] hover:border-[#007970]/30 dark:hover:border-[#64F4F5]/20 transition-all duration-300">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Volume2 className="w-5 h-5 text-[#007970] dark:text-[#64F4F5]" />
+                            <div>
+                              <p className="font-heading font-semibold text-[0.95rem]">Audio Verification</p>
+                              <p className="text-[0.78rem] text-[#747474] dark:text-[#D9D6D5]">Confirm speakers or headphones</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={handleTestAudioInline}
+                            className={`px-4 py-2 rounded-xl text-sm font-bold tracking-wide transition-all duration-300 ${audioTested ? 'bg-[#E5FEFF] dark:bg-[#002B2C] text-[#007970] dark:text-[#64F4F5] border border-[#C4F4F5] dark:border-[#007970]' : 'bg-[#007970] dark:bg-[#64F4F5] text-white dark:text-[#010809] hover:opacity-90'}`}
+                          >
+                            {audioTested ? <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" />Verified</span> : <span className="flex items-center gap-1.5"><Volume2 className="w-4 h-4" />Test</span>}
+                          </button>
                         </div>
-                        <button onClick={() => { sfxClick(); setViewMode(prev => prev === 'card' ? 'web' : 'card'); }} className="px-4 py-2 rounded-lg bg-[#007970] dark:bg-[#64F4F5] text-white dark:text-[#010809] text-sm font-bold hover:opacity-90 transition-opacity">
-                          {viewMode === 'card' ? 'Card View' : 'Book View'}
-                        </button>
-                      </div>
-                      <div className="flex items-center justify-between p-4 rounded-xl border border-[#E5E4E3] dark:border-[#07282A] bg-white/30 dark:bg-white/[0.03]">
-                        <div className="flex items-center gap-3">
-                          <Volume2 className="w-5 h-5 text-[#007970] dark:text-[#64F4F5]" />
-                          <span className="font-medium">Audio Check</span>
-                        </div>
-                        <button onClick={handleTestAudioInline} className="px-4 py-2 rounded-lg bg-[#007970] dark:bg-[#64F4F5] text-white dark:text-[#010809] text-sm font-bold hover:opacity-90 transition-opacity">
-                          Test Audio
-                        </button>
                       </div>
                     </div>
-                    <button
-                      onClick={handleNext}
-                      className="inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] dark:bg-[#64F4F5] dark:hover:bg-[#C4F4F5] dark:text-[#010809] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal"
-                    >
-                      Continue <ArrowRight className="w-5 h-5" />
+                    <button onClick={handleNext} className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(0,121,112,0.25)] hover:shadow-[0_18px_44px_rgba(0,121,112,0.3)]">
+                      Continue <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </button>
                   </div>
                 )}
 
-                {/* ── Layout Challenge Card ── */}
+                {/* ── 3. Layout Challenge ── */}
                 {card.intro === 'layout-challenge' && (
-                  <div className="space-y-8 max-w-lg">
-                    <div className="w-20 h-20 rounded-full bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.15)] flex items-center justify-center glow-orange mx-auto">
+                  <div className="space-y-8 max-w-lg w-full">
+                    <div className="w-20 h-20 rounded-2xl bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.12)] flex items-center justify-center mx-auto shadow-[0_8px_24px_rgba(199,70,1,0.15)]">
                       <LayoutGrid className="w-10 h-10 text-[#C74601] dark:text-[#E56E2E]" />
                     </div>
-                    <h2 className="font-heading text-2xl font-bold">Layout Challenge</h2>
-                    <p className="text-[#524048] dark:text-[#D9D6D5] text-lg leading-relaxed">
-                      Test your understanding of the CMS-485 form structure. Identify key sections, fields, and documentation requirements.
-                    </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-center gap-3">
+                        <span className="px-3 py-1 rounded-full text-[0.7rem] font-bold uppercase tracking-wider bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.12)] text-[#C74601] dark:text-[#E56E2E] border border-[#FFD5BF] dark:border-[rgba(199,70,1,0.3)]">Competency Check</span>
+                        <span className="px-3 py-1 rounded-full text-[0.7rem] font-bold uppercase tracking-wider bg-white/50 dark:bg-white/[0.04] text-[#747474] dark:text-[#D9D6D5] border border-[#E5E4E3] dark:border-[#07282A]">~5 min</span>
+                      </div>
+                      <h2 className="font-heading text-[1.8rem] font-bold">CMS-485 Layout Challenge</h2>
+                      <p className="text-[#524048] dark:text-[#D9D6D5] text-base leading-relaxed max-w-md mx-auto">
+                        Demonstrate your understanding of the CMS-485 form structure. Match fields to correct locations, identify required sections, and validate documentation placement.
+                      </p>
+                    </div>
                     {introCompleted['layout-challenge'] ? (
-                      <div className="flex items-center justify-center gap-2 text-[#007970] dark:text-[#64F4F5] font-bold text-lg">
-                        <CheckCircle2 className="w-6 h-6" /> Challenge Completed
+                      <div className="p-4 rounded-2xl bg-[#E5FEFF] dark:bg-[#002B2C] border border-[#C4F4F5] dark:border-[#007970] inline-flex items-center gap-3">
+                        <CheckCircle2 className="w-6 h-6 text-[#007970] dark:text-[#64F4F5]" />
+                        <span className="text-[#007970] dark:text-[#64F4F5] font-bold text-base">Challenge Completed Successfully</span>
                       </div>
                     ) : (
                       <button
                         onClick={() => setShowChallengeOverlay('layout')}
-                        className="inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-orange"
+                        className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(199,70,1,0.25)] hover:shadow-[0_18px_44px_rgba(199,70,1,0.3)]"
                       >
-                        Begin Challenge <Swords className="w-5 h-5" />
+                        Begin Challenge <Swords className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                       </button>
                     )}
                     {(introCompleted['layout-challenge'] || debugMode) && (
-                      <button
-                        onClick={handleNext}
-                        className="inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] dark:bg-[#64F4F5] dark:hover:bg-[#C4F4F5] dark:text-[#010809] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal"
-                      >
-                        Continue <ArrowRight className="w-5 h-5" />
+                      <button onClick={handleNext} className="group inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal">
+                        Continue <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                       </button>
                     )}
                   </div>
                 )}
 
-                {/* ── Henderson Challenge Card ── */}
+                {/* ── 4. Henderson Challenge ── */}
                 {card.intro === 'henderson-challenge' && (
-                  <div className="space-y-8 max-w-lg">
-                    <div className="w-20 h-20 rounded-full bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.15)] flex items-center justify-center glow-orange mx-auto">
+                  <div className="space-y-8 max-w-lg w-full">
+                    <div className="w-20 h-20 rounded-2xl bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.12)] flex items-center justify-center mx-auto shadow-[0_8px_24px_rgba(199,70,1,0.15)]">
                       <HeartPulse className="w-10 h-10 text-[#C74601] dark:text-[#E56E2E]" />
                     </div>
-                    <h2 className="font-heading text-2xl font-bold">Henderson Challenge</h2>
-                    <p className="text-[#524048] dark:text-[#D9D6D5] text-lg leading-relaxed">
-                      Apply your clinical documentation skills to a high-acuity patient scenario. Complete the Henderson case study to prove competency.
-                    </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-center gap-3">
+                        <span className="px-3 py-1 rounded-full text-[0.7rem] font-bold uppercase tracking-wider bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.12)] text-[#C74601] dark:text-[#E56E2E] border border-[#FFD5BF] dark:border-[rgba(199,70,1,0.3)]">Clinical Scenario</span>
+                        <span className="px-3 py-1 rounded-full text-[0.7rem] font-bold uppercase tracking-wider bg-white/50 dark:bg-white/[0.04] text-[#747474] dark:text-[#D9D6D5] border border-[#E5E4E3] dark:border-[#07282A]">~8 min</span>
+                      </div>
+                      <h2 className="font-heading text-[1.8rem] font-bold">Henderson Clinical Challenge</h2>
+                      <p className="text-[#524048] dark:text-[#D9D6D5] text-base leading-relaxed max-w-md mx-auto">
+                        Apply clinical documentation skills to the Henderson case &mdash; a high-acuity home health patient requiring skilled nursing, therapy coordination, and precise Plan of Care documentation.
+                      </p>
+                    </div>
                     {introCompleted['henderson-challenge'] ? (
-                      <div className="flex items-center justify-center gap-2 text-[#007970] dark:text-[#64F4F5] font-bold text-lg">
-                        <CheckCircle2 className="w-6 h-6" /> Challenge Completed
+                      <div className="p-4 rounded-2xl bg-[#E5FEFF] dark:bg-[#002B2C] border border-[#C4F4F5] dark:border-[#007970] inline-flex items-center gap-3">
+                        <CheckCircle2 className="w-6 h-6 text-[#007970] dark:text-[#64F4F5]" />
+                        <span className="text-[#007970] dark:text-[#64F4F5] font-bold text-base">Challenge Completed Successfully</span>
                       </div>
                     ) : (
                       <button
                         onClick={() => setShowChallengeOverlay('henderson')}
-                        className="inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-orange"
+                        className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(199,70,1,0.25)] hover:shadow-[0_18px_44px_rgba(199,70,1,0.3)]"
                       >
-                        Begin Challenge <Swords className="w-5 h-5" />
+                        Begin Challenge <Swords className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                       </button>
                     )}
                     {(introCompleted['henderson-challenge'] || debugMode) && (
-                      <button
-                        onClick={handleNext}
-                        className="inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] dark:bg-[#64F4F5] dark:hover:bg-[#C4F4F5] dark:text-[#010809] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal"
-                      >
-                        Continue <ArrowRight className="w-5 h-5" />
+                      <button onClick={handleNext} className="group inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal">
+                        Continue <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                       </button>
                     )}
                   </div>
                 )}
 
-                {/* ── Course Selection Card ── */}
+                {/* ── 5. Course Selection ── */}
                 {card.intro === 'course-selection' && (
-                  <div className="space-y-8 max-w-lg">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#E5FEFF] dark:bg-[#002B2C] border border-[#C4F4F5] dark:border-[#007970] text-[#007970] dark:text-[#64F4F5] text-xs font-bold uppercase tracking-wider">
-                      <CheckCircle2 className="w-4 h-4" /> Onboarding Complete
+                  <div className="space-y-8 max-w-xl w-full">
+                    <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#E5FEFF] dark:bg-[#002B2C] border border-[#C4F4F5] dark:border-[#007970] text-[#007970] dark:text-[#64F4F5] text-[0.75rem] font-bold uppercase tracking-[0.16em]">
+                      <CheckCircle2 className="w-4 h-4" /> All Steps Complete
                     </div>
-                    <h2 className="font-heading text-2xl font-bold">Ready to Begin Training</h2>
-                    <p className="text-[#524048] dark:text-[#D9D6D5] text-lg leading-relaxed">
-                      You&apos;ve completed all preparation steps. Continue to start your CMS-485 documentation training.
-                    </p>
-                    <button
-                      onClick={handleNext}
-                      className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#007970] hover:bg-[#006059] dark:bg-[#64F4F5] dark:hover:bg-[#C4F4F5] dark:text-[#010809] text-white font-bold text-lg tracking-wide transition-all duration-300 hover:-translate-y-1 glow-teal"
-                    >
-                      Start Training <ArrowRight className="w-5 h-5" />
-                    </button>
+                    <div className="space-y-3">
+                      <h2 className="font-heading text-[1.8rem] font-bold">Choose Your Training Path</h2>
+                      <p className="text-[#524048] dark:text-[#D9D6D5] text-base max-w-md mx-auto">You&apos;ve completed onboarding. Select a training module to begin your CMS-485 documentation mastery.</p>
+                    </div>
+                    {/* Completed steps */}
+                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                      {['Calibration', 'Layout', 'Henderson'].map((label) => (
+                        <span key={label} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.72rem] font-bold uppercase tracking-wider bg-[#E5FEFF] dark:bg-[#002B2C] text-[#007970] dark:text-[#64F4F5] border border-[#C4F4F5] dark:border-[#007970]">
+                          <CheckCircle2 className="w-3 h-3" /> {label}
+                        </span>
+                      ))}
+                    </div>
+                    {/* Module grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                      <button onClick={handleNext} className="group p-5 rounded-2xl border-2 border-[#007970] dark:border-[#64F4F5] bg-[#E5FEFF]/50 dark:bg-[#002B2C]/50 hover:shadow-[0_8px_30px_rgba(0,121,112,0.12)] transition-all duration-300 hover:-translate-y-0.5 text-left relative overflow-hidden">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Layers className="w-5 h-5 text-[#007970] dark:text-[#64F4F5]" />
+                          <span className="px-2 py-0.5 rounded-full text-[0.65rem] font-bold uppercase bg-[#007970] dark:bg-[#64F4F5] text-white dark:text-[#010809]">Recommended</span>
+                        </div>
+                        <p className="font-heading font-bold text-[0.95rem] mb-1">Card Training</p>
+                        <p className="text-[0.78rem] text-[#747474] dark:text-[#D9D6D5] leading-snug">Step-by-step cards with quizzes, audio narration, and key-point breakdowns.</p>
+                        <p className="text-[0.72rem] text-[#007970] dark:text-[#64F4F5] font-bold mt-2 flex items-center gap-1">Start <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" /></p>
+                      </button>
+                      <button onClick={() => { setViewMode('web'); handleNext(); }} className="group p-5 rounded-2xl border border-[#E5E4E3] dark:border-[#07282A] bg-white/40 dark:bg-white/[0.02] hover:border-[#007970]/30 dark:hover:border-[#64F4F5]/20 hover:shadow-[0_6px_24px_rgba(0,121,112,0.08)] transition-all duration-300 hover:-translate-y-0.5 text-left">
+                        <BookOpen className="w-5 h-5 text-[#007970] dark:text-[#64F4F5] mb-2" />
+                        <p className="font-heading font-bold text-[0.95rem] mb-1">Book Training</p>
+                        <p className="text-[0.78rem] text-[#747474] dark:text-[#D9D6D5] leading-snug">Two-page spread layout for an immersive reading experience with full content depth.</p>
+                        <p className="text-[0.72rem] text-[#007970] dark:text-[#64F4F5] font-bold mt-2 flex items-center gap-1">Start <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" /></p>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
