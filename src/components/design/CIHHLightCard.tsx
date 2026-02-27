@@ -2,7 +2,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { sfxClick, sfxSwipe, sfxModeToggle } from '../../utils/sfx';
 import {
-  Play, Pause, Swords,
+  Play, Pause, Swords, ArrowRight, Volume2,
   CheckCircle2, XCircle,
   ShieldCheck, FileText, Activity, Check,
   Moon, Sun, Layers, Lock, ChevronLeft, ChevronRight, ChevronDown, BookOpen,
@@ -86,6 +86,8 @@ const StyleInjector = () => (
 const debugMode = true;
 import { Dock } from '../Dock';
 import { TRAINING_CARDS } from '../../data/trainingCards';
+import LayoutChallenge from '../LayoutChallenge';
+import HendersonChallenge from '../HendersonChallenge';
 import { FINAL_TEST_TITLE, FINAL_TEST_OBJECTIVE, FINAL_TEST_KEY_POINTS, FINAL_TEST_QUESTIONS } from '../../data/finalTest';
 import fullAdditionalContent from '../../assets/Additional Content.txt?raw';
 
@@ -238,7 +240,20 @@ const mapCardFromTraining = (c: any) => {
   }
 }
 
+type IntroKind = 'welcome' | 'calibration' | 'layout-challenge' | 'henderson-challenge' | 'course-selection'
+
+const INTRO_CARDS: Array<{ title: string; intro: IntroKind; section: string }> = [
+  { title: 'Welcome', intro: 'welcome', section: 'Onboarding' },
+  { title: 'Systems Calibration', intro: 'calibration', section: 'Onboarding' },
+  { title: 'Layout Challenge', intro: 'layout-challenge', section: 'Onboarding' },
+  { title: 'Henderson Challenge', intro: 'henderson-challenge', section: 'Onboarding' },
+  { title: 'Course Selection', intro: 'course-selection', section: 'Onboarding' },
+]
+
+const GATING_KEY = 'cihh.intro.gating'
+
 const cards = [
+  ...INTRO_CARDS,
   ...TRAINING_CARDS.map(mapCardFromTraining),
   {
     title: FINAL_TEST_TITLE,
@@ -285,7 +300,7 @@ const bookFlipVariants = {
   }),
 }
 
-export default function CIHHLightCard({ onNavigate }: { onNavigate?: (phase: string) => void }) {
+export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?: (phase: string) => void }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [modeTransitionKey, setModeTransitionKey] = useState(0);
   const [showCurtain, setShowCurtain] = useState(false);
@@ -309,17 +324,38 @@ export default function CIHHLightCard({ onNavigate }: { onNavigate?: (phase: str
   const pointerCurrentX = useRef<number | null>(null)
   const pointerCurrentY = useRef<number | null>(null)
 
+  const [showChallengeOverlay, setShowChallengeOverlay] = useState<'layout' | 'henderson' | null>(null)
+  const [introCompleted, setIntroCompleted] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem(GATING_KEY)
+      return stored ? JSON.parse(stored) : {}
+    } catch { return {} }
+  })
+
+  useEffect(() => {
+    localStorage.setItem(GATING_KEY, JSON.stringify(introCompleted))
+  }, [introCompleted])
+
   const card = cards[cardIndex] as any;
-  const trainingCards = cards.filter(entry => !(entry as any).final)
-  const visibleCardTotal = trainingCards.length
+  const isOnIntroCard = Boolean(card?.intro)
+  const introCardCount = INTRO_CARDS.length
+  const trainingOnlyCards = cards.filter(entry => !(entry as any).final && !(entry as any).intro)
+  const trainingCardIndex = cardIndex - introCardCount
+
+  // Intro card progress
+  const introDisplayStep = Math.min(cardIndex + 1, introCardCount)
+  const introProgressIndex = Math.min(cardIndex, introCardCount - 1)
+
+  // Training card progress
+  const visibleCardTotal = trainingOnlyCards.length
   const visibleStepTotal = visibleCardTotal * 3
   const panelStepOffset = panelMode === 'main' ? 0 : panelMode === 'additional' ? 1 : 2
   const displayStepNumber = card?.final
     ? visibleStepTotal
-    : Math.min(cardIndex * 3 + panelStepOffset + 1, visibleStepTotal)
+    : Math.max(1, Math.min(trainingCardIndex * 3 + panelStepOffset + 1, visibleStepTotal))
   const progressActiveIndex = card?.final
     ? Math.max(0, visibleCardTotal - 1)
-    : Math.max(0, Math.min(cardIndex, visibleCardTotal - 1))
+    : Math.max(0, Math.min(trainingCardIndex, visibleCardTotal - 1))
   const audioUrl = card?.title ? findAudioForTitle(card.title) : null;
   const hasAudio = Boolean(audioUrl);
   const normalizedCardTitle = normalizeText(card?.title ?? '')
@@ -330,7 +366,7 @@ export default function CIHHLightCard({ onNavigate }: { onNavigate?: (phase: str
   const currentAdditionalContent = matchedAdditionalSection?.body || card.additional || ''
 
   // â”€â”€ Book view computed values â”€â”€
-  const webCards = cards.filter(c => !(c as any).final)
+  const webCards = cards.filter(c => !(c as any).final && !(c as any).intro)
   const totalSpreads = Math.ceil(webCards.length / 2)
   const leftIdx = webCardIndex * 2
   const rightIdx = webCardIndex * 2 + 1
@@ -374,13 +410,11 @@ export default function CIHHLightCard({ onNavigate }: { onNavigate?: (phase: str
       setCardIndex(0)
       setPanelMode('main')
     } },
-    ...(onNavigate ? [
-      { icon: <Home className="w-5 h-5" />, label: 'Welcome', onClick: () => onNavigate('welcome') },
-      { icon: <Settings className="w-5 h-5" />, label: 'Calibration', onClick: () => onNavigate('calibration') },
-      { icon: <LayoutGrid className="w-5 h-5" />, label: 'Layout', onClick: () => onNavigate('layout-challenge') },
-      { icon: <HeartPulse className="w-5 h-5" />, label: 'Henderson', onClick: () => onNavigate('henderson-challenge') },
-      { icon: <GraduationCap className="w-5 h-5" />, label: 'Courses', onClick: () => onNavigate('course-selection') },
-    ] : []),
+    { icon: <Home className="w-5 h-5" />, label: 'Welcome', onClick: () => { sfxClick(); setNavDirection(cardIndex > 0 ? -1 : 1); setCardIndex(0); setPanelMode('main'); } },
+    { icon: <Settings className="w-5 h-5" />, label: 'Calibrate', onClick: () => { sfxClick(); setNavDirection(cardIndex > 1 ? -1 : 1); setCardIndex(1); setPanelMode('main'); } },
+    { icon: <LayoutGrid className="w-5 h-5" />, label: 'Layout', onClick: () => { sfxClick(); setNavDirection(cardIndex > 2 ? -1 : 1); setCardIndex(2); setPanelMode('main'); } },
+    { icon: <HeartPulse className="w-5 h-5" />, label: 'Henderson', onClick: () => { sfxClick(); setNavDirection(cardIndex > 3 ? -1 : 1); setCardIndex(3); setPanelMode('main'); } },
+    { icon: <GraduationCap className="w-5 h-5" />, label: 'Courses', onClick: () => { sfxClick(); setNavDirection(cardIndex > 4 ? -1 : 1); setCardIndex(4); setPanelMode('main'); } },
   ];
 
   const stopAudio = () => {
@@ -447,7 +481,34 @@ export default function CIHHLightCard({ onNavigate }: { onNavigate?: (phase: str
       .catch(() => setStatusMsg('Audio blocked; click play'))
   }
 
+  const handleTestAudioInline = () => {
+    try {
+      const ctx = new AudioContext()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = 659.25
+      gain.gain.value = 0.15
+      osc.connect(gain).connect(ctx.destination)
+      osc.start()
+      osc.stop(ctx.currentTime + 0.25)
+    } catch {}
+  }
+
   const handleNext = () => {
+    if (isOnIntroCard) {
+      const introKind = card.intro as string
+      if (!debugMode && (introKind === 'layout-challenge' || introKind === 'henderson-challenge') && !introCompleted[introKind]) return
+      if (cardIndex < cards.length - 1) {
+        stopAudio()
+        sfxSwipe()
+        setNavDirection(1)
+        setIntroCompleted(prev => ({ ...prev, [introKind]: true }))
+        setCardIndex(cardIndex + 1)
+        setPanelMode('main')
+      }
+      return
+    }
     if (!card.final && panelMode === 'main') {
       stopAudio()
       sfxSwipe()
@@ -482,6 +543,16 @@ export default function CIHHLightCard({ onNavigate }: { onNavigate?: (phase: str
   };
 
   const handleBack = () => {
+    if (isOnIntroCard) {
+      if (cardIndex > 0) {
+        stopAudio()
+        sfxSwipe()
+        setNavDirection(-1)
+        setCardIndex(cardIndex - 1)
+        setPanelMode('main')
+      }
+      return
+    }
     stopAudio()
     sfxSwipe()
     if (panelMode === 'challenge') {
@@ -686,11 +757,17 @@ export default function CIHHLightCard({ onNavigate }: { onNavigate?: (phase: str
         <header className="px-8 pt-8 pb-4 flex justify-between items-end">
           <div>
             <p className="text-[#007970] dark:text-[#64F4F5] font-bold text-[1.059rem] tracking-widest uppercase mb-2 flex items-center gap-2">
-              <FileText className="w-4 h-4" /> CMS-485 Training
+              <FileText className="w-4 h-4" /> {isOnIntroCard ? 'Onboarding' : 'CMS-485 Training'}
             </p>
-            <p className="font-heading text-[2.7225rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] tracking-tight" aria-live="polite" aria-label={`Step ${displayStepNumber} of ${visibleStepTotal}`}>
-              {displayStepNumber} <span className="text-[#747474] dark:text-[#D9D6D5] text-[1.815rem]">/ {visibleStepTotal}</span>
-            </p>
+            {isOnIntroCard ? (
+              <p className="font-heading text-[2.7225rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] tracking-tight" aria-live="polite" aria-label={`Step ${introDisplayStep} of ${introCardCount}`}>
+                {introDisplayStep} <span className="text-[#747474] dark:text-[#D9D6D5] text-[1.815rem]">/ {introCardCount}</span>
+              </p>
+            ) : (
+              <p className="font-heading text-[2.7225rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] tracking-tight" aria-live="polite" aria-label={`Step ${displayStepNumber} of ${visibleStepTotal}`}>
+                {displayStepNumber} <span className="text-[#747474] dark:text-[#D9D6D5] text-[1.815rem]">/ {visibleStepTotal}</span>
+              </p>
+            )}
           </div>
           <img
             className="h-[2.8rem] w-auto object-contain"
@@ -703,24 +780,225 @@ export default function CIHHLightCard({ onNavigate }: { onNavigate?: (phase: str
         </header>
 
         <div className="px-8 py-4 flex gap-3">
-          {Array.from({ length: visibleCardTotal }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-2 rounded-full transition-all duration-500 ${
-                i === progressActiveIndex
-                  ? 'w-12 bg-[#C74601] glow-orange'
-                  : i < progressActiveIndex
-                    ? 'w-6 bg-[#FFD5BF] dark:bg-[#021A1B]'
-                    : 'w-2 bg-[#E5E4E3] dark:bg-[#07282A]'
-              }`}
-            />
-          ))}
+          {isOnIntroCard ? (
+            Array.from({ length: introCardCount }).map((_, i) => (
+              <div
+                key={i}
+                className={`h-2 rounded-full transition-all duration-500 ${
+                  i === introProgressIndex
+                    ? 'w-12 bg-[#007970] dark:bg-[#64F4F5] glow-teal'
+                    : i < introProgressIndex
+                      ? 'w-6 bg-[#C4F4F5] dark:bg-[#004142]'
+                      : 'w-2 bg-[#E5E4E3] dark:bg-[#07282A]'
+                }`}
+              />
+            ))
+          ) : (
+            Array.from({ length: visibleCardTotal }).map((_, i) => (
+              <div
+                key={i}
+                className={`h-2 rounded-full transition-all duration-500 ${
+                  i === progressActiveIndex
+                    ? 'w-12 bg-[#C74601] glow-orange'
+                    : i < progressActiveIndex
+                      ? 'w-6 bg-[#FFD5BF] dark:bg-[#021A1B]'
+                      : 'w-2 bg-[#E5E4E3] dark:bg-[#07282A]'
+                }`}
+              />
+            ))
+          )}
         </div>
 
         <section className="p-8 min-h-[520px] flex-1 flex flex-col items-center justify-center">
           <div key={`${cardIndex}-${panelMode}`} className="flex-1 flex flex-col w-full max-w-4xl">
 
-            {card.final ? (
+            {isOnIntroCard ? (
+              /* ── INTRO CARD CONTENT ── */
+              <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
+
+                {/* ── Welcome Card ── */}
+                {card.intro === 'welcome' && (
+                  <div className="space-y-8 max-w-2xl">
+                    <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#E5FEFF] dark:bg-[#002B2C] border border-[#C4F4F5] dark:border-[#007970] text-[#007970] dark:text-[#64F4F5] text-xs font-bold uppercase tracking-[0.16em]">
+                      <BookOpen className="w-4 h-4" /> CMS-485 Master Challenge
+                    </div>
+                    <h1 className="font-heading text-[2.7rem] md:text-[3.4rem] font-bold tracking-tight leading-[1.1]">
+                      Master the{' '}
+                      <span className="bg-gradient-to-r from-[#007970] to-[#64F4F5] bg-clip-text text-transparent">Plan of Care</span>
+                    </h1>
+                    <p className="text-[#524048] dark:text-[#D9D6D5] text-lg leading-relaxed font-light max-w-xl mx-auto">
+                      Welcome to CareIndeed&apos;s CMS-485 clinical documentation training.
+                      Complete the onboarding steps, then dive into lessons, challenges, and assessments.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
+                      {[
+                        { Icon: FileText, label: 'Card & Book Views' },
+                        { Icon: ShieldCheck, label: 'Systems Calibration' },
+                        { Icon: HeartPulse, label: 'Henderson Challenge' },
+                        { Icon: LayoutGrid, label: 'Layout Challenge' },
+                      ].map((h, i) => (
+                        <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/40 dark:bg-white/[0.04] border border-[#E5E4E3] dark:border-[#07282A] text-left">
+                          <h.Icon className="w-5 h-5 text-[#007970] dark:text-[#64F4F5] flex-shrink-0" />
+                          <span className="text-sm font-medium">{h.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={handleNext}
+                      className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#007970] hover:bg-[#006059] dark:bg-[#64F4F5] dark:hover:bg-[#C4F4F5] dark:text-[#010809] text-white font-bold text-lg tracking-wide transition-all duration-300 hover:-translate-y-1 glow-teal"
+                    >
+                      Begin Training <ArrowRight className="w-5 h-5" />
+                    </button>
+                    <p className="text-sm text-[#747474] dark:text-[#D9D6D5]">Estimated time: 25–35 minutes</p>
+                  </div>
+                )}
+
+                {/* ── Calibration Card ── */}
+                {card.intro === 'calibration' && (
+                  <div className="space-y-6 max-w-lg w-full">
+                    <div className="w-20 h-20 rounded-full bg-[#E5FEFF] dark:bg-[#002B2C] flex items-center justify-center glow-teal mx-auto">
+                      <Settings className="w-10 h-10 text-[#007970] dark:text-[#64F4F5]" />
+                    </div>
+                    <h2 className="font-heading text-2xl font-bold">Systems Calibration</h2>
+                    <p className="text-[#524048] dark:text-[#D9D6D5] text-lg">
+                      Configure your learning environment before continuing.
+                    </p>
+                    <div className="space-y-3 text-left">
+                      <div className="flex items-center justify-between p-4 rounded-xl border border-[#E5E4E3] dark:border-[#07282A] bg-white/30 dark:bg-white/[0.03]">
+                        <div className="flex items-center gap-3">
+                          {isDarkMode ? <Moon className="w-5 h-5 text-[#64F4F5]" /> : <Sun className="w-5 h-5 text-[#C74601]" />}
+                          <span className="font-medium">Display Mode</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const goingToNight = !isDarkMode;
+                            sfxModeToggle(goingToNight);
+                            setCurtainDirection(goingToNight ? 'night' : 'day');
+                            setShowCurtain(true);
+                            setModeTransitionKey(k => k + 1);
+                            setTimeout(() => setIsDarkMode(prev => !prev), 500);
+                            setTimeout(() => setShowCurtain(false), 2000);
+                          }}
+                          className="px-4 py-2 rounded-lg bg-[#007970] dark:bg-[#64F4F5] text-white dark:text-[#010809] text-sm font-bold hover:opacity-90 transition-opacity"
+                        >
+                          {isDarkMode ? 'Night Mode' : 'Light Mode'}
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-xl border border-[#E5E4E3] dark:border-[#07282A] bg-white/30 dark:bg-white/[0.03]">
+                        <div className="flex items-center gap-3">
+                          {viewMode === 'card' ? <Layers className="w-5 h-5 text-[#007970] dark:text-[#64F4F5]" /> : <BookOpen className="w-5 h-5 text-[#007970] dark:text-[#64F4F5]" />}
+                          <span className="font-medium">Layout Style</span>
+                        </div>
+                        <button onClick={() => { sfxClick(); setViewMode(prev => prev === 'card' ? 'web' : 'card'); }} className="px-4 py-2 rounded-lg bg-[#007970] dark:bg-[#64F4F5] text-white dark:text-[#010809] text-sm font-bold hover:opacity-90 transition-opacity">
+                          {viewMode === 'card' ? 'Card View' : 'Book View'}
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-xl border border-[#E5E4E3] dark:border-[#07282A] bg-white/30 dark:bg-white/[0.03]">
+                        <div className="flex items-center gap-3">
+                          <Volume2 className="w-5 h-5 text-[#007970] dark:text-[#64F4F5]" />
+                          <span className="font-medium">Audio Check</span>
+                        </div>
+                        <button onClick={handleTestAudioInline} className="px-4 py-2 rounded-lg bg-[#007970] dark:bg-[#64F4F5] text-white dark:text-[#010809] text-sm font-bold hover:opacity-90 transition-opacity">
+                          Test Audio
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleNext}
+                      className="inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] dark:bg-[#64F4F5] dark:hover:bg-[#C4F4F5] dark:text-[#010809] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal"
+                    >
+                      Continue <ArrowRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* ── Layout Challenge Card ── */}
+                {card.intro === 'layout-challenge' && (
+                  <div className="space-y-8 max-w-lg">
+                    <div className="w-20 h-20 rounded-full bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.15)] flex items-center justify-center glow-orange mx-auto">
+                      <LayoutGrid className="w-10 h-10 text-[#C74601] dark:text-[#E56E2E]" />
+                    </div>
+                    <h2 className="font-heading text-2xl font-bold">Layout Challenge</h2>
+                    <p className="text-[#524048] dark:text-[#D9D6D5] text-lg leading-relaxed">
+                      Test your understanding of the CMS-485 form structure. Identify key sections, fields, and documentation requirements.
+                    </p>
+                    {introCompleted['layout-challenge'] ? (
+                      <div className="flex items-center justify-center gap-2 text-[#007970] dark:text-[#64F4F5] font-bold text-lg">
+                        <CheckCircle2 className="w-6 h-6" /> Challenge Completed
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowChallengeOverlay('layout')}
+                        className="inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-orange"
+                      >
+                        Begin Challenge <Swords className="w-5 h-5" />
+                      </button>
+                    )}
+                    {(introCompleted['layout-challenge'] || debugMode) && (
+                      <button
+                        onClick={handleNext}
+                        className="inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] dark:bg-[#64F4F5] dark:hover:bg-[#C4F4F5] dark:text-[#010809] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal"
+                      >
+                        Continue <ArrowRight className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Henderson Challenge Card ── */}
+                {card.intro === 'henderson-challenge' && (
+                  <div className="space-y-8 max-w-lg">
+                    <div className="w-20 h-20 rounded-full bg-[#FFEEE5] dark:bg-[rgba(199,70,1,0.15)] flex items-center justify-center glow-orange mx-auto">
+                      <HeartPulse className="w-10 h-10 text-[#C74601] dark:text-[#E56E2E]" />
+                    </div>
+                    <h2 className="font-heading text-2xl font-bold">Henderson Challenge</h2>
+                    <p className="text-[#524048] dark:text-[#D9D6D5] text-lg leading-relaxed">
+                      Apply your clinical documentation skills to a high-acuity patient scenario. Complete the Henderson case study to prove competency.
+                    </p>
+                    {introCompleted['henderson-challenge'] ? (
+                      <div className="flex items-center justify-center gap-2 text-[#007970] dark:text-[#64F4F5] font-bold text-lg">
+                        <CheckCircle2 className="w-6 h-6" /> Challenge Completed
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowChallengeOverlay('henderson')}
+                        className="inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-orange"
+                      >
+                        Begin Challenge <Swords className="w-5 h-5" />
+                      </button>
+                    )}
+                    {(introCompleted['henderson-challenge'] || debugMode) && (
+                      <button
+                        onClick={handleNext}
+                        className="inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[#007970] hover:bg-[#006059] dark:bg-[#64F4F5] dark:hover:bg-[#C4F4F5] dark:text-[#010809] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 glow-teal"
+                      >
+                        Continue <ArrowRight className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Course Selection Card ── */}
+                {card.intro === 'course-selection' && (
+                  <div className="space-y-8 max-w-lg">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#E5FEFF] dark:bg-[#002B2C] border border-[#C4F4F5] dark:border-[#007970] text-[#007970] dark:text-[#64F4F5] text-xs font-bold uppercase tracking-wider">
+                      <CheckCircle2 className="w-4 h-4" /> Onboarding Complete
+                    </div>
+                    <h2 className="font-heading text-2xl font-bold">Ready to Begin Training</h2>
+                    <p className="text-[#524048] dark:text-[#D9D6D5] text-lg leading-relaxed">
+                      You&apos;ve completed all preparation steps. Continue to start your CMS-485 documentation training.
+                    </p>
+                    <button
+                      onClick={handleNext}
+                      className="inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#007970] hover:bg-[#006059] dark:bg-[#64F4F5] dark:hover:bg-[#C4F4F5] dark:text-[#010809] text-white font-bold text-lg tracking-wide transition-all duration-300 hover:-translate-y-1 glow-teal"
+                    >
+                      Start Training <ArrowRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+            ) : card.final ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
                 <div className="w-24 h-24 rounded-full bg-[#E5FEFF] dark:bg-[#004142] flex items-center justify-center glow-teal mb-4 -translate-y-[1px] hover:-translate-y-[2px] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3)] transition-all duration-300">
                   <Check className="w-12 h-12 text-[#007970] dark:text-[#64F4F5]" />
@@ -1103,6 +1381,30 @@ export default function CIHHLightCard({ onNavigate }: { onNavigate?: (phase: str
       )}
       {/* Dock (center-left) */}
       <Dock items={dockItems} position="center-left" isDarkMode={isDarkMode} />
+
+      {/* ── Challenge Overlays ── */}
+      {showChallengeOverlay === 'layout' && (
+        <div className="fixed inset-0 z-[9998]">
+          <LayoutChallenge
+            theme={isDarkMode ? 'night' : 'day'}
+            onComplete={() => {
+              setIntroCompleted(prev => ({ ...prev, 'layout-challenge': true }))
+              setShowChallengeOverlay(null)
+            }}
+            onBack={() => setShowChallengeOverlay(null)}
+          />
+        </div>
+      )}
+      {showChallengeOverlay === 'henderson' && (
+        <div className="fixed inset-0 z-[9998]">
+          <HendersonChallenge
+            onExit={() => {
+              setIntroCompleted(prev => ({ ...prev, 'henderson-challenge': true }))
+              setShowChallengeOverlay(null)
+            }}
+          />
+        </div>
+      )}
 
     </div>
   );
