@@ -6,7 +6,7 @@ import {
   Square, RotateCcw, Swords,
   CheckCircle2, XCircle,
   ShieldCheck, FileText, Activity, Check,
-  Moon, Sun, Layers, LayoutGrid, Lock, ChevronLeft, ChevronRight
+  Moon, Sun, Layers, LayoutGrid, Lock, ChevronLeft, ChevronRight, ChevronDown, BookOpen
 } from 'lucide-react';
 
 const StyleInjector = () => (
@@ -264,6 +264,27 @@ const cardShellVariants = {
   }),
 }
 
+const bookFlipVariants = {
+  enter: (direction: number) => ({
+    rotateY: direction >= 0 ? 90 : -90,
+    x: direction >= 0 ? '20%' : '-20%',
+    opacity: 0,
+    scale: 0.92,
+  }),
+  center: {
+    rotateY: 0,
+    x: 0,
+    opacity: 1,
+    scale: 1,
+  },
+  exit: (direction: number) => ({
+    rotateY: direction >= 0 ? -90 : 90,
+    x: direction >= 0 ? '-20%' : '20%',
+    opacity: 0,
+    scale: 0.92,
+  }),
+}
+
 export default function CIHHLightCard() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [modeTransitionKey, setModeTransitionKey] = useState(0);
@@ -272,6 +293,9 @@ export default function CIHHLightCard() {
   const [viewMode, setViewMode] = useState<'card' | 'web'>('card');
   const [webCardIndex, setWebCardIndex] = useState(0);
   const [webAudioCompleted, setWebAudioCompleted] = useState<Record<number, boolean>>({});
+  const [webSubjectOpen, setWebSubjectOpen] = useState<Record<number, boolean>>({});
+  const [webChallengeOpen, setWebChallengeOpen] = useState<Record<number, boolean>>({});
+  const [playingCardIdx, setPlayingCardIdx] = useState<number | null>(null);
   const [cardIndex, setCardIndex] = useState(0);
   const [panelMode, setPanelMode] = useState('main');
   const [navDirection, setNavDirection] = useState(1)
@@ -304,22 +328,37 @@ export default function CIHHLightCard() {
   })
   const currentAdditionalContent = matchedAdditionalSection?.body || card.additional || ''
 
-  // ── Web view computed values ──
+  // ── Book view computed values ──
   const webCards = cards.filter(c => !(c as any).final)
-  const webCard = (webCards[webCardIndex] ?? webCards[0]) as any
-  const webAudioUrl = webCard?.title ? findAudioForTitle(webCard.title) : null
-  const webHasAudio = Boolean(webAudioUrl)
-  const webNormTitle = normalizeText(webCard?.title ?? '')
-  const webMatchedSection = ADDITIONAL_SECTIONS.find(section => {
-    const ns = normalizeText(section.title)
-    return ns.includes(webNormTitle) || webNormTitle.includes(ns)
-  })
-  const webNarrationContent = webMatchedSection?.body || webCard?.additional || ''
-  const knowledgeCheckUnlocked = !webHasAudio || webAudioCompleted[webCardIndex]
+  const totalSpreads = Math.ceil(webCards.length / 2)
+  const leftIdx = webCardIndex * 2
+  const rightIdx = webCardIndex * 2 + 1
+  const leftCard = (webCards[leftIdx] ?? null) as any
+  const rightCard = rightIdx < webCards.length ? (webCards[rightIdx] as any) : null
+
+  const getCardNarration = (c: any) => {
+    if (!c) return ''
+    const nt = normalizeText(c.title ?? '')
+    const match = ADDITIONAL_SECTIONS.find(s => {
+      const ns = normalizeText(s.title)
+      return ns.includes(nt) || nt.includes(ns)
+    })
+    return match?.body || c.additional || ''
+  }
+  const getCardAudioUrl = (c: any): string | null => c?.title ? findAudioForTitle(c.title) : null
+  const isKCUnlocked = (idx: number) => {
+    const c = webCards[idx] as any
+    if (!c) return true
+    const url = c.title ? findAudioForTitle(c.title) : null
+    return !url || webAudioCompleted[idx]
+  }
+  const canAdvanceSpread = Boolean(
+    submittedAnswers[leftIdx] && (!rightCard || submittedAnswers[rightIdx])
+  )
 
   const dockItems = [
     { icon: <FileText className="w-5 h-5" />, label: 'Help', onClick: () => alert('Open help') },
-    { icon: viewMode === 'card' ? <LayoutGrid className="w-5 h-5" /> : <Layers className="w-5 h-5" />, label: viewMode === 'card' ? 'Web' : 'Card', onClick: () => { sfxClick(); stopAudio(); setViewMode(prev => prev === 'card' ? 'web' : 'card'); }, isActive: viewMode === 'web' },
+    { icon: viewMode === 'card' ? <BookOpen className="w-5 h-5" /> : <Layers className="w-5 h-5" />, label: viewMode === 'card' ? 'Book' : 'Card', onClick: () => { sfxClick(); stopAudio(); setViewMode(prev => prev === 'card' ? 'web' : 'card'); }, isActive: viewMode === 'web' },
     { icon: <ShieldCheck className="w-5 h-5" />, label: debugMode ? 'QA: ON' : 'QA: OFF', onClick: () => setStatusMsg(prev => prev === 'QA: ON' ? 'QA: OFF' : 'QA: ON'), isActive: debugMode },
     { icon: isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />, label: isDarkMode ? 'Light' : 'Night', onClick: () => {
       const goingToNight = !isDarkMode;
@@ -343,21 +382,29 @@ export default function CIHHLightCard() {
       audioRef.current.currentTime = 0;
     }
     setIsPlaying(false)
+    setPlayingCardIdx(null)
   }
 
-  const handleNarrationToggle = (e: React.SyntheticEvent<HTMLDetailsElement>) => {
-    const isOpen = e.currentTarget.open
-    if (isOpen && webAudioUrl) {
-      if (!audioRef.current) audioRef.current = new Audio()
-      audioRef.current.src = webAudioUrl
-      audioRef.current.onended = () => {
-        setIsPlaying(false)
-        setWebAudioCompleted(prev => ({ ...prev, [webCardIndex]: true }))
+  const handleSubjectToggle = (cardIdx: number) => {
+    const willBeOpen = !webSubjectOpen[cardIdx]
+    setWebSubjectOpen(prev => ({ ...prev, [cardIdx]: willBeOpen }))
+    if (willBeOpen) {
+      const c = webCards[cardIdx] as any
+      const url = c?.title ? findAudioForTitle(c.title) : null
+      if (url) {
+        stopAudio()
+        if (!audioRef.current) audioRef.current = new Audio()
+        audioRef.current.src = url
+        audioRef.current.onended = () => {
+          setIsPlaying(false)
+          setPlayingCardIdx(null)
+          setWebAudioCompleted(p => ({ ...p, [cardIdx]: true }))
+        }
+        audioRef.current.play().then(() => { setIsPlaying(true); setPlayingCardIdx(cardIdx) }).catch(() => {})
+      } else {
+        setWebAudioCompleted(p => ({ ...p, [cardIdx]: true }))
       }
-      audioRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch(() => {})
-    } else if (!isOpen) {
+    } else {
       stopAudio()
     }
   }
@@ -539,17 +586,53 @@ export default function CIHHLightCard() {
     }
   }, [panelMode, cardIndex, hasAudio, audioUrl]);
 
-  // Stop audio when web card or view mode changes
+  // Book view: reset collapse states when spread changes
   useEffect(() => {
-    if (viewMode === 'web') stopAudio()
-  }, [webCardIndex])
+    if (viewMode === 'web') {
+      stopAudio()
+      setWebSubjectOpen({})
+      setWebChallengeOpen({})
+      ;[leftIdx, rightIdx].forEach(idx => {
+        if (idx < webCards.length) {
+          const c = webCards[idx] as any
+          const url = c?.title ? findAudioForTitle(c.title) : null
+          if (!url) setWebAudioCompleted(prev => ({ ...prev, [idx]: true }))
+        }
+      })
+    }
+  }, [webCardIndex, viewMode])
+
+  // Book view: auto-expand challenge when audio completes
+  useEffect(() => {
+    if (viewMode !== 'web') return
+    ;[leftIdx, rightIdx].forEach(idx => {
+      if (idx < webCards.length && isKCUnlocked(idx) && !webChallengeOpen[idx]) {
+        setWebChallengeOpen(prev => ({ ...prev, [idx]: true }))
+      }
+    })
+  }, [webAudioCompleted])
 
   useEffect(() => {
     stopAudio()
   }, [viewMode])
 
+  // Book view keyboard navigation
+  useEffect(() => {
+    if (viewMode !== 'web') return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' && canAdvanceSpread && webCardIndex < totalSpreads - 1) {
+        sfxSwipe(); setNavDirection(1); setWebCardIndex(prev => prev + 1)
+      }
+      if (e.key === 'ArrowLeft' && webCardIndex > 0) {
+        sfxSwipe(); setNavDirection(-1); setWebCardIndex(prev => prev - 1)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [viewMode, webCardIndex, canAdvanceSpread, totalSpreads])
+
   return (
-    <div className={`night-transition min-h-screen bg-[radial-gradient(circle_at_top_right,_#FAFBF8_0%,_#D9D6D5_100%)] dark:bg-[radial-gradient(circle_at_top_right,_#020F10_0%,_#010808_100%)] text-[#1F1C1B] dark:text-[#FAFBF8] font-body p-4 md:p-8 flex ${viewMode === 'web' ? 'items-start overflow-y-auto' : 'items-center overflow-hidden'} justify-center relative ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`night-transition min-h-screen bg-[radial-gradient(circle_at_top_right,_#FAFBF8_0%,_#D9D6D5_100%)] dark:bg-[radial-gradient(circle_at_top_right,_#020F10_0%,_#010808_100%)] text-[#1F1C1B] dark:text-[#FAFBF8] font-body p-4 md:p-8 flex items-center overflow-hidden justify-center relative ${isDarkMode ? 'dark' : ''}`}>
       <StyleInjector />
 
       {/* ── Cinematic edge-sweep overlay ── */}
@@ -773,228 +856,240 @@ export default function CIHHLightCard() {
         </AnimatePresence>
       </div>
       ) : (
-      /* ═══ WEB VIEW — one module per page ═══ */
-      <div className="w-full max-w-[960px] min-h-[1000px] relative z-10 py-4">
+      /* ═══ BOOK VIEW — two-page spread with flip ═══ */
+      <div className="w-full max-w-[1584px] relative z-10" style={{ perspective: '2400px' }}>
         <AnimatePresence mode="wait" custom={navDirection}>
           <motion.div
             key={webCardIndex}
             custom={navDirection}
-            variants={cardShellVariants}
+            variants={bookFlipVariants}
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.55, ease: 'easeInOut' }}
-            className="relative w-full min-h-[900px] bg-white/0 dark:bg-[#020F10]/60 backdrop-blur-2xl rounded-[32px] shadow-[0_24px_60px_rgba(31,28,27,0.12)] dark:shadow-[0_24px_80px_rgba(0,10,10,0.75)] overflow-hidden flex flex-col border-l-[4.3px] border-l-[#C74601]"
+            transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+            style={{ transformOrigin: 'right center', backfaceVisibility: 'hidden' }}
+            className="relative w-full h-[81vh] bg-white/60 dark:bg-[#020F10]/70 backdrop-blur-2xl rounded-[20px] shadow-[0_16px_48px_rgba(31,28,27,0.10)] dark:shadow-[0_16px_64px_rgba(0,10,10,0.70)] flex flex-col border-x-[4px] border-x-[#C74601]"
           >
-            {/* Header */}
-            <header className="px-8 pt-8 pb-4 flex justify-between items-end">
-              <div>
-                <p className="text-[#007970] dark:text-[#64F4F5] font-bold text-[1.059rem] tracking-widest uppercase mb-2 flex items-center gap-2">
-                  <FileText className="w-4 h-4" /> CMS-485 Designer
-                </p>
-                <p className="font-heading text-[2.7225rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] tracking-tight">
-                  Module {webCardIndex + 1} <span className="text-[#747474] dark:text-[#D9D6D5] text-[1.815rem]">/ {webCards.length}</span>
-                </p>
+            {/* ── Book Header ── */}
+            <header className="px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-[#E5E4E3]/40 dark:border-[#07282A]/60 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-[#007970]/10 dark:bg-[#64F4F5]/10 flex items-center justify-center">
+                  <BookOpen className="w-3.5 h-3.5 text-[#007970] dark:text-[#64F4F5]" />
+                </div>
+                <div>
+                  <p className="text-[#007970] dark:text-[#64F4F5] font-bold text-[1.1rem] tracking-[0.15em] uppercase leading-none">CMS-485 Designer</p>
+                </div>
               </div>
-              <img
-                className="h-[2.8rem] w-auto object-contain"
-                src={isDarkMode
-                  ? "https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_White.png"
-                  : "https://cdn.jsdelivr.net/gh/robertp-max/CSM-485-Form@main/src/assets/CI%20Home%20Health%20Logo_Gray.png"
-                }
-                alt="CareIndeed Logo"
-              />
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalSpreads }).map((_, i) => (
+                    <div key={i} className={`h-1 rounded-full transition-all duration-400 ${i === webCardIndex ? 'w-5 bg-[#C74601]' : i < webCardIndex ? 'w-2.5 bg-[#C74601]/30' : 'w-1.5 bg-[#E5E4E3] dark:bg-[#07282A]'}`} />
+                  ))}
+                </div>
+                <span className="text-[#747474] dark:text-[#D9D6D5] text-[1.1rem] font-bold tracking-wider tabular-nums">Spread {webCardIndex + 1}/{totalSpreads}</span>
+              </div>
             </header>
 
-            {/* Progress dots */}
-            <div className="px-8 py-4 flex gap-3">
-              {webCards.map((_: any, i: number) => (
-                <div
-                  key={i}
-                  className={`h-2 rounded-full transition-all duration-500 ${
-                    i === webCardIndex
-                      ? 'w-12 bg-[#C74601] glow-orange'
-                      : i < webCardIndex
-                        ? 'w-6 bg-[#FFD5BF] dark:bg-[#021A1B]'
-                        : 'w-2 bg-[#E5E4E3] dark:bg-[#07282A]'
-                  }`}
-                />
-              ))}
-            </div>
-
-            {/* Content */}
-            <section className="px-8 pb-8 pt-4 flex-1 flex flex-col">
-              <p className="text-[#C74601] dark:text-[#E56E2E] text-[0.9075rem] font-bold tracking-widest uppercase mb-3 -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">
-                {webCard.section}
-              </p>
-              <h1 className="font-heading text-3xl md:text-4xl font-bold text-[#1F1C1B] dark:text-[#FAFBF8] mb-8 leading-tight -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">
-                {webCard.title}
-              </h1>
-
-              {/* Learning Objective */}
-              <div className="mb-6 bg-transparent rounded-[24px] p-6 -translate-y-[1px] hover:-translate-y-[2px] border-l-[3px] border-l-[#007970] dark:border-l-[#64F4F5] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_16px_-10px_rgba(0,121,112,0.3)] dark:shadow-[0_7px_17px_-5px_rgba(0,0,0,0.4),0_0_16px_-10px_rgba(100,244,245,0.15)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_28px_-6px_rgba(0,121,112,0.68)] dark:hover:shadow-[0_14px_34px_-10px_rgba(0,0,0,0.5),0_0_28px_-6px_rgba(100,244,245,0.35)] transition-all duration-300 hover:bg-white/[0.30] dark:hover:bg-white/[0.04]">
-                <h2 className="text-[#007970] dark:text-[#64F4F5] font-heading font-bold text-[1.3613rem] mb-2">Learning Objective</h2>
-                <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.3613rem]">{webCard.objective}</p>
-              </div>
-
-              {/* Key Points + Clinical Lens */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="bg-transparent rounded-[24px] p-6 -translate-y-[1px] hover:-translate-y-[2px] border-l-[3.3px] border-l-[#524048] dark:border-l-[#64F4F5] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_16px_-10px_rgba(82,64,72,0.3)] dark:shadow-[0_7px_17px_-5px_rgba(0,0,0,0.4),0_0_16px_-10px_rgba(217,214,213,0.12)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_28px_-6px_rgba(82,64,72,0.62)] dark:hover:shadow-[0_14px_34px_-10px_rgba(0,0,0,0.5),0_0_28px_-6px_rgba(217,214,213,0.25)] transition-all duration-300 hover:bg-white/[0.30] dark:hover:bg-white/[0.04]">
-                  <h2 className="text-[#747474] dark:text-[#D9D6D5] font-heading font-bold text-[1.059rem] uppercase tracking-widest mb-4 pb-2">Key Points</h2>
-                  <ul className="space-y-3 list-none">
-                    {webCard.bullets.map((b: string, i: number) => (
-                      <li key={i} className="text-[#524048] dark:text-[#FAFBF8] text-[1.21rem]">{b}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="bg-transparent rounded-[24px] p-6 -translate-y-[1px] hover:-translate-y-[2px] border-l-[3.3px] border-l-[#C74601] dark:border-l-[#E56E2E] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_16px_-10px_rgba(199,70,1,0.35)] dark:shadow-[0_7px_17px_-5px_rgba(0,0,0,0.4),0_0_16px_-10px_rgba(229,110,46,0.15)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_28px_-6px_rgba(199,70,1,0.72)] dark:hover:shadow-[0_14px_34px_-10px_rgba(0,0,0,0.5),0_0_28px_-6px_rgba(229,110,46,0.35)] transition-all duration-300 hover:bg-white/[0.30] dark:hover:bg-white/[0.04]">
-                  <h2 className="text-[#C74601] dark:text-[#E56E2E] font-heading font-bold text-[1.059rem] uppercase tracking-widest mb-4 pb-2">Clinical Lens</h2>
-                  <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.21rem] leading-relaxed">Translate this concept into clear, patient-specific, defensible documentation language.</p>
-                </div>
-              </div>
-
-              {/* ── Guided Narration (collapsed, auto-plays audio) ── */}
-              {(webHasAudio || webNarrationContent) && (
-              <details className="group mb-6" onToggle={handleNarrationToggle}>
-                <summary className="cursor-pointer select-none flex items-center gap-3 px-5 py-4 rounded-[16px] border-l-[3.3px] border-l-[#007970] dark:border-l-[#64F4F5] shadow-[0_5px_14px_-8px_rgba(31,28,27,0.15)] dark:shadow-[0_5px_14px_-8px_rgba(0,0,0,0.3)] hover:shadow-[0_10px_28px_-8px_rgba(0,121,112,0.4)] dark:hover:shadow-[0_10px_28px_-8px_rgba(100,244,245,0.2)] hover:bg-white/30 dark:hover:bg-white/[0.04] transition-all duration-300">
-                  <span className="inline-block transition-transform duration-200 group-open:rotate-90 text-[#007970] dark:text-[#64F4F5] text-xl font-bold">&rsaquo;</span>
-                  <span className="text-[#007970] dark:text-[#64F4F5] font-bold text-[0.95rem] tracking-widest uppercase">Guided Narration</span>
-                  {isPlaying && viewMode === 'web' && <span className="ml-auto text-[#007970] dark:text-[#64F4F5] text-xs tracking-wide animate-pulse flex items-center gap-1"><Play className="w-3 h-3 fill-current" /> Playing</span>}
-                  {webAudioCompleted[webCardIndex] && !isPlaying && <span className="ml-auto text-[#007970] dark:text-[#64F4F5] text-xs flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Completed</span>}
-                </summary>
-                <div className="mt-4 px-6 pb-2">
-                  <div className="border-l-[2px] border-l-[#E5E4E3] dark:border-l-[#07282A] pl-5">
-                    <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.15rem] leading-relaxed whitespace-pre-line">{webNarrationContent}</p>
-                  </div>
-                  {webHasAudio && (
-                    <div className="mt-4 flex items-center gap-3">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (!audioRef.current) audioRef.current = new Audio()
-                          if (isPlaying) {
-                            audioRef.current.pause()
-                            setIsPlaying(false)
-                          } else if (webAudioUrl) {
-                            audioRef.current.src = webAudioUrl
-                            audioRef.current.onended = () => {
-                              setIsPlaying(false)
-                              setWebAudioCompleted(prev => ({ ...prev, [webCardIndex]: true }))
-                            }
-                            audioRef.current.play()
-                              .then(() => setIsPlaying(true))
-                              .catch(() => {})
-                          }
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 rounded-[10px] text-[#007970] dark:text-[#64F4F5] hover:bg-white/30 dark:hover:bg-white/[0.06] transition-all duration-200"
-                      >
-                        {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-                        <span className="text-sm font-bold tracking-wide">{isPlaying ? 'Pause' : 'Resume'}</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </details>
-              )}
-
-              {/* ── Knowledge Check (locked until narration complete) ── */}
-              <details className={`group mb-8 ${!knowledgeCheckUnlocked ? 'pointer-events-none' : ''}`}>
-                <summary className={`cursor-pointer select-none flex items-center gap-3 px-5 py-4 rounded-[16px] border-l-[3.3px] transition-all duration-300 ${
-                  knowledgeCheckUnlocked
-                    ? 'border-l-[#C74601] dark:border-l-[#E56E2E] shadow-[0_5px_14px_-8px_rgba(31,28,27,0.15)] dark:shadow-[0_5px_14px_-8px_rgba(0,0,0,0.3)] hover:shadow-[0_10px_28px_-8px_rgba(199,70,1,0.35)] dark:hover:shadow-[0_10px_28px_-8px_rgba(229,110,46,0.2)] hover:bg-white/30 dark:hover:bg-white/[0.04]'
-                    : 'border-l-[#E5E4E3] dark:border-l-[#07282A] opacity-40'
-                }`}>
-                  {knowledgeCheckUnlocked
-                    ? <span className="inline-block transition-transform duration-200 group-open:rotate-90 text-[#C74601] dark:text-[#E56E2E] text-xl font-bold">&rsaquo;</span>
-                    : <Lock className="w-4 h-4 text-[#747474] dark:text-[#D9D6D5]" />
-                  }
-                  <span className={`font-bold text-[0.95rem] tracking-widest uppercase ${knowledgeCheckUnlocked ? 'text-[#C74601] dark:text-[#E56E2E]' : 'text-[#747474] dark:text-[#D9D6D5]'}`}>Knowledge Check</span>
-                  {!knowledgeCheckUnlocked && <span className="ml-2 text-[#747474] dark:text-[#D9D6D5] text-xs normal-case tracking-normal font-normal">Complete narration to unlock</span>}
-                </summary>
-                {knowledgeCheckUnlocked && (
-                  <div className="mt-4 px-4 pb-2 space-y-3">
-                    <p className="text-[#524048] dark:text-[#D9D6D5] mb-4 text-[1.21rem]">Which response best aligns with this module's objective?</p>
-                    {webCard.challenge.map((opt: ChallengeOption, oi: number) => {
-                      const wSel = (selectedAnswers[webCardIndex] ?? null) === oi
-                      const wSub = Boolean(submittedAnswers[webCardIndex])
-                      const wIsCorrect = wSub && wSel && isCorrect(webCardIndex)
-                      const wIsWrong = wSub && wSel && !isCorrect(webCardIndex)
-                      return (
-                        <button
-                          key={oi}
-                          disabled={wSub}
-                          onClick={() => { sfxClick(); setSelectedAnswers(prev => ({ ...prev, [webCardIndex]: oi })); }}
-                          className={`w-full text-left p-5 rounded-[16px] transition-all duration-300 flex items-start gap-4 bg-transparent border-l-[3.3px] ${
-                            wIsCorrect || wIsWrong || wSel ? 'border-l-[#00BFB4]' : 'border-l-[#747474] dark:border-l-[#07282A] hover:border-l-[#007970] dark:hover:border-l-[#64F4F5]'
-                          } shadow-[0_6px_14px_-10px_rgba(31,28,27,0.2)] dark:shadow-[0_6px_14px_-10px_rgba(0,0,0,0.4)] hover:bg-white/[0.30] dark:hover:bg-white/[0.04] hover:shadow-[0_0_26px_-6px_rgba(0,121,112,0.62),0_12px_26px_-12px_rgba(31,28,27,0.28)] dark:hover:shadow-[0_0_26px_-6px_rgba(100,244,245,0.35),0_12px_26px_-12px_rgba(0,0,0,0.5)] ${
-                            wIsCorrect ? 'glow-teal' : ''
-                          }`}
-                        >
-                          <div className={`mt-0.5 w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center ${
-                            wIsCorrect ? 'text-[#007970] dark:text-[#64F4F5] bg-transparent' :
-                            wIsWrong ? 'text-[#D70101] dark:text-[#FBE6E6] bg-transparent' : 'bg-transparent'
-                          }`}>
-                            {wIsCorrect && <CheckCircle2 className="w-4 h-4" />}
-                            {wIsWrong && <XCircle className="w-4 h-4" />}
-                          </div>
-                          <span className={`text-[18.15px] leading-relaxed ${
-                            wIsCorrect ? 'text-[#004142] dark:text-[#C4F4F5] font-semibold' :
-                            wIsWrong ? 'text-[#D70101] dark:text-[#FBE6E6]' :
-                            wSel ? 'text-[#421700] dark:text-[#FFD5BF] font-medium' : 'text-[#524048] dark:text-[#D9D6D5]'
-                          }`}>{opt.text}</span>
-                        </button>
-                      )
-                    })}
-                    <div className="mt-6 flex items-center justify-between">
-                      <button
-                        onClick={() => { sfxClick(); setSubmittedAnswers(prev => ({ ...prev, [webCardIndex]: true })); }}
-                        disabled={Boolean(submittedAnswers[webCardIndex]) || selectedAnswers[webCardIndex] === undefined || selectedAnswers[webCardIndex] === null}
-                        className={`px-8 py-3 rounded-[12px] text-[1.1rem] font-bold tracking-wide transition-all duration-300 ${
-                          !submittedAnswers[webCardIndex] && selectedAnswers[webCardIndex] !== undefined && selectedAnswers[webCardIndex] !== null
-                            ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] glow-orange hover:-translate-y-0.5'
-                            : 'bg-[#E5E4E3] dark:bg-[#07282A] text-[#747474] dark:text-[#D9D6D5] cursor-not-allowed'
-                        }`}
-                      >Submit</button>
-                      {submittedAnswers[webCardIndex] && (
-                        <p className={`text-[1.21rem] font-bold flex items-center gap-2 ${isCorrect(webCardIndex) ? 'text-[#007970] dark:text-[#64F4F5]' : 'text-[#D70101] dark:text-[#FBE6E6]'}`}>
-                          {isCorrect(webCardIndex) ? <><CheckCircle2 className="w-5 h-5"/> Correct &mdash; great job.</> : <><XCircle className="w-5 h-5"/> Incorrect &mdash; review before advancing.</>}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </details>
-
-              {/* Navigation */}
-              <div className="flex items-center justify-between mt-auto pt-6 border-t border-[#E5E4E3]/30 dark:border-[#07282A]/50">
-                <button
-                  onClick={() => { sfxSwipe(); setNavDirection(-1); setWebCardIndex(prev => prev - 1); }}
-                  disabled={webCardIndex === 0}
-                  className="flex items-center gap-2 px-6 py-3 rounded-[12px] text-[1rem] font-bold tracking-wide transition-all duration-300 text-[#524048] dark:text-[#D9D6D5] hover:bg-white/30 dark:hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft className="w-4 h-4" /> Previous
-                </button>
-                {webCardIndex < webCards.length - 1 ? (
-                  <button
-                    onClick={() => { sfxSwipe(); setNavDirection(1); setWebCardIndex(prev => prev + 1); }}
-                    disabled={!submittedAnswers[webCardIndex]}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-[12px] text-[1rem] font-bold tracking-wide transition-all duration-300 ${
-                      submittedAnswers[webCardIndex]
-                        ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] glow-orange hover:-translate-y-0.5'
-                        : 'bg-[#E5E4E3] dark:bg-[#07282A] text-[#747474] dark:text-[#D9D6D5] cursor-not-allowed'
-                    }`}
-                  >
-                    Next Module <ChevronRight className="w-4 h-4" />
-                  </button>
-                ) : (
-                  submittedAnswers[webCardIndex] && (
-                    <div className="flex items-center gap-2 text-[#007970] dark:text-[#64F4F5] font-bold text-[1rem]">
-                      <Check className="w-5 h-5" /> All Modules Complete
+            {/* ── Two-Page Spread ── */}
+            <div className="flex flex-1 min-h-0 items-center justify-center">
+              {[leftIdx, rightIdx].map((pageIdx, sideIdx) => {
+                const c = webCards[pageIdx] as any
+                if (!c) {
+                  return (
+                    <div key={`empty-${sideIdx}`} className={`w-1/2 flex items-center justify-center ${sideIdx === 0 ? 'border-r border-[#C74601]/10 dark:border-[#C74601]/20' : ''}`}>
+                      <div className="text-center space-y-2">
+                        <Check className="w-8 h-8 mx-auto text-[#007970] dark:text-[#64F4F5]" />
+                        <p className="text-[#007970] dark:text-[#64F4F5] font-heading font-bold text-[1.12rem]">All Topics Complete</p>
+                      </div>
                     </div>
                   )
-                )}
+                }
+
+                const narration = getCardNarration(c)
+                const cardAudioUrl = getCardAudioUrl(c)
+                const hasPageAudio = Boolean(cardAudioUrl)
+                const kcUnlocked = isKCUnlocked(pageIdx)
+                const subOpen = webSubjectOpen[pageIdx]
+                const chalOpen = webChallengeOpen[pageIdx]
+                const isPagePlaying = isPlaying && playingCardIdx === pageIdx
+
+                return (
+                  <div key={pageIdx} className={`w-1/2 flex flex-col min-h-0 items-center justify-center ${sideIdx === 0 ? 'border-r border-[#C74601]/10 dark:border-[#C74601]/20' : ''}`}>
+                    {/* Page content - scrollable */}
+                    <div className="flex-1 w-full max-w-[640px] overflow-hidden px-6 py-4 flex flex-col gap-3 justify-center">
+
+                      {/* Section + Title */}
+                      <div className="mb-1">
+                        <p className="text-[#C74601] dark:text-[#E56E2E] text-[0.92rem] font-bold tracking-[0.14em] uppercase mb-0.5">{c.section}</p>
+                        <h2 className="font-heading text-[1.94rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] leading-tight">{c.title}</h2>
+                      </div>
+
+                      {/* Learning Objective */}
+                      <div className="px-0 py-0">
+                        <p className="text-[#007970] dark:text-[#64F4F5] font-heading font-bold text-[0.87rem] tracking-[0.15em] uppercase mb-0.5">Objective</p>
+                        <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.35rem] leading-snug">{c.objective}</p>
+                      </div>
+
+                      {/* Key Points */}
+                      <div className="px-0 py-0">
+                        <p className="text-[#747474] dark:text-[#D9D6D5] font-heading font-bold text-[0.87rem] tracking-[0.15em] uppercase mb-1">Key Points</p>
+                        <ul className="space-y-0.5 list-none">
+                          {c.bullets.map((b: string, bi: number) => (
+                            <li key={bi} className="text-[#524048] dark:text-[#FAFBF8] text-[1.26rem] leading-snug flex items-start gap-1.5">
+                              <span className="text-[#007970] dark:text-[#64F4F5] mt-[3px] text-[0.54rem]">&#9679;</span>
+                              <span>{b}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Subject Content (collapsible) */}
+                      {narration && (
+                        <div className="transition-all duration-200">
+                          <button onClick={() => handleSubjectToggle(pageIdx)} className="w-full flex items-center justify-between px-4 py-2 group">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-5 h-5 rounded flex items-center justify-center ${subOpen ? 'bg-[#007970]/15 dark:bg-[#64F4F5]/15' : 'bg-[#007970]/8 dark:bg-[#64F4F5]/8'}`}>
+                                {isPagePlaying ? <Pause className="w-2.5 h-2.5 text-[#007970] dark:text-[#64F4F5] fill-current" /> : <Play className="w-2.5 h-2.5 text-[#007970] dark:text-[#64F4F5] fill-current ml-px" />}
+                              </div>
+                              <span className="text-[#007970] dark:text-[#64F4F5] font-heading font-bold text-[0.98rem] tracking-[0.12em] uppercase">Subject Content</span>
+                              {isPagePlaying && <span className="text-[#007970] dark:text-[#64F4F5] text-[0.84rem] animate-pulse ml-0.5">Playing</span>}
+                              {webAudioCompleted[pageIdx] && !isPagePlaying && <CheckCircle2 className="w-3 h-3 text-[#007970] dark:text-[#64F4F5] ml-0.5" />}
+                            </div>
+                            <ChevronDown className={`w-3 h-3 text-[#747474] dark:text-[#D9D6D5] transition-transform duration-200 ${subOpen ? 'rotate-180' : ''}`} />
+                          </button>
+                          {subOpen && (
+                            <div className="px-4 pb-3">
+                              <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.29rem] leading-[1.6] whitespace-pre-line pt-2 max-h-[18vh] overflow-hidden">{narration}</p>
+                              {hasPageAudio && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (!audioRef.current) audioRef.current = new Audio()
+                                    if (isPagePlaying) { stopAudio() }
+                                    else if (cardAudioUrl) {
+                                      stopAudio()
+                                      audioRef.current.src = cardAudioUrl
+                                      audioRef.current.onended = () => { setIsPlaying(false); setPlayingCardIdx(null); setWebAudioCompleted(p => ({ ...p, [pageIdx]: true })) }
+                                      audioRef.current.play().then(() => { setIsPlaying(true); setPlayingCardIdx(pageIdx) }).catch(() => {})
+                                    }
+                                  }}
+                                  className="mt-2 flex items-center gap-1 px-2.5 py-1 rounded-md text-[1.1rem] font-bold tracking-wide text-[#007970] dark:text-[#64F4F5] hover:bg-[#007970]/10 dark:hover:bg-[#64F4F5]/10 transition-colors"
+                                >
+                                  {isPagePlaying ? <Pause className="w-2.5 h-2.5 fill-current" /> : <Play className="w-2.5 h-2.5 fill-current" />}
+                                  {isPagePlaying ? 'Pause' : 'Replay'}
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Challenge (collapsible, locked) */}
+                      <div className="transition-all duration-200">
+                        <button
+                          onClick={() => { if (kcUnlocked) setWebChallengeOpen(prev => ({ ...prev, [pageIdx]: !prev[pageIdx] })) }}
+                          disabled={!kcUnlocked}
+                          className="w-full flex items-center justify-between px-4 py-2 disabled:cursor-not-allowed group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`w-5 h-5 rounded flex items-center justify-center ${!kcUnlocked ? 'bg-[#747474]/10' : chalOpen ? 'bg-[#C74601]/15' : 'bg-[#C74601]/8'}`}>
+                              {!kcUnlocked ? <Lock className="w-2.5 h-2.5 text-[#747474] dark:text-[#D9D6D5]" /> : <Swords className="w-2.5 h-2.5 text-[#C74601] dark:text-[#E56E2E]" />}
+                            </div>
+                            <span className={`font-heading font-bold text-[0.98rem] tracking-[0.12em] uppercase ${kcUnlocked ? 'text-[#C74601] dark:text-[#E56E2E]' : 'text-[#747474] dark:text-[#D9D6D5]'}`}>Challenge</span>
+                            {!kcUnlocked && <span className="text-[#747474] dark:text-[#D9D6D5] text-[0.82rem] normal-case ml-0.5">Listen to unlock</span>}
+                            {submittedAnswers[pageIdx] && (
+                              <span className={`text-[0.87rem] font-bold ml-0.5 flex items-center gap-0.5 ${isCorrect(pageIdx) ? 'text-[#007970] dark:text-[#64F4F5]' : 'text-[#D70101] dark:text-[#FBE6E6]'}`}>
+                                {isCorrect(pageIdx) ? <><CheckCircle2 className="w-2.5 h-2.5" /> Correct</> : <><XCircle className="w-2.5 h-2.5" /> Incorrect</>}
+                              </span>
+                            )}
+                          </div>
+                          <ChevronDown className={`w-3 h-3 ${!kcUnlocked ? 'text-[#D9D6D5] dark:text-[#07282A]' : 'text-[#747474] dark:text-[#D9D6D5]'} transition-transform duration-200 ${chalOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        {chalOpen && kcUnlocked && (
+                          <div className="px-4 pb-3">
+                            <div className="space-y-1 pt-2">
+                              {c.challenge.map((opt: ChallengeOption, oi: number) => {
+                                const sel = (selectedAnswers[pageIdx] ?? null) === oi
+                                const sub = Boolean(submittedAnswers[pageIdx])
+                                const correct = sub && sel && isCorrect(pageIdx)
+                                const wrong = sub && sel && !isCorrect(pageIdx)
+                                return (
+                                  <button key={oi} disabled={sub} onClick={() => { sfxClick(); setSelectedAnswers(prev => ({ ...prev, [pageIdx]: oi })) }}
+                                    className={`w-full text-left px-1 py-1 transition-all duration-200 flex items-start gap-2 border-none text-[1.29rem] leading-snug ${
+                                      correct ? 'text-[#004142] dark:text-[#C4F4F5]' :
+                                      wrong ? 'text-[#D70101] dark:text-[#FBE6E6]' :
+                                      sel ? 'text-[#421700] dark:text-[#FFD5BF]' :
+                                      'text-[#524048] dark:text-[#D9D6D5]'
+                                    }`}
+                                  >
+                                    <div className="mt-0.5 w-3.5 h-3.5 rounded-full flex-shrink-0 flex items-center justify-center">
+                                      {correct && <CheckCircle2 className="w-3 h-3 text-[#007970] dark:text-[#64F4F5]" />}
+                                      {wrong && <XCircle className="w-3 h-3 text-[#D70101] dark:text-[#FBE6E6]" />}
+                                      {!sub && !sel && <div className="w-2.5 h-2.5 rounded-full border-[1.5px] border-[#D9D6D5] dark:border-[#07282A]" />}
+                                      {!sub && sel && <div className="w-2.5 h-2.5 rounded-full bg-[#C74601] dark:bg-[#E56E2E]" />}
+                                    </div>
+                                    <span className={`${
+                                      correct ? 'text-[#004142] dark:text-[#C4F4F5] font-semibold' :
+                                      wrong ? 'text-[#D70101] dark:text-[#FBE6E6]' :
+                                      sel ? 'text-[#421700] dark:text-[#FFD5BF] font-medium' : 'text-[#524048] dark:text-[#D9D6D5]'
+                                    }`}>{opt.text}</span>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            <div className="mt-2">
+                              <button
+                                onClick={() => { sfxClick(); setSubmittedAnswers(prev => ({ ...prev, [pageIdx]: true })) }}
+                                disabled={Boolean(submittedAnswers[pageIdx]) || selectedAnswers[pageIdx] === undefined || selectedAnswers[pageIdx] === null}
+                                className={`px-4 py-1.5 rounded-lg text-[1.26rem] font-bold tracking-wide transition-all duration-300 ${
+                                  !submittedAnswers[pageIdx] && selectedAnswers[pageIdx] !== undefined && selectedAnswers[pageIdx] !== null
+                                    ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] shadow-[0_3px_12px_-3px_rgba(199,70,1,0.4)]'
+                                    : 'bg-[#E5E4E3] dark:bg-[#07282A] text-[#747474] dark:text-[#D9D6D5] cursor-not-allowed'
+                                }`}
+                              >Submit</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* ── Book Footer ── */}
+            <footer className="px-6 py-2.5 flex items-center justify-between border-t border-[#E5E4E3]/30 dark:border-[#07282A]/40 shrink-0">
+              <button
+                onClick={() => { sfxSwipe(); stopAudio(); setNavDirection(-1); setWebCardIndex(prev => prev - 1) }}
+                disabled={webCardIndex === 0}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[1.26rem] font-bold tracking-wide text-[#524048] dark:text-[#D9D6D5] hover:bg-white/30 dark:hover:bg-white/[0.06] disabled:opacity-25 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" /> Previous
+              </button>
+              <div className="flex items-center gap-3 text-[1.1rem] text-[#747474] dark:text-[#D9D6D5] font-medium tabular-nums">
+                <span>Pages {leftIdx + 1}{rightCard ? `–${rightIdx + 1}` : ''} of {webCards.length}</span>
               </div>
-            </section>
+              {webCardIndex < totalSpreads - 1 ? (
+                <button
+                  onClick={() => { sfxSwipe(); stopAudio(); setNavDirection(1); setWebCardIndex(prev => prev + 1) }}
+                  disabled={!canAdvanceSpread}
+                  className={`flex items-center gap-1.5 px-5 py-1.5 rounded-xl text-[1.26rem] font-bold tracking-wide transition-all duration-300 ${
+                    canAdvanceSpread
+                      ? 'bg-[#C74601] text-white hover:bg-[#E56E2E] shadow-[0_4px_16px_-4px_rgba(199,70,1,0.4)] hover:-translate-y-0.5'
+                      : 'bg-[#E5E4E3] dark:bg-[#07282A] text-[#747474] dark:text-[#D9D6D5] cursor-not-allowed'
+                  }`}
+                >
+                  Next <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                canAdvanceSpread && (
+                  <div className="flex items-center gap-1.5 text-[#007970] dark:text-[#64F4F5] font-bold text-[1.26rem]">
+                    <Check className="w-4 h-4" /> Complete
+                  </div>
+                )
+              )}
+            </footer>
           </motion.div>
         </AnimatePresence>
       </div>

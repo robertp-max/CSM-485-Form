@@ -88,29 +88,8 @@ export const Dock = ({ items, position = 'bottom-right', isDarkMode = false }: D
       onPointerUp={onPointerUp}
       style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`, touchAction: 'none' }}
     >
-      {/* Drag handle */}
       <div
-        data-dock-drag
-        className={`absolute -top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-1 rounded-full cursor-grab active:cursor-grabbing select-none
-                   backdrop-blur-md border shadow-lg transition-all opacity-0 group-hover:opacity-100 ${
-                     isDarkMode
-                       ? 'bg-white/10 border-white/20 hover:border-white/40'
-                       : 'bg-black/60 border-white/20 hover:border-white/40'
-                   }`}
-        style={{ touchAction: 'none' }}
-      >
-        <svg width="12" height="6" viewBox="0 0 12 6" className="text-white/50">
-          <circle cx="1.5" cy="1" r="1" fill="currentColor"/><circle cx="5" cy="1" r="1" fill="currentColor"/><circle cx="8.5" cy="1" r="1" fill="currentColor"/>
-          <circle cx="1.5" cy="5" r="1" fill="currentColor"/><circle cx="5" cy="5" r="1" fill="currentColor"/><circle cx="8.5" cy="5" r="1" fill="currentColor"/>
-        </svg>
-        <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest">Drag</span>
-      </div>
-      <div
-        className={`flex items-end gap-1 px-3 py-2 rounded-2xl border backdrop-blur-md shadow-[0_8px_32px_rgba(31,28,27,0.12)] transition-all duration-300 ${
-          isDarkMode
-            ? 'border-white/10 bg-[#151518]/95'
-            : 'border-[#E5E4E3] bg-white/95'
-        } ${isExpanded ? 'opacity-100' : 'opacity-90'}`}
+        className={`flex ${position === 'center-left' ? 'flex-col items-center gap-3' : 'items-end gap-1'} px-0 py-0 bg-transparent border-none shadow-none backdrop-blur-0 transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-90'}`}
       >
         {items.map((item, index) => {
           const scale = getScale(index)
@@ -139,12 +118,12 @@ export const Dock = ({ items, position = 'bottom-right', isDarkMode = false }: D
                 style={itemStyle}
                 onMouseEnter={() => { setHoveredIndex(index); sfxHover(); }}
                 onClick={() => { sfxClick(); item.onClick(); }}
-                className={`flex items-center justify-center w-11 h-11 rounded-xl transition-colors duration-200 ${
+                className={`flex items-center justify-center w-11 h-11 rounded-none transition-colors duration-200 border-none shadow-none ${
                   item.isActive
-                    ? 'bg-[#007970] text-white shadow-[0_2px_8px_rgba(0,121,112,0.3)]'
+                    ? 'bg-transparent text-[#007970] dark:text-[#64F4F5]'
                     : isDarkMode
-                      ? 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
-                      : 'bg-[#F7F7F6] text-[#524048] hover:bg-[#E5FEFF] hover:text-[#007970]'
+                      ? 'bg-transparent text-white/60 hover:text-white'
+                      : 'bg-transparent text-[#524048] hover:text-[#007970]'
                 }`}
                 aria-label={item.label}
               >
