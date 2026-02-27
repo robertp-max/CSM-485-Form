@@ -1,6 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
@@ -32,6 +33,17 @@ const config: Config = {
             sky: '#F7FEFF',      // Accents (light teal)
             skyBorder: '#C4F4F5',
             input: '#E5E4E3',
+          },
+          // Night Mode Design Tokens (brand kit)
+          nm: {
+            bg: '#1F1C1B',       // Deep charcoal background
+            card: '#2A2524',     // Card surface
+            stroke: '#524048',   // Borders
+            text: '#FAFBF8',     // Primary text
+            textSoft: '#D9D6D5', // Secondary text
+            accent: '#64F4F5',   // Teal 400 accent
+            accentWarm: '#E56E2E', // Orange 400 accent
+            input: '#3A3432',    // Input surfaces
           }
         },
       },
