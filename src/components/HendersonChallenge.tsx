@@ -23,6 +23,7 @@ const STORAGE_KEY = 'cms485.henderson.v1'
 
 type Props = {
   onExit?: () => void
+  inline?: boolean
 }
 
 type Placement = Record<string, string> // boxId → chipId
@@ -45,7 +46,7 @@ function saveState(placements: Placement) {
 }
 
 /* ── Component ───────────────────────────────────────────── */
-export default function HendersonChallenge({ onExit }: Props) {
+export default function HendersonChallenge({ onExit, inline }: Props) {
   const { isDarkMode, toggle } = useTheme()
   const [placements, setPlacements] = useState<Placement>(() => loadState().placements)
   const [draggingChipId, setDraggingChipId] = useState<string | null>(null)
@@ -140,7 +141,7 @@ export default function HendersonChallenge({ onExit }: Props) {
   /* ── Clinical Logic Breakdown Modal ──────────────────── */
   if (showBreakdown && submissionResult) {
     return (
-      <div className={`min-h-screen ${bg} ${text} font-sans`}>
+      <div className={`${inline ? 'h-full overflow-y-auto' : 'min-h-screen'} ${inline ? '' : bg} ${text} font-sans`}>
         <div className="mx-auto max-w-4xl px-6 py-10">
           <div className="text-center mb-10">
             <Trophy className="h-16 w-16 mx-auto text-[#007970] mb-4" />
@@ -186,8 +187,9 @@ export default function HendersonChallenge({ onExit }: Props) {
   }
 
   return (
-    <div className={`min-h-screen ${bg} ${text} font-sans`}>
-      {/* ── Header ──────────────────────────────────── */}
+    <div className={`${inline ? 'h-full flex flex-col overflow-hidden' : `min-h-screen ${bg}`} ${text} font-sans`}>
+      {/* ── Header — standalone mode only ────────────────────── */}
+      {!inline && (
       <header className={`sticky top-0 z-40 border-b ${isDarkMode ? 'border-white/10 bg-[#09090b]/95 backdrop-blur-lg' : 'border-[#E5E4E3] bg-[#FAFBF8]/95 backdrop-blur-lg'}`}>
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
@@ -216,6 +218,7 @@ export default function HendersonChallenge({ onExit }: Props) {
           </div>
         </div>
       </header>
+      )}
 
       {/* ── Crisis Banner ────────────────────────────── */}
       {(showHrWarning || showFirearmWarning) && !submissionResult && (
@@ -227,10 +230,22 @@ export default function HendersonChallenge({ onExit }: Props) {
         </div>
       )}
 
+      {/* ── Compact inline toolbar — card mode ──── */}
+      {inline && (
+        <div className={`flex items-center justify-between px-4 py-2.5 border-b flex-shrink-0 ${isDarkMode ? 'border-white/10' : 'border-[#E5E4E3]'}`}>
+          <h2 className="font-heading text-sm font-bold">
+            Case Henderson <span className={`text-[10px] uppercase tracking-widest ml-2 ${muted}`}>Expert Level</span>
+          </h2>
+          <button onClick={handleReset} className={`rounded-lg border px-3 py-1 text-xs font-semibold ${isDarkMode ? 'border-white/10 text-[#C74601]' : 'border-[#E5E4E3] text-[#C74601]'}`}>
+            Reset
+          </button>
+        </div>
+      )}
+
       {/* ── Split Layout ─────────────────────────────── */}
-      <div className="mx-auto max-w-[1600px] grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-0 min-h-[calc(100vh-56px)]">
+      <div className={`${inline ? 'flex-1 overflow-hidden' : 'mx-auto max-w-[1600px]'} grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-0 ${inline ? '' : 'min-h-[calc(100vh-56px)]'}`}>
         {/* LEFT — Clinical Narrative */}
-        <aside className={`border-r overflow-y-auto p-6 ${isDarkMode ? 'border-white/10' : 'border-[#E5E4E3]'}`} style={{ maxHeight: 'calc(100vh - 56px)' }}>
+        <aside className={`border-r overflow-y-auto p-6 ${isDarkMode ? 'border-white/10' : 'border-[#E5E4E3]'}`} style={inline ? undefined : { maxHeight: 'calc(100vh - 56px)' }}>
           <div className={`rounded-xl border-l-4 border-[#007970] p-4 mb-6 text-sm italic ${isDarkMode ? 'bg-white/5 text-white/80' : 'bg-[#F7FEFF] text-[#524048]'}`}>
             {HENDERSON_NARRATIVE.scheduleQuote}
           </div>
@@ -275,7 +290,7 @@ export default function HendersonChallenge({ onExit }: Props) {
         </aside>
 
         {/* RIGHT — Interactive CMS-485 */}
-        <section className="overflow-y-auto p-6" style={{ maxHeight: 'calc(100vh - 56px)' }}>
+        <section className="overflow-y-auto p-6" style={inline ? undefined : { maxHeight: 'calc(100vh - 56px)' }}>
           <h2 className="font-heading text-xl font-bold mb-6">Interactive CMS-485 Form</h2>
 
           {/* Drop Zones */}

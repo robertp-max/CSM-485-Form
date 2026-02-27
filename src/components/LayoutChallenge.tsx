@@ -12,6 +12,7 @@ interface LayoutChallengeProps {
   theme: 'night' | 'day'
   onComplete?: (score: number, correct: number, total: number) => void
   onBack?: () => void
+  inline?: boolean
 }
 
 /* ── Palette (mirrors Interactive485Form) ──────────────────── */
@@ -103,7 +104,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 /* ── Component ─────────────────────────────────────────────── */
-export default function LayoutChallenge({ theme, onComplete, onBack }: LayoutChallengeProps) {
+export default function LayoutChallenge({ theme, onComplete, onBack, inline }: LayoutChallengeProps) {
   const p = palette(theme)
   const isNight = theme === 'night'
 
@@ -331,7 +332,7 @@ export default function LayoutChallenge({ theme, onComplete, onBack }: LayoutCha
 
   /* ── Render ───────────────────────────────────────────────── */
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden relative" style={{ background: p.bg, color: p.text }}>
+    <div className="flex flex-col h-full w-full overflow-hidden relative" style={inline ? { color: p.text } : { background: p.bg, color: p.text }}>
       {/* Anti-cheat overlay */}
       {blurred && !isComplete && (
         <div
@@ -344,60 +345,95 @@ export default function LayoutChallenge({ theme, onComplete, onBack }: LayoutCha
         </div>
       )}
 
-      {/* Header */}
-      <header
-        className="px-6 py-4 flex justify-between items-center border-b flex-shrink-0"
-        style={{ background: isNight ? p.bgAlt : p.card, borderColor: p.cardBorder }}
-      >
-        <div className="flex items-center gap-4">
-          {onBack && (
-            <button onClick={onBack} className="p-1.5 rounded-lg transition-colors hover:opacity-80" style={{ color: p.accent }}>
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          )}
-          <div>
-            <h1 className="font-heading font-bold text-lg md:text-xl" style={{ color: p.text }}>
-              CMS-485 Layout Mastery
-            </h1>
-            <p className="text-xs mt-0.5" style={{ color: p.textMuted }}>
-              Drag all 21 parts into their correct boxes. Points deduct after 2 minutes.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 md:gap-6">
-          <div className="text-right hidden md:block">
-            <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: p.textDim }}>Time</div>
-            <div className="font-heading font-bold text-xl leading-none mt-1" style={{ color: timerColor }}>
-              {fmtTime(elapsed)}
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: p.textDim }}>Score</div>
-            <div className="font-heading font-bold text-3xl leading-none mt-1" style={{ color: scoreColor }}>
-              {score}
+      {/* Header — standalone mode only */}
+      {!inline && (
+        <header
+          className="px-6 py-4 flex justify-between items-center border-b flex-shrink-0"
+          style={{ background: isNight ? p.bgAlt : p.card, borderColor: p.cardBorder }}
+        >
+          <div className="flex items-center gap-4">
+            {onBack && (
+              <button onClick={onBack} className="p-1.5 rounded-lg transition-colors hover:opacity-80" style={{ color: p.accent }}>
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            )}
+            <div>
+              <h1 className="font-heading font-bold text-lg md:text-xl" style={{ color: p.text }}>
+                CMS-485 Layout Mastery
+              </h1>
+              <p className="text-xs mt-0.5" style={{ color: p.textMuted }}>
+                Drag all 21 parts into their correct boxes. Points deduct after 2 minutes.
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4 md:gap-6">
+            <div className="text-right hidden md:block">
+              <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: p.textDim }}>Time</div>
+              <div className="font-heading font-bold text-xl leading-none mt-1" style={{ color: timerColor }}>
+                {fmtTime(elapsed)}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: p.textDim }}>Score</div>
+              <div className="font-heading font-bold text-3xl leading-none mt-1" style={{ color: scoreColor }}>
+                {score}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={checkAnswers}
+                className="px-4 py-2 rounded-lg text-sm font-heading font-bold transition-all hover:-translate-y-0.5 text-white"
+                style={{ background: p.accentDim, boxShadow: `0 4px 12px ${p.accentDim}66` }}
+              >
+                CHECK
+              </button>
+              <button
+                onClick={handleReset}
+                className="p-2 rounded-lg transition-colors hover:opacity-80"
+                style={{ color: p.textDim }}
+                title="Reset"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </header>
+      )}
+
+      {/* Compact toolbar — inline card mode */}
+      {inline && (
+        <div
+          className="flex items-center justify-between px-4 py-2.5 border-b flex-shrink-0"
+          style={{ borderColor: p.cardBorder }}
+        >
+          <p className="text-xs font-medium" style={{ color: p.textMuted }}>
+            Drag all 21 parts into their correct boxes
+          </p>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: p.textDim }}>Time</span>
+            <span className="font-heading font-bold text-base" style={{ color: timerColor }}>{fmtTime(elapsed)}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest ml-1" style={{ color: p.textDim }}>Score</span>
+            <span className="font-heading font-bold text-xl" style={{ color: scoreColor }}>{score}</span>
             <button
               onClick={checkAnswers}
-              className="px-4 py-2 rounded-lg text-sm font-heading font-bold transition-all hover:-translate-y-0.5 text-white"
-              style={{ background: p.accentDim, boxShadow: `0 4px 12px ${p.accentDim}66` }}
+              className="px-3 py-1.5 rounded-lg text-xs font-heading font-bold text-white transition-all hover:-translate-y-0.5"
+              style={{ background: p.accentDim }}
             >
               CHECK
             </button>
             <button
               onClick={handleReset}
-              className="p-2 rounded-lg transition-colors hover:opacity-80"
+              className="p-1.5 rounded-lg hover:opacity-80"
               style={{ color: p.textDim }}
               title="Reset"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
-      </header>
+      )}
 
       {/* Main content */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">

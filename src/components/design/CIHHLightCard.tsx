@@ -741,43 +741,8 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
         </div>
       )}
 
-      {/* ── Challenge cards render full-screen ── */}
-      {card.intro === 'layout-challenge' && (
-        <div className="fixed inset-0 z-[9998]">
-          <LayoutChallenge
-            theme={isDarkMode ? 'night' : 'day'}
-            onComplete={() => {
-              setIntroCompleted(prev => ({ ...prev, 'layout-challenge': true }))
-              sfxSwipe()
-              setNavDirection(1)
-              setCardIndex(cardIndex + 1)
-              setPanelMode('main')
-            }}
-            onBack={() => {
-              sfxSwipe()
-              setNavDirection(-1)
-              setCardIndex(cardIndex - 1)
-              setPanelMode('main')
-            }}
-          />
-        </div>
-      )}
-      {card.intro === 'henderson-challenge' && (
-        <div className="fixed inset-0 z-[9998]">
-          <HendersonChallenge
-            onExit={() => {
-              setIntroCompleted(prev => ({ ...prev, 'henderson-challenge': true }))
-              sfxSwipe()
-              setNavDirection(1)
-              setCardIndex(cardIndex + 1)
-              setPanelMode('main')
-            }}
-          />
-        </div>
-      )}
-
-      {(viewMode === 'card' || isOnIntroCard) && !card.intro?.includes?.('challenge') ? (
-      <div className="w-full max-w-[1200px] min-h-[1000px] relative z-10">
+      {(viewMode === 'card' || isOnIntroCard) ? (
+      <div className={`w-full ${card.intro?.includes?.('challenge') ? 'max-w-[1400px]' : 'max-w-[1200px]'} min-h-[1000px] relative z-10`}>
         <AnimatePresence mode="wait" custom={navDirection}>
           <motion.div
             key={`${cardIndex}-${panelMode}`}
@@ -850,6 +815,42 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
           )}
         </div>
 
+        {card.intro?.includes?.('challenge') ? (
+          /* ── CHALLENGE SECTION — renders inline inside card shell ── */
+          <section className="flex-1 flex flex-col overflow-hidden">
+            {card.intro === 'layout-challenge' && (
+              <LayoutChallenge
+                inline
+                theme={isDarkMode ? 'night' : 'day'}
+                onComplete={() => {
+                  setIntroCompleted(prev => ({ ...prev, 'layout-challenge': true }))
+                  sfxSwipe()
+                  setNavDirection(1)
+                  setCardIndex(cardIndex + 1)
+                  setPanelMode('main')
+                }}
+                onBack={() => {
+                  sfxSwipe()
+                  setNavDirection(-1)
+                  setCardIndex(cardIndex - 1)
+                  setPanelMode('main')
+                }}
+              />
+            )}
+            {card.intro === 'henderson-challenge' && (
+              <HendersonChallenge
+                inline
+                onExit={() => {
+                  setIntroCompleted(prev => ({ ...prev, 'henderson-challenge': true }))
+                  sfxSwipe()
+                  setNavDirection(1)
+                  setCardIndex(cardIndex + 1)
+                  setPanelMode('main')
+                }}
+              />
+            )}
+          </section>
+        ) : (
         <section className="p-8 min-h-[520px] flex-1 flex flex-col items-center justify-center">
           <div key={`${cardIndex}-${panelMode}`} className="flex-1 flex flex-col w-full max-w-4xl">
 
@@ -1153,6 +1154,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
             </div>
           )}
         </section>
+        )}
 
           </motion.div>
         </AnimatePresence>
