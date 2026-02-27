@@ -57,6 +57,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
 type DockTarget =
   | 'welcome-banner'
   | 'system-calibration'
+  | 'layout-challenge'
+  | 'henderson-challenge'
   | 'interactive-form'
   | 'night-card'
   | 'light-card'
@@ -75,10 +77,12 @@ function GlobalDock() {
   const activeTarget = (new URLSearchParams(location.search).get('dock') as DockTarget | null) ?? 'welcome-banner'
 
   const links: Array<{ target: DockTarget; label: string }> = [
-    { target: 'welcome-banner', label: 'WELCOME BANNER' },
-    { target: 'system-calibration', label: 'SYSTEM CALIBRATION' },
+    { target: 'welcome-banner', label: 'WELCOME' },
+    { target: 'system-calibration', label: 'CALIBRATION' },
+    { target: 'layout-challenge', label: 'LAYOUT' },
+    { target: 'henderson-challenge', label: 'HENDERSON' },
+    { target: 'course-selection', label: 'COURSES' },
     { target: 'interactive-form', label: 'INTERACTIVE FORM' },
-    { target: 'course-selection', label: 'COURSE SELECTION' },
     { target: 'first-card', label: 'FIRST CARD' },
     { target: 'final-exam', label: 'FINAL EXAM (CLINICAL AUDIT)' },
     { target: 'night-card', label: 'NIGHT CARD' },

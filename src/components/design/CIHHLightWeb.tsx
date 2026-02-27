@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Play, Pause, Square, RotateCcw, Swords,
   ArrowRight, ArrowLeft, CheckCircle2, XCircle,
-  ShieldCheck, FileText, Activity, Check
+  ShieldCheck, FileText, Activity, Check,
+  Home, Settings, LayoutGrid, HeartPulse, GraduationCap
 } from 'lucide-react';
 
 const StyleInjector = () => (
@@ -64,7 +65,7 @@ const cards = [
   { title: 'Completion', final: true },
 ];
 
-export default function CIHHLightWeb() {
+export default function CIHHLightWeb({ onNavigate }: { onNavigate?: (phase: string) => void }) {
   const [cardIndex, setCardIndex] = useState(0);
   const [panelMode, setPanelMode] = useState('main');
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number | null>>(() => ({}));
@@ -97,6 +98,13 @@ export default function CIHHLightWeb() {
     { icon: <FileText className="w-5 h-5" />, label: 'Help', onClick: () => alert('Open help') },
     { icon: <ShieldCheck className="w-5 h-5" />, label: debugMode ? 'QA: ON' : 'QA: OFF', onClick: () => setStatusMsg(prev => prev === 'QA: ON' ? 'QA: OFF' : 'QA: ON'), isActive: debugMode },
     { icon: <Activity className="w-5 h-5" />, label: 'Top', onClick: () => { setCardIndex(0); setPanelMode('main'); } },
+    ...(onNavigate ? [
+      { icon: <Home className="w-5 h-5" />, label: 'Welcome', onClick: () => onNavigate('welcome') },
+      { icon: <Settings className="w-5 h-5" />, label: 'Calibration', onClick: () => onNavigate('calibration') },
+      { icon: <LayoutGrid className="w-5 h-5" />, label: 'Layout', onClick: () => onNavigate('layout-challenge') },
+      { icon: <HeartPulse className="w-5 h-5" />, label: 'Henderson', onClick: () => onNavigate('henderson-challenge') },
+      { icon: <GraduationCap className="w-5 h-5" />, label: 'Courses', onClick: () => onNavigate('course-selection') },
+    ] : []),
   ];
 
   const stopAudio = () => {

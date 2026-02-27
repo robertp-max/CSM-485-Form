@@ -28,6 +28,8 @@ type LearningStartTarget = 'course-selection' | 'first-card' | 'quiz'
 type DockNavigationTarget =
   | 'welcome-banner'
   | 'system-calibration'
+  | 'layout-challenge'
+  | 'henderson-challenge'
   | 'interactive-form'
   | 'night-card'
   | 'light-card'
@@ -99,6 +101,12 @@ export default function App() {
       case 'system-calibration':
         setAppPhase('calibration')
         return
+      case 'layout-challenge':
+        setAppPhase('layout-challenge')
+        return
+      case 'henderson-challenge':
+        setAppPhase('henderson-challenge')
+        return
       case 'interactive-form':
         setAppPhase('training')
         setViewMode('485')
@@ -124,10 +132,7 @@ export default function App() {
         setViewMode('FE')
         return
       case 'course-selection':
-        setLearningStartTarget('course-selection')
-        setLearningNavigationNonce(prev => prev + 1)
-        setAppPhase('training')
-        setViewMode('LP')
+        setAppPhase('course-selection')
         return
       case 'first-card':
         setLearningStartTarget('first-card')
@@ -167,6 +172,8 @@ export default function App() {
     const allowedTargets: DockNavigationTarget[] = [
       'welcome-banner',
       'system-calibration',
+      'layout-challenge',
+      'henderson-challenge',
       'interactive-form',
       'night-card',
       'light-card',
@@ -188,10 +195,10 @@ export default function App() {
 
   const renderViewContent = () => {
     switch (viewMode) {
-      case 'NC': return <CIHHNightCard />
-      case 'LC': return <CIHHLightCard />
-      case 'NW': return <CIHHNightWeb />
-      case 'LW': return <CIHHLightWeb />
+      case 'NC': return <CIHHNightCard onNavigate={(p) => setAppPhase(p as AppPhase)} />
+      case 'LC': return <CIHHLightCard onNavigate={(p) => setAppPhase(p as AppPhase)} />
+      case 'NW': return <CIHHNightWeb onNavigate={(p) => setAppPhase(p as AppPhase)} />
+      case 'LW': return <CIHHLightWeb onNavigate={(p) => setAppPhase(p as AppPhase)} />
       case 'FE': return <FinalExamWeb theme={theme as 'night' | 'day'} onExit={() => setViewMode(theme === 'day' ? 'LW' : 'NW')} />
       case 'LP': return <LearningProfessional qaEnabled={qaModeEnabled} startAtModuleSelection={learningStartTarget === 'course-selection'} startTarget={learningStartTarget} navigationNonce={learningNavigationNonce} />
       case 'HELP': return <HelpCenter />

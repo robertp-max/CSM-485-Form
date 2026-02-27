@@ -5,7 +5,8 @@ import {
   Play, Pause, Swords,
   CheckCircle2, XCircle,
   ShieldCheck, FileText, Activity, Check,
-  Moon, Sun, Layers, Lock, ChevronLeft, ChevronRight, ChevronDown, BookOpen
+  Moon, Sun, Layers, Lock, ChevronLeft, ChevronRight, ChevronDown, BookOpen,
+  Home, Settings, LayoutGrid, HeartPulse, GraduationCap
 } from 'lucide-react';
 
 const StyleInjector = () => (
@@ -284,7 +285,7 @@ const bookFlipVariants = {
   }),
 }
 
-export default function CIHHLightCard() {
+export default function CIHHLightCard({ onNavigate }: { onNavigate?: (phase: string) => void }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [modeTransitionKey, setModeTransitionKey] = useState(0);
   const [showCurtain, setShowCurtain] = useState(false);
@@ -373,6 +374,13 @@ export default function CIHHLightCard() {
       setCardIndex(0)
       setPanelMode('main')
     } },
+    ...(onNavigate ? [
+      { icon: <Home className="w-5 h-5" />, label: 'Welcome', onClick: () => onNavigate('welcome') },
+      { icon: <Settings className="w-5 h-5" />, label: 'Calibration', onClick: () => onNavigate('calibration') },
+      { icon: <LayoutGrid className="w-5 h-5" />, label: 'Layout', onClick: () => onNavigate('layout-challenge') },
+      { icon: <HeartPulse className="w-5 h-5" />, label: 'Henderson', onClick: () => onNavigate('henderson-challenge') },
+      { icon: <GraduationCap className="w-5 h-5" />, label: 'Courses', onClick: () => onNavigate('course-selection') },
+    ] : []),
   ];
 
   const stopAudio = () => {
