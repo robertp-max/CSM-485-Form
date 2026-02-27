@@ -333,6 +333,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
 
   const card = cards[cardIndex] as any;
   const isOnIntroCard = Boolean(card?.intro)
+  const isOnChallengeCard = card?.intro === 'layout-challenge' || card?.intro === 'henderson-challenge'
   const introCardCount = INTRO_CARDS.length
   const trainingOnlyCards = cards.filter(entry => !(entry as any).final && !(entry as any).intro)
   const trainingCardIndex = cardIndex - introCardCount
@@ -494,7 +495,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
   const handleNext = () => {
     if (isOnIntroCard) {
       const introKind = card.intro as string
-      if ((introKind === 'layout-challenge' || introKind === 'henderson-challenge') && !introCompleted[introKind]) return
+      if ((introKind === 'layout-challenge' || introKind === 'henderson-challenge') && !debugMode && !introCompleted[introKind]) return
       if (introKind === 'course-selection') {
         stopAudio()
         sfxSwipe()
@@ -582,6 +583,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
   }
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (isOnChallengeCard) return           // lock page during challenges
     pointerStartX.current = event.clientX
     pointerStartY.current = event.clientY
     pointerCurrentX.current = event.clientX
@@ -623,6 +625,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
   }
 
   const handleCardEdgeClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (isOnChallengeCard) return            // lock page during challenges
     if (isInteractiveTarget(event.target)) return
 
     const rect = event.currentTarget.getBoundingClientRect()
@@ -641,6 +644,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
   useEffect(() => {
     if (viewMode !== 'card') return
     const onKey = (e: KeyboardEvent) => {
+      if (isOnChallengeCard) return          // lock page during challenges
       if (e.key === 'ArrowRight') handleNext()
       if (e.key === 'ArrowLeft') handleBack()
     }
