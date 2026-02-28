@@ -3,7 +3,7 @@ import {
   Play, Pause,
   ArrowRight, ArrowLeft, CheckCircle2, XCircle,
   ShieldCheck, FileText, Activity, Check,
-  Home, Settings, LayoutGrid, HeartPulse, GraduationCap,
+  Home, Settings, LayoutGrid, HeartPulse, GraduationCap, ClipboardCheck,
 } from 'lucide-react'
 import { TRAINING_CARDS } from '../../data/trainingCards'
 import { FINAL_TEST_TITLE, FINAL_TEST_OBJECTIVE, FINAL_TEST_KEY_POINTS, FINAL_TEST_QUESTIONS } from '../../data/finalTest'
@@ -104,6 +104,7 @@ export default function CIHHNightCard({ onNavigate }: { onNavigate?: (phase: str
       { icon: <LayoutGrid className="w-5 h-5" />, label: 'Layout', onClick: () => onNavigate('layout-challenge') },
       { icon: <HeartPulse className="w-5 h-5" />, label: 'Henderson', onClick: () => onNavigate('henderson-challenge') },
       { icon: <GraduationCap className="w-5 h-5" />, label: 'Courses', onClick: () => onNavigate('course-selection') },
+      { icon: <ClipboardCheck className="w-5 h-5" />, label: 'Final Exam', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=final-exam&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'final-exam' })); } },
     ] : []),
   ]
 

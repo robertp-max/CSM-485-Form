@@ -6,7 +6,7 @@ import {
   CheckCircle2, XCircle,
   ShieldCheck, FileText, Check,
   Moon, Sun, Layers, Lock, ChevronLeft, ChevronRight, ChevronDown, BookOpen,
-  Home, Settings, LayoutGrid, HeartPulse, GraduationCap
+  Home, Settings, LayoutGrid, HeartPulse, GraduationCap, ClipboardCheck
 } from 'lucide-react';
 
 const StyleInjector = () => (
@@ -423,6 +423,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
     { icon: <LayoutGrid className="w-5 h-5" />, label: 'Layout', onClick: () => { sfxClick(); setNavDirection(cardIndex > 2 ? -1 : 1); setCardIndex(2); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
     { icon: <HeartPulse className="w-5 h-5" />, label: 'Henderson', onClick: () => { sfxClick(); setNavDirection(cardIndex > 3 ? -1 : 1); setCardIndex(3); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
     { icon: <GraduationCap className="w-5 h-5" />, label: 'Courses', onClick: () => { sfxClick(); setNavDirection(cardIndex > 4 ? -1 : 1); setCardIndex(4); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
+    { icon: <ClipboardCheck className="w-5 h-5" />, label: 'Final Exam', onClick: () => { sfxClick(); const nonce = Date.now(); window.location.hash = `/?dock=final-exam&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'final-exam' })); } },
   ];
 
   const stopAudio = () => {
