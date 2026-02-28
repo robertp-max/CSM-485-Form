@@ -67,12 +67,12 @@ const HENDERSON_NARRATIVE = {
     {
       title: 'Clinical Evaluation Narrative',
       content:
-        'Upon arrival for the initial assessment, the clinical environment was immediately compromised by the presence of a loaded handgun on the nightstand, requiring immediate tactical communication to establish a safe perimeter before the secondary stabilization phase could begin. The patient presents as significantly ashen and diaphoretic with a documented bradycardia of HR 48, yet due to profound diabetic peripheral neuropathy, he denies the typical chest pressure associated with myocardial infarction, though the clinical "silent" presentation suggests a 911 transfer is the only viable path forward despite the urgency of the Wagner Grade 3 great toe ulcer which currently probes to the bone. During the assessment, the neighbor, Mrs. Gable, arrived unannounced to ask if George\'s cat, "Pickles," could stay at her house until the power is restored, specifically mentioning that the feline requires a specific brand of wet food twice daily; meanwhile, the daughter\'s refusal to assist was punctuated by her claim that she is allergic to the cat and will not return until the animal is removed.',
+        'Upon arrival, the environment was compromised by a loaded handgun, requiring tactical communication to secure the area. The patient is ashen and bradycardic (HR 48); while neuropathy masks chest pain, the presentation suggests a "silent" MI requiring immediate 911 transfer. Simultaneously, the patient has an urgent Wagner Grade 3 great toe ulcer that currently probes to the bone. Socially, a neighbor (Mrs. Gable) arrived unannounced to discuss feline care for the patient\'s cat, "Pickles," as the power remains out.',
     },
     {
       title: 'Physician Coordination',
       content:
-        "Regarding the coordination of care and the prospective visit schedule, the primary clinician determined that while the standard stabilization typically requires oversight for the first 72 hours, the daughter\u2019s sudden refusal to provide support necessitates that this initial daily oversight be the top priority for those three days in week one. Following this stabilization, the plan dictates that the clinician will down-regulate to a twice-weekly cadence for the three remaining weeks of the first month to monitor for osteomyelitis. The second month of the certification period is slated to transition to a standard once-weekly frequency for the final four weeks. Physical Therapy remains sidelined by a mandated 48-hour vascular hold pending a consult for the pulseless left leg; thereafter, the therapist's intent is to conduct visits twice a week for a duration of three weeks, subsequently tapering to a once-weekly frequency for the final two weeks to finalize the safety and home exercise program.",
+        'SN: Stabilization requires oversight for the first 72 hours (3 visits in week one). Frequency then drops to twice-weekly for the remaining 3 weeks of the month to monitor for osteomyelitis. The second month transitions to once-weekly for 4 weeks. PT: Sidelined by a 48-hour vascular hold for the pulseless left leg. Thereafter, visits are twice-weekly for 3 weeks, followed by once-weekly for 2 weeks.',
     },
   ],
 }
@@ -81,63 +81,63 @@ const HENDERSON_NARRATIVE = {
 const ANSWER_CHIPS = [
   // BOX 11
   { id: '11-1', boxId: 'box-11', label: 'E11.621 (Type 2 DM w/ foot ulcer)' },
-  { id: '11-2', boxId: 'box-11', label: 'L97.511 (Non-pressure chronic ulcer of right foot, limited to skin)', trapNote: 'Ignores the diabetes.' },
-  { id: '11-3', boxId: 'box-11', label: 'L03.115 (Cellulitis of right lower limb)', trapNote: 'Symptom, not primary cause.' },
-  { id: '11-4', boxId: 'box-11', label: 'I70.202 (Atherosclerosis of native arteries of L leg w/ ulcer)', trapNote: 'Ischemia is a secondary dx here.' },
-  { id: '11-5', boxId: 'box-11', label: 'E11.9 (Type 2 DM without complications)', trapNote: 'Incorrectly labels as uncomplicated.' },
-  { id: '11-6', boxId: 'box-11', label: 'I73.9 (Peripheral vascular disease, unspecified)', trapNote: 'Too vague for high-acuity billing.' },
-  { id: '11-7', boxId: 'box-11', label: 'R00.1 (Bradycardia, unspecified)', trapNote: 'Acute symptom, not home health primary.' },
-  { id: '11-8', boxId: 'box-11', label: 'M86.171 (Other acute osteomyelitis, right ankle and foot)', trapNote: 'Requires clinical confirmation/X-ray first.' },
-  { id: '11-9', boxId: 'box-11', label: 'Z47.89 (Other orthopaedic aftercare)', trapNote: 'Used for post-op, not chronic ulcers.' },
-  { id: '11-10', boxId: 'box-11', label: 'L98.491 (Non-pressure chronic ulcer of skin, unspecified)', trapNote: '"Unspecified" is an audit red flag.' },
+  { id: '11-2', boxId: 'box-11', label: 'L03.115 (Cellulitis of R lower limb)', trapNote: 'Coding Rule: Cellulitis is a manifestation of the wound. To justify Home Health, you must code the etiology (Diabetes) linked to the manifestation (Ulcer) to capture the full clinical picture.' },
+  { id: '11-3', boxId: 'box-11', label: 'I70.202 (Atherosclerosis of L leg)', trapNote: 'Acuity Trap: While this is an acute issue, it is a reason for ER/Hospitalization. If it is the primary reason for the Home Health visit, the patient is technically too unstable for home care.' },
+  { id: '11-4', boxId: 'box-11', label: 'R00.1 (Bradycardia, unspecified)', trapNote: 'Acuity Trap: This is an acute ER issue. If bradycardia is the primary reason for the Home Health visit, the patient is too unstable for home care.' },
+  { id: '11-5', boxId: 'box-11', label: 'M86.9 (Osteomyelitis, unspecified)', trapNote: 'Pre-mature Coding: You cannot code Osteomyelitis as primary until it is confirmed by imaging (X-ray/MRI). Stick to the confirmed Wagner Grade 3 ulcer until the "probe-to-bone" is verified.' },
+  { id: '11-6', boxId: 'box-11', label: 'L97.519 (Non-pressure chronic ulcer, unspec. severity)', trapNote: 'Specificity Failure: Medicare requires the most specific code available. "Unspecified chronic ulcer" is too vague when we know the patient has Type 2 Diabetes.' },
+  { id: '11-7', boxId: 'box-11', label: 'I73.9 (Peripheral Vascular Disease)', trapNote: 'Specificity Failure: "PVD" is too vague for an ulcer case. Medicare requires the most specific code available.' },
+  { id: '11-8', boxId: 'box-11', label: 'E11.40 (Type 2 DM w/ Neuropathy)', trapNote: 'This ignores the more acute foot ulcer. Neuropathy is contributing but the ulcer drives the skilled nursing need.' },
+  { id: '11-9', boxId: 'box-11', label: 'Z48.01 (Encounter for change of surgical dressing)', trapNote: 'This is a routine aftercare code, not an illness code. It does not capture the medical necessity for home health.' },
+  { id: '11-10', boxId: 'box-11', label: 'R41.0 (Disorientation, unspecified)', trapNote: 'Distractor Alert: Disorientation is a symptom, likely of the "Silent MI" or hyperglycemia. It does not justify the skilled nursing need for wound care.' },
 
   // BOX 15
   { id: '15-1', boxId: 'box-15', label: 'Endurance, Ambulation, LOPS (Loss of Protective Sensation)' },
   { id: '15-2', boxId: 'box-15', label: 'Total Assist for ADLs, Bedbound, Speech Impairment', trapNote: 'Overstates acuity; patient is chair-bound, not bedbound.' },
   { id: '15-3', boxId: 'box-15', label: 'Legally Blind, Hearing Impairment, Paralysis', trapNote: 'Not supported by the evaluation.' },
-  { id: '15-4', boxId: 'box-15', label: 'Dyspnea with Minimal Exertion, Orthostatic Hypotension', trapNote: 'Clinically true but misses the neurological component.' },
-  { id: '15-5', boxId: 'box-15', label: 'Contracture, Amputation Risk, Bowel/Bladder Incontinence', trapNote: 'Plausible but lacks specific primary evidence.' },
+  { id: '15-4', boxId: 'box-15', label: 'Dyspnea with Minimal Exertion, Orthostatic Hypotension', trapNote: 'Clinically true but misses the neurological component (LOPS).' },
+  { id: '15-5', boxId: 'box-15', label: 'Contracture, Amputation Risk, Bowel/Bladder Incontinence', trapNote: 'Plausible but lacks specific primary evidence from the narrative.' },
   { id: '15-6', boxId: 'box-15', label: 'Cognitive Impairment, Memory Loss, Disorientation', trapNote: 'Confusion is secondary to the cardiac/metabolic crisis.' },
-  { id: '15-7', boxId: 'box-15', label: 'Severe Pain, Joint Stiffness, Limited Range of Motion', trapNote: 'Neuropathy often masks pain in Grade 3 ulcers.' },
-  { id: '15-8', boxId: 'box-15', label: 'Fragile Skin, Decubitus Ulcer Risk, Poor Nutritional Status', trapNote: 'General "Catch-all" used incorrectly.' },
+  { id: '15-7', boxId: 'box-15', label: 'Severe Pain, Joint Stiffness, Limited Range of Motion', trapNote: 'Neuropathy often masks pain in Grade 3 ulcers \u2014 contradicts the narrative.' },
+  { id: '15-8', boxId: 'box-15', label: 'Fragile Skin, Decubitus Ulcer Risk, Poor Nutritional Status', trapNote: 'General "catch-all" used incorrectly for this specific case.' },
   { id: '15-9', boxId: 'box-15', label: 'Profound Generalized Weakness and Fatigue Only', trapNote: 'Not specific enough for Box 15.' },
-  { id: '15-10', boxId: 'box-15', label: 'Dependent on Oxygen, Wheelchair Bound, Aphasia', trapNote: 'Irrelevant clinical data.' },
+  { id: '15-10', boxId: 'box-15', label: 'Dependent on Oxygen, Wheelchair Bound, Aphasia', trapNote: 'Irrelevant clinical data not supported by the narrative.' },
 
   // BOX 18
   { id: '18-1', boxId: 'box-18', label: 'Cleanse w/ NS, apply Collagen, cover foam; notify MD of Wagner 3 & request X-ray' },
-  { id: '18-2', boxId: 'box-18', label: 'Cleanse w/ Betadine, apply dry sterile dressing, change every 3 days', trapNote: 'Betadine is cytotoxic; too infrequent.' },
-  { id: '18-3', boxId: 'box-18', label: 'Soak foot in Epsom salts 15 mins daily; apply OTC antibiotic ointment', trapNote: 'Soaking is strictly contraindicated for diabetics.' },
-  { id: '18-4', boxId: 'box-18', label: 'Apply Silver Sulfadiazine cream and leave open to air to promote drying', trapNote: 'Wounds need moisture balance, not drying.' },
-  { id: '18-5', boxId: 'box-18', label: 'Cleanse w/ Hydrogen Peroxide and pack with wet-to-dry gauze BID', trapNote: 'Peroxide damages healthy tissue; wet-to-dry is outdated.' },
-  { id: '18-6', boxId: 'box-18', label: 'Apply Hydrogel and instruct patient on autolytic debridement daily', trapNote: 'Too passive for a bone-involved infection.' },
-  { id: '18-7', boxId: 'box-18', label: 'Enforce bedrest; wrap foot in heating pad to increase circulation', trapNote: 'Heating pads cause burns in neuropathy patients.' },
-  { id: '18-8', boxId: 'box-18', label: 'Apply Honey-based dressing and check pulse once weekly', trapNote: 'Pulse must be checked daily in ischemia cases.' },
-  { id: '18-9', boxId: 'box-18', label: "Irrigate wound with Dakin\u2019s solution and apply pressure dressing", trapNote: "Too aggressive; Dakin's is for specific necrotic cases." },
-  { id: '18-10', boxId: 'box-18', label: 'Debride yellow slough at bedside with surgical blade; apply gauze', trapNote: 'Debridement requires a specific order/specialist.' },
+  { id: '18-2', boxId: 'box-18', label: 'Cleanse w/ Betadine, apply dry sterile dressing, change every 3 days', trapNote: 'Betadine is cytotoxic to healthy tissue; every 3 days is too infrequent for a Grade 3 ulcer.' },
+  { id: '18-3', boxId: 'box-18', label: 'Soak foot in Epsom salts 15 mins daily; apply OTC antibiotic ointment', trapNote: 'Soaking is strictly contraindicated for diabetics with neuropathy.' },
+  { id: '18-4', boxId: 'box-18', label: 'Apply Silver Sulfadiazine cream and leave open to air to promote drying', trapNote: 'Wounds need moisture balance, not drying. Leaving open increases infection risk.' },
+  { id: '18-5', boxId: 'box-18', label: 'Cleanse w/ Hydrogen Peroxide and pack with wet-to-dry gauze BID', trapNote: 'Peroxide damages healthy tissue; wet-to-dry is outdated practice.' },
+  { id: '18-6', boxId: 'box-18', label: 'Apply Hydrogel and instruct patient on autolytic debridement daily', trapNote: 'Too passive for a bone-involved infection requiring immediate escalation.' },
+  { id: '18-7', boxId: 'box-18', label: 'Enforce bedrest; wrap foot in heating pad to increase circulation', trapNote: 'Danger! Heating pads cause burns in neuropathy patients because they cannot feel the heat.' },
+  { id: '18-8', boxId: 'box-18', label: 'Apply Honey-based dressing and check pulse once weekly', trapNote: 'Pulse must be checked daily in ischemia cases, not once weekly.' },
+  { id: '18-9', boxId: 'box-18', label: "Irrigate wound with Dakin\u2019s solution and apply pressure dressing", trapNote: "Too aggressive; Dakin\u2019s is for specific necrotic cases, not appropriate here." },
+  { id: '18-10', boxId: 'box-18', label: 'Debride yellow slough at bedside with surgical blade; apply gauze', trapNote: 'Debridement requires a specific physician order and specialist involvement.' },
 
   // BOX 21
   { id: '21-1', boxId: 'box-21', label: 'SN: 3w1, 2w3, 1w4 | PT: 2w3, 1w2' },
-  { id: '21-2', boxId: 'box-21', label: 'SN: 7w1, 2w3, 1w4 | PT: 2w3, 1w2', trapNote: 'Interprets "daily oversight" as 7 days.' },
-  { id: '21-3', boxId: 'box-21', label: 'SN: 3w1, 2w7 | PT: 1w5', trapNote: 'Miscalculates the tapering of care.' },
-  { id: '21-4', boxId: 'box-21', label: 'SN: 1w9 | PT: 2w5', trapNote: 'Too low for acute Wagner Grade 3.' },
-  { id: '21-5', boxId: 'box-21', label: 'SN: 5w1, 3w3, 2w5 | PT: 3w2, 1w3', trapNote: 'Over-utilization of resources.' },
-  { id: '21-6', boxId: 'box-21', label: 'SN: 3w1, 2w3, 1w4 | PT: 1w1, 2w4', trapNote: 'Incorrectly adds a standalone Eval week for PT.' },
-  { id: '21-7', boxId: 'box-21', label: 'SN: 7w1, 1w8 | PT: 2w5', trapNote: 'Misses the second-month taper.' },
-  { id: '21-8', boxId: 'box-21', label: 'SN: 3w1, 1w8 | PT: 2w3, 1w2', trapNote: 'Drops to 1w too early in month one.' },
-  { id: '21-9', boxId: 'box-21', label: 'SN: 2w4, 1w5 | PT: 2w4, 1w5', trapNote: 'Standard protocol that ignores the 72h stabilization.' },
-  { id: '21-10', boxId: 'box-21', label: 'SN: 4w1, 2w8 | PT: 2w8', trapNote: "Random numbers that don't match the narrative." },
+  { id: '21-2', boxId: 'box-21', label: 'SN: 7w1, 2w3, 1w4 | PT: 2w3, 1w2', trapNote: '72 hours of stabilization equals 3 calendar days. Coding 7w1 suggests a full week of daily visits \u2014 over-utilization not supported by the 72-hour narrative.' },
+  { id: '21-3', boxId: 'box-21', label: 'SN: 3w1, 2w7 | PT: 1w5', trapNote: 'Audit Failure: Keeping a high frequency for 7 weeks without a step-down suggests the patient is not improving, which can lead to claim denials.' },
+  { id: '21-4', boxId: 'box-21', label: 'SN: 3w1, 2w3, 1w4 | PT: 1w1, 2w4', trapNote: 'The narrative states PT starts after a 48-hour hold within the existing week. Adding an extra 1w1 evaluation week incorrectly extends the certification period.' },
+  { id: '21-5', boxId: 'box-21', label: 'SN: 1w9 | PT: 2w5', trapNote: 'Safety Risk: 1w9 is insufficient for a Wagner Grade 3 ulcer and unstable cardiac status. This fails to provide the skilled oversight required.' },
+  { id: '21-6', boxId: 'box-21', label: 'SN: 7w1, 2w8 | PT: 2w5', trapNote: 'Documentation Discrepancy: These numbers do not appear in the physician coordination notes. The 485 must match the coordination exactly.' },
+  { id: '21-7', boxId: 'box-21', label: 'SN: 3w1, 2w3, 1w4 | PT: 2w5', trapNote: 'PT Logic Error: The narrative explicitly requested a taper to once-weekly for the final two weeks. Failing to taper suggests a lack of discharge planning.' },
+  { id: '21-8', boxId: 'box-21', label: 'SN: 5w1, 3w3, 2w5 | PT: 3w2, 1w3', trapNote: 'Documentation Discrepancy: Arbitrary numbers not supported by the physician coordination narrative.' },
+  { id: '21-9', boxId: 'box-21', label: 'SN: 2w4, 1w5 | PT: 2w4, 1w5', trapNote: 'Mirroring disciplines (giving SN and PT the same schedule) is a red flag for "cookie-cutter" care. Each discipline must have its own justified frequency.' },
+  { id: '21-10', boxId: 'box-21', label: 'SN: 4w1, 2w8 | PT: 2w8', trapNote: 'Mirroring and math errors. Fails to address the 72-hour stabilization requirement.' },
 
   // BOX 24
   { id: '24-1', boxId: 'box-24', label: 'Establish safe environment: secure firearm, initiate 911 transfer for HR 48' },
-  { id: '24-2', boxId: 'box-24', label: 'Instruct daughter on wound care techniques and dressing changes', trapNote: 'Ignores that the daughter has quit.' },
-  { id: '24-3', boxId: 'box-24', label: 'Provide educational pamphlets on low-sodium diets and foot care', trapNote: '"Fluff" that ignores the cardiac crisis.' },
-  { id: '24-4', boxId: 'box-24', label: 'Install grab bars and non-slip mats in the bathroom immediately', trapNote: 'Good, but not the priority over the heart rate.' },
-  { id: '24-5', boxId: 'box-24', label: 'Arrange for Meals-on-Wheels to address the power outage/nutrition', trapNote: 'Social need, not an emergency action.' },
-  { id: '24-6', boxId: 'box-24', label: "Coordinate with Mrs. Gable regarding 'Pickles' the cat and feline dietary needs", trapNote: 'Social determinant distractor — irrelevant to the emergency clinical priority or CMS-485 safety requirements.' },
-  { id: '24-7', boxId: 'box-24', label: 'Obtain consent for diabetic foot care and daily weights', trapNote: 'Basic care, not emergency stabilization.' },
-  { id: '24-8', boxId: 'box-24', label: 'Instruct patient to keep legs elevated at 45 degrees while sleeping', trapNote: 'Dangerous if ischemia is present (reduces flow).' },
-  { id: '24-9', boxId: 'box-24', label: 'Perform medication reconciliation and remove expired pills', trapNote: 'Necessary, but secondary to the 911/Firearm risk.' },
-  { id: '24-10', boxId: 'box-24', label: 'Mark the border of the erythema with a surgical pen and monitor', trapNote: 'Good nursing, but ignores the "Silent MI" risk.' },
+  { id: '24-2', boxId: 'box-24', label: 'Perform wound care to R great toe to prevent further infection', trapNote: 'Clinical Negligence: Performing wound care while a patient is ashen and bradycardic (HR 48) is a failure to recognize a life-threatening cardiac event.' },
+  { id: '24-3', boxId: 'box-24', label: 'Secure the firearm and then perform a 12-lead EKG', trapNote: 'Delay of Care: You are in a home, not an ER. Performing a 12-lead EKG delays the definitive care provided by EMS and the hospital.' },
+  { id: '24-4', boxId: 'box-24', label: 'Educate daughter on insulin storage temperatures (78\u00B0F)', trapNote: 'Priority Error: Insulin temperatures are a logistical issue. You are currently facing a life-safety issue.' },
+  { id: '24-5', boxId: 'box-24', label: 'Assess the L leg pulselessness and apply a warm compress', trapNote: 'Danger! Applying heat to an ischemic limb (no pulse) can cause catastrophic tissue damage because the blood flow cannot carry the heat away.' },
+  { id: '24-6', boxId: 'box-24', label: 'Locate "Pickles" the cat to reduce patient anxiety/confusion', trapNote: 'Focus! While the patient is worried about the cat, the clinician must ignore the "Pickles" distractor to manage the active Myocardial Infarction.' },
+  { id: '24-7', boxId: 'box-24', label: 'Contact the power company to restore electricity for the patient', trapNote: 'Priority Error: Power restoration is a social work task, not a life-safety priority during a cardiac emergency.' },
+  { id: '24-8', boxId: 'box-24', label: 'Reconcile the Glyburide/Lisinopril error immediately', trapNote: 'Important, but secondary. Medication reconciliation does not fix the active Silent MI.' },
+  { id: '24-9', boxId: 'box-24', label: 'Apply a pressure dressing to the R great toe ulcer', trapNote: 'Improper wound care technique for a Wagner Grade 3 ulcer, and ignores the active cardiac emergency.' },
+  { id: '24-10', boxId: 'box-24', label: 'Instruct Mrs. Gable to take the patient to her house', trapNote: 'Abandonment: Moving an unstable, bradycardic patient to a neighbor\u2019s house without medical transport is unsafe and legally indefensible.' },
 ]
 
 const FORM_BOXES = [
@@ -146,35 +146,35 @@ const FORM_BOXES = [
     label: '11. Principal Diagnosis',
     correctChipId: '11-1',
     tooltipWhy: 'CMS requires the primary diagnosis to be the root condition requiring oversight, not just the superficial symptom.',
-    validationAffirmation: 'Excellent! You prioritized the metabolic cause over the superficial symptoms. Coding Diabetes with Foot Ulcer justifies high-acuity skilled nursing.',
+    validationAffirmation: 'E11.621 identifies both the underlying cause (Diabetes) and the acute manifestation (foot ulcer) requiring skilled care. While the patient is also bradycardic, the bradycardia is an emergency reason for transfer, not the primary driver of the home health certification period.',
   },
   {
     id: 'box-15',
     label: '15. Functional Limitations',
     correctChipId: '15-1',
     tooltipWhy: 'Why did the wound get so bad? The patient cannot feel their feet.',
-    validationAffirmation: 'Spot on. Identifying LOPS (Loss of Protective Sensation) justifies the need for advanced skilled teaching on foot inspections.',
+    validationAffirmation: 'Ambulation/Endurance are limited by the current cardiac status (HR 48) and the pulseless left leg. LOPS is confirmed by the clinical narrative stating "profound diabetic peripheral neuropathy" is masking typical symptoms like chest pressure.',
   },
   {
     id: 'box-18',
     label: '18. Skilled Nursing Orders',
     correctChipId: '18-1',
     tooltipWhy: 'Probe-to-bone is a major red flag indicating suspected osteomyelitis.',
-    validationAffirmation: "Critical catch! You didn't just \"clean a wound\"; you identified a medical emergency and escalated for an X-ray to save the limb.",
+    validationAffirmation: 'The evaluation specifies a Wagner Grade 3 great toe ulcer that "probes to the bone." Standard clinical practice for a probe-to-bone finding requires immediate MD notification and an X-ray to rule out osteomyelitis (bone infection).',
   },
   {
     id: 'box-21',
     label: '21. Visit Frequency',
     correctChipId: '21-1',
     tooltipWhy: '72 hours = 3 days. Month 1 has 4 weeks. Month 2 has 4 weeks.',
-    validationAffirmation: 'Spot-on calculation! You navigated the "Stabilization Trap" perfectly. 72 hours is 3w1, not 7w1.',
+    validationAffirmation: 'SN: The physician notes state \"72 hours\" of stabilization = 3 days in week one (3w1), NOT 7w1. Then twice-weekly for the remaining 3 weeks (2w3), once-weekly for month two (1w4). PT: After a 48-hour vascular hold, twice-weekly for 3 weeks (2w3), tapering to once-weekly for 2 weeks (1w2).',
   },
   {
     id: 'box-24',
     label: '24. Safety / Emergency Actions',
     correctChipId: '24-1',
     tooltipWhy: 'Safety and life-stabilization always precede wound healing.',
-    validationAffirmation: 'Master-Level Priority! You recognized that clinical care cannot occur in a vacuum of danger. Safety first.',
+    validationAffirmation: 'Life-Safety First: Clinical protocols mandate establishing a safe environment (securing the loaded handgun) before beginning medical interventions. A heart rate of 48 bpm (bradycardia) in an ashen, diaphoretic patient suggests a \"silent\" myocardial infarction masked by neuropathy \u2014 a life-threatening emergency requiring immediate 911 transfer.',
   },
 ]
 
@@ -514,7 +514,7 @@ export default function HendersonChallenge({ theme = 'night', inline, onComplete
                 Henderson POC — Complete
               </h1>
               <p style={{ color: p.textMuted }} className="text-lg">
-                You successfully documented Henderson's CMS-485 with 100% accuracy.
+                CareIndeed Clinical Master Confirmed! You successfully navigated 27 clinical and administrative traps. You prioritized life over logistics, etiology over symptoms, and precise math over "cookie-cutter" scheduling. George Henderson is safe because of your clinical judgment.
               </p>
             </div>
 
