@@ -986,7 +986,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                   </div>
                 )}
 
-                {/* ── 3. Course Selection ── */
+                {/* ── 3. Course Selection ── */}
                 {card.intro === 'course-selection' && (
                   <div className="w-full max-w-4xl space-y-5 overflow-y-auto max-h-full pb-4">
                     {/* Header */}
