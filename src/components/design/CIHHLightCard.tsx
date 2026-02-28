@@ -421,8 +421,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
     { icon: <Home className="w-5 h-5" />, label: 'Welcome', onClick: () => { sfxClick(); setNavDirection(cardIndex > 0 ? -1 : 1); setCardIndex(0); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
     { icon: <Settings className="w-5 h-5" />, label: 'Calibrate', onClick: () => { sfxClick(); setNavDirection(cardIndex > 1 ? -1 : 1); setCardIndex(1); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
     { icon: <LayoutGrid className="w-5 h-5" />, label: 'Layout', onClick: () => { sfxClick(); setNavDirection(cardIndex > 2 ? -1 : 1); setCardIndex(2); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
-    { icon: <HeartPulse className="w-5 h-5" />, label: 'Henderson', onClick: () => { sfxClick(); setNavDirection(cardIndex > 3 ? -1 : 1); setCardIndex(3); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
-    { icon: <GraduationCap className="w-5 h-5" />, label: 'Courses', onClick: () => { sfxClick(); setNavDirection(cardIndex > 4 ? -1 : 1); setCardIndex(4); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
+    { icon: <GraduationCap className="w-5 h-5" />, label: 'Courses', onClick: () => { sfxClick(); setNavDirection(cardIndex > 3 ? -1 : 1); setCardIndex(3); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
   ];
 
   const stopAudio = () => {
@@ -856,11 +855,18 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
             {card.intro === 'henderson-challenge' && (
               <HendersonChallenge
                 inline
-                onExit={() => {
+                theme={isDarkMode ? 'night' : 'day'}
+                onComplete={() => {
                   setIntroCompleted(prev => ({ ...prev, 'henderson-challenge': true }))
                   sfxSwipe()
                   setNavDirection(1)
                   setCardIndex(cardIndex + 1)
+                  setPanelMode('main')
+                }}
+                onBack={() => {
+                  sfxSwipe()
+                  setNavDirection(-1)
+                  setCardIndex(cardIndex - 1)
                   setPanelMode('main')
                 }}
               />
@@ -893,7 +899,6 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                       {[
                         { Icon: Settings, label: 'Environment Setup', desc: 'Personalize theme & audio' },
                         { Icon: LayoutGrid, label: 'Form Mastery', desc: 'CMS-485 structure challenge' },
-                        { Icon: HeartPulse, label: 'Clinical Scenario', desc: 'Henderson patient case study' },
                         { Icon: GraduationCap, label: 'Training Paths', desc: 'Card, Book & Interactive' },
                       ].map((h, i) => (
                         <div key={i} className="group flex items-start gap-3.5 p-4 rounded-2xl bg-white/50 dark:bg-white/[0.03] border border-[#E5E4E3] dark:border-[#07282A] hover:border-[#007970]/30 dark:hover:border-[#64F4F5]/20 hover:shadow-[0_6px_24px_rgba(0,121,112,0.08)] transition-all duration-300 text-left">
@@ -981,45 +986,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                   </div>
                 )}
 
-                {/* ── 3. Henderson Challenge Notice ── */}
-                {card.intro === 'henderson-challenge' && (
-                  <div className="space-y-8 max-w-md w-full">
-                    <div className="w-20 h-20 rounded-2xl bg-[#FFF3EC] dark:bg-[#2B1400] flex items-center justify-center mx-auto shadow-[0_8px_24px_rgba(199,70,1,0.12)]">
-                      <ShieldCheck className="w-10 h-10 text-[#C74601] dark:text-[#FF8A50]" />
-                    </div>
-                    <div className="space-y-3">
-                      <h2 className="font-heading text-[1.8rem] font-bold">Clinical Competency Checkpoint</h2>
-                      <p className="text-[#524048] dark:text-[#D9D6D5] text-base max-w-sm mx-auto leading-relaxed">
-                        Before proceeding to the training modules, you will complete a clinical documentation assessment.
-                      </p>
-                    </div>
-                    <div className="space-y-3 text-left">
-                      <div className="p-5 rounded-2xl border border-[#E5E4E3] dark:border-[#07282A] bg-white/40 dark:bg-white/[0.02]">
-                        <div className="flex items-start gap-3">
-                          <FileText className="w-5 h-5 text-[#C74601] dark:text-[#FF8A50] mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="font-heading font-semibold text-[0.95rem] mb-1">What to Expect</p>
-                            <ul className="space-y-1.5 text-[0.82rem] text-[#524048] dark:text-[#D9D6D5] leading-snug">
-                              <li className="flex items-start gap-2"><Check className="w-3.5 h-3.5 text-[#007970] dark:text-[#64F4F5] mt-0.5 flex-shrink-0" />Real&#8209;world patient scenario</li>
-                              <li className="flex items-start gap-2"><Check className="w-3.5 h-3.5 text-[#007970] dark:text-[#64F4F5] mt-0.5 flex-shrink-0" />Timed documentation exercise</li>
-                              <li className="flex items-start gap-2"><Check className="w-3.5 h-3.5 text-[#007970] dark:text-[#64F4F5] mt-0.5 flex-shrink-0" />Performance tracked for your record</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-4 rounded-2xl bg-[#FFF3EC] dark:bg-[#2B1400]/40 border border-[#FFD5BF] dark:border-[#C74601]/30">
-                        <p className="text-[0.82rem] text-[#C74601] dark:text-[#FF8A50] font-medium leading-snug">
-                          This assessment is mandatory. Your results will be recorded as part of your onboarding completion.
-                        </p>
-                      </div>
-                    </div>
-                    <button onClick={handleNext} className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(199,70,1,0.25)] hover:shadow-[0_18px_44px_rgba(199,70,1,0.3)]">
-                      I&apos;m Ready <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </button>
-                  </div>
-                )}
-
-                {/* ── 4. Course Selection ── */}
+                {/* ── 3. Course Selection ── */
                 {card.intro === 'course-selection' && (
                   <div className="w-full max-w-4xl space-y-5 overflow-y-auto max-h-full pb-4">
                     {/* Header */}
