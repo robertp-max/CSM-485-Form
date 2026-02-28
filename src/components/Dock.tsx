@@ -89,7 +89,13 @@ export const Dock = ({ items, position = 'bottom-right', isDarkMode = false }: D
       style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`, touchAction: 'none' }}
     >
       <div
-        className={`flex ${position === 'center-left' ? 'flex-col items-center gap-3' : 'items-end gap-1'} px-0 py-0 bg-transparent border-none shadow-none backdrop-blur-0 transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-90'}`}
+        className={`flex ${position === 'center-left' ? 'flex-col items-center gap-1.5 px-1.5 py-3 rounded-2xl' : 'items-end gap-1 px-0 py-0'} ${
+          position === 'center-left'
+            ? isDarkMode
+              ? 'bg-[#010809]/80 border border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.3)] backdrop-blur-md'
+              : 'bg-white/80 border border-[#E5E4E3] shadow-[0_4px_24px_rgba(0,0,0,0.08)] backdrop-blur-md'
+            : 'bg-transparent border-none shadow-none backdrop-blur-0'
+        } transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-90'}`}
       >
         {items.map((item, index) => {
           const scale = getScale(index)
@@ -104,12 +110,16 @@ export const Dock = ({ items, position = 'bottom-right', isDarkMode = false }: D
             <div key={item.label} className="relative flex flex-col items-center">
               {/* Tooltip */}
               {isHovered && (
-                <div className={`absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-1 rounded-lg text-[10px] font-semibold tracking-wide shadow-lg pointer-events-none z-10 ${
+                <div className={`absolute whitespace-nowrap px-2.5 py-1 rounded-lg text-[10px] font-semibold tracking-wide shadow-lg pointer-events-none z-10 ${
+                  position === 'center-left' ? 'left-full ml-3 top-1/2 -translate-y-1/2' : '-top-9 left-1/2 -translate-x-1/2'
+                } ${
                   isDarkMode ? 'bg-white text-[#1F1C1B]' : 'bg-[#1F1C1B] text-white'
                 }`}>
                   {item.label}
-                  <div className={`absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent ${
-                    isDarkMode ? 'border-t-white' : 'border-t-[#1F1C1B]'
+                  <div className={`absolute w-0 h-0 ${
+                    position === 'center-left'
+                      ? `top-1/2 -translate-y-1/2 right-full border-t-4 border-b-4 border-r-4 border-t-transparent border-b-transparent ${isDarkMode ? 'border-r-white' : 'border-r-[#1F1C1B]'}`
+                      : `top-full left-1/2 -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent ${isDarkMode ? 'border-t-white' : 'border-t-[#1F1C1B]'}`
                   }`} />
                 </div>
               )}

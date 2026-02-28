@@ -914,8 +914,6 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                       <p className="text-[0.82rem] text-[#747474] dark:text-[#D9D6D5]">25-35 min &middot; 5 onboarding steps</p>
                     </div>
                     <div className="flex items-center justify-center gap-5 text-[0.72rem] text-[#747474] dark:text-[#D9D6D5] tracking-widest uppercase pt-2">
-                      <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-[#007970] dark:text-[#64F4F5]" /> HIPAA Compliant</span>
-                      <span className="h-3 w-px bg-[#D9D6D5] dark:bg-[#07282A]" />
                       <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-[#007970] dark:text-[#64F4F5]" /> SCORM Compatible</span>
                       <span className="h-3 w-px bg-[#D9D6D5] dark:bg-[#07282A]" />
                       <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-[#007970] dark:text-[#64F4F5]" /> CareIndeed Certified</span>
@@ -1023,48 +1021,110 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
 
                 {/* ── 4. Course Selection ── */}
                 {card.intro === 'course-selection' && (
-                  <div className="w-full max-w-4xl space-y-5">
-                    <div className="text-center space-y-2">
-                      <h2 className="font-heading text-[1.6rem] font-bold">Select a Topic</h2>
-                      <p className="text-[#747474] dark:text-[#D9D6D5] text-[0.85rem]">{completedTopicCount}/{TRAINING_CARDS.length} completed</p>
-                    </div>
-                    <div className="flex items-center justify-center gap-3">
-                      <div className="flex gap-1 p-1 rounded-lg bg-[#E5E4E3]/40 dark:bg-[#07282A]/40">
-                        <button onClick={() => setViewMode('card')} className={`px-3 py-1.5 rounded-md text-[0.75rem] font-bold transition-all ${viewMode === 'card' ? 'bg-[#007970] text-white' : 'text-[#747474] dark:text-[#D9D6D5]'}`}>
-                          Card
-                        </button>
-                        <button onClick={() => setViewMode('web')} className={`px-3 py-1.5 rounded-md text-[0.75rem] font-bold transition-all ${viewMode === 'web' ? 'bg-[#007970] text-white' : 'text-[#747474] dark:text-[#D9D6D5]'}`}>
-                          Book
+                  <div className="w-full max-w-4xl space-y-5 overflow-y-auto max-h-full pb-4">
+                    {/* Header */}
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E5FEFF] dark:bg-[#002B2C] border border-[#C4F4F5] dark:border-[#007970] text-[#007970] dark:text-[#64F4F5] text-[0.7rem] font-bold uppercase tracking-[0.16em]">
+                          <Layers className="w-3 h-3" /> Course Modules
+                        </div>
+                        <h2 className="font-heading text-[1.5rem] font-bold">Select a Topic</h2>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {/* Progress badge */}
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[0.72rem] font-semibold tabular-nums ${isDarkMode ? 'bg-white/5 border border-white/10 text-gray-300' : 'bg-[#FAFBF8] border border-[#E5E4E3] text-[#524048]'}`}>
+                          <div className={`h-1.5 w-14 rounded-full overflow-hidden ${isDarkMode ? 'bg-white/10' : 'bg-[#E5E4E3]'}`}>
+                            <div className="h-full bg-gradient-to-r from-[#007970] to-[#64F4F5] transition-all duration-700" style={{ width: `${TRAINING_CARDS.length > 0 ? Math.round(completedTopicCount / TRAINING_CARDS.length * 100) : 0}%` }} />
+                          </div>
+                          <span>{completedTopicCount}/{TRAINING_CARDS.length}</span>
+                        </div>
+                        {/* View toggle + Resume */}
+                        <div className="flex gap-1 p-0.5 rounded-lg bg-[#E5E4E3]/40 dark:bg-[#07282A]/40">
+                          <button onClick={() => setViewMode('card')} className={`px-2.5 py-1 rounded-md text-[0.7rem] font-bold transition-all ${viewMode === 'card' ? 'bg-[#007970] text-white shadow-sm' : 'text-[#747474] dark:text-[#D9D6D5] hover:text-[#007970]'}`}>
+                            Card
+                          </button>
+                          <button onClick={() => setViewMode('web')} className={`px-2.5 py-1 rounded-md text-[0.7rem] font-bold transition-all ${viewMode === 'web' ? 'bg-[#007970] text-white shadow-sm' : 'text-[#747474] dark:text-[#D9D6D5] hover:text-[#007970]'}`}>
+                            Book
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => {
+                            sfxClick();
+                            setNavDirection(1);
+                            setCardIndex(resumeCardIndex);
+                            setPanelMode('main');
+                            if (viewMode === 'web') setWebCardIndex(Math.floor((resumeCardIndex - introCardCount) / 2));
+                          }}
+                          className="group flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#C74601] hover:bg-[#E56E2E] text-white text-[0.75rem] font-bold transition-all duration-200 hover:-translate-y-0.5 shadow-[0_4px_12px_rgba(199,70,1,0.2)]"
+                        >
+                          {completedTopicCount === 0 ? 'Start' : 'Resume'} <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                         </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          sfxClick();
-                          setNavDirection(1);
-                          setCardIndex(resumeCardIndex);
-                          setPanelMode('main');
-                          if (viewMode === 'web') setWebCardIndex(Math.floor((resumeCardIndex - introCardCount) / 2));
-                        }}
-                        className="group flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#C74601] hover:bg-[#E56E2E] text-white text-[0.75rem] font-bold transition-all duration-200 hover:-translate-y-0.5"
-                      >
-                        {completedTopicCount === 0 ? 'Start' : 'Resume'} <ArrowRight className="w-3 h-3" />
-                      </button>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-[#E5E4E3]/60 dark:bg-[#07282A]/60 rounded-2xl overflow-hidden">
-                      {TRAINING_CARDS.map((tc, i) => {
-                        const gi = introCardCount + i;
-                        const done = Boolean(submittedAnswers[gi]);
-                        return (
-                          <button
-                            key={gi}
-                            onClick={() => { sfxClick(); setNavDirection(1); setCardIndex(gi); setPanelMode('main'); if (viewMode === 'web') setWebCardIndex(Math.floor((gi - introCardCount) / 2)); }}
-                            className={`flex items-center gap-2 px-3 py-2.5 text-left transition-all duration-150 ${done ? 'bg-[#E5FEFF]/60 dark:bg-[#002B2C]/40' : 'bg-white/80 dark:bg-[#020F10]/80 hover:bg-[#E5FEFF]/30 dark:hover:bg-[#002B2C]/20'}`}
-                          >
-                            {done ? <CheckCircle2 className="w-3.5 h-3.5 text-[#007970] dark:text-[#64F4F5] flex-shrink-0" /> : <span className="w-3.5 h-3.5 rounded-full border border-[#D9D6D5] dark:border-[#07282A] flex-shrink-0" />}
-                            <span className={`text-[0.78rem] leading-tight ${done ? 'text-[#007970] dark:text-[#64F4F5] font-medium' : 'text-[#524048] dark:text-[#D9D6D5]'}`}>{tc.title}</span>
-                          </button>
-                        );
-                      })}
+
+                    {/* Topic grid grouped by section */}
+                    <div className="space-y-3">
+                      {(() => {
+                        const sections: { name: string; items: { tc: typeof TRAINING_CARDS[0]; gi: number }[] }[] = [];
+                        TRAINING_CARDS.forEach((tc, i) => {
+                          const gi = introCardCount + i;
+                          const last = sections[sections.length - 1];
+                          if (last && last.name === tc.section) {
+                            last.items.push({ tc, gi });
+                          } else {
+                            sections.push({ name: tc.section, items: [{ tc, gi }] });
+                          }
+                        });
+                        return sections.map((sec) => {
+                          const sectionDone = sec.items.every(({ gi }) => Boolean(submittedAnswers[gi]));
+                          return (
+                            <div key={sec.name} className={`rounded-2xl border overflow-hidden transition-all ${isDarkMode ? 'border-white/8 bg-white/[0.02]' : 'border-[#E5E4E3] bg-white'}`}>
+                              {/* Section header */}
+                              <div className={`flex items-center justify-between px-4 py-2.5 ${isDarkMode ? 'bg-white/[0.03] border-b border-white/5' : 'bg-[#FAFBF8] border-b border-[#E5E4E3]'}`}>
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-1.5 h-1.5 rounded-full ${sectionDone ? 'bg-[#007970]' : 'bg-[#C74601]'}`} />
+                                  <span className={`text-[0.72rem] font-bold uppercase tracking-[0.12em] ${isDarkMode ? 'text-white/70' : 'text-[#524048]'}`}>{sec.name}</span>
+                                </div>
+                                <span className={`text-[0.65rem] font-medium ${isDarkMode ? 'text-white/30' : 'text-[#B8B4B2]'}`}>
+                                  {sec.items.filter(({ gi }) => Boolean(submittedAnswers[gi])).length}/{sec.items.length}
+                                </span>
+                              </div>
+                              {/* Topic items */}
+                              <div className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-[#F2F2F1]'}`}>
+                                {sec.items.map(({ tc, gi }, idx) => {
+                                  const done = Boolean(submittedAnswers[gi]);
+                                  return (
+                                    <button
+                                      key={gi}
+                                      onClick={() => { sfxClick(); setNavDirection(1); setCardIndex(gi); setPanelMode('main'); if (viewMode === 'web') setWebCardIndex(Math.floor((gi - introCardCount) / 2)); }}
+                                      className={`group w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all duration-150 ${done
+                                        ? isDarkMode ? 'bg-[#002B2C]/20 hover:bg-[#002B2C]/40' : 'bg-[#F0FDFA]/60 hover:bg-[#E5FEFF]'
+                                        : isDarkMode ? 'hover:bg-white/[0.04]' : 'hover:bg-[#FAFBF8]'
+                                      }`}
+                                    >
+                                      {/* Number */}
+                                      <span className={`flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[0.68rem] font-bold transition-colors ${done
+                                        ? isDarkMode ? 'bg-[#007970]/30 text-[#64F4F5]' : 'bg-[#E5FEFF] text-[#007970]'
+                                        : isDarkMode ? 'bg-white/5 text-white/40' : 'bg-[#F2F2F1] text-[#747474] group-hover:bg-[#E5FEFF] group-hover:text-[#007970]'
+                                      }`}>{idx + 1}</span>
+                                      {/* Title */}
+                                      <span className={`flex-1 text-[0.82rem] leading-snug transition-colors ${done
+                                        ? isDarkMode ? 'text-[#64F4F5] font-medium' : 'text-[#007970] font-medium'
+                                        : isDarkMode ? 'text-white/70 group-hover:text-white' : 'text-[#524048] group-hover:text-[#1F1C1B]'
+                                      }`}>{tc.title}</span>
+                                      {/* Status */}
+                                      {done
+                                        ? <CheckCircle2 className="w-4 h-4 text-[#007970] dark:text-[#64F4F5] flex-shrink-0" />
+                                        : <ArrowRight className={`w-3.5 h-3.5 flex-shrink-0 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all ${isDarkMode ? 'text-[#C74601]' : 'text-[#007970]'}`} />
+                                      }
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 )}
