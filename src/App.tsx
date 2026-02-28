@@ -1,6 +1,4 @@
 import { useEffect, useState, lazy, Suspense } from 'react'
-import { useLocation } from 'react-router-dom'
-import { Bug, Minimize2, Maximize2 } from 'lucide-react'
 
 // Lazy load components
 const CIHHNightCard = lazy(() => import('./components/design/CIHHNightCard'))
@@ -11,10 +9,8 @@ const LearningProfessional = lazy(() => import('./LearningProfessional'))
 const HelpCenter = lazy(() => import('./components/HelpCenter'))
 const Interactive485Form = lazy(() => import('./components/Interactive485Form'))
 const FinalExamWeb = lazy(() => import('./components/FinalExamWeb'))
-const WelcomeBanner = lazy(() => import('./components/WelcomeBanner'))
-const SystemsCalibration = lazy(() => import('./components/SystemsCalibration'))
+const OnboardingCardFlow = lazy(() => import('./components/OnboardingCardFlow'))
 const LayoutChallenge = lazy(() => import('./components/LayoutChallenge'))
-const HendersonChallenge = lazy(() => import('./components/HendersonChallenge'))
 const CourseSelectionPage = lazy(() => import('./components/CourseSelectionPage'))
 const BlobCursor = lazy(() => import('./components/BlobCursor'))
 const SplashCursor = lazy(() => import('./components/SplashCursor'))
@@ -23,7 +19,7 @@ import { applyTheme, getStoredTheme } from './theme'
 import type { CourseModule } from './components/CourseSelectionPage'
 
 // ─── App Phase: welcome → calibration → layout-challenge → henderson-challenge → course-selection → training ───
-type AppPhase = 'welcome' | 'calibration' | 'layout-challenge' | 'henderson-challenge' | 'course-selection' | 'training'
+type AppPhase = 'welcome' | 'calibration' | 'challenge-notice' | 'layout-challenge' | 'henderson-challenge' | 'course-selection' | 'training'
 type LearningStartTarget = 'course-selection' | 'first-card' | 'quiz'
 type DockNavigationTarget =
   | 'welcome-banner'
@@ -44,15 +40,13 @@ type DockNavigationTarget =
 type PrizeId = 'retake-challenge' | 'blob-cursor' | 'splash-cursor' | null
 
 export default function App() {
-  const location = useLocation()
   const [appPhase, setAppPhase] = useState<AppPhase>('welcome')
-  const [activePrize, setActivePrize] = useState<PrizeId>(null)
+  const activePrize: PrizeId = null
   const [cursorEnabled, setCursorEnabled] = useState(true)
   const [viewMode, setViewMode] = useState('DEFAULT')
   const [learningStartTarget, setLearningStartTarget] = useState<LearningStartTarget>('course-selection')
   const [learningNavigationNonce, setLearningNavigationNonce] = useState(0)
-  const [qaModeEnabled, setQaModeEnabled] = useState(true)
-  const [isDebugDockMinimized, setIsDebugDockMinimized] = useState(false)
+  const qaModeEnabled = true
   const [theme, setTheme] = useState(getStoredTheme() === 'night' ? 'night' : 'day')
 
   useEffect(() => {
@@ -91,8 +85,6 @@ export default function App() {
     }
     setAppPhase('training')
   }
-
-
   const navigateFromDock = (target: DockNavigationTarget) => {
     switch (target) {
       case 'welcome-banner':
@@ -159,15 +151,11 @@ export default function App() {
     }
   }
 
-  useEffect(() => {
-    const hashQuery = (() => {
-      const hash = window.location.hash ?? ''
-      const queryStart = hash.indexOf('?')
-      if (queryStart === -1) return ''
-      return hash.slice(queryStart + 1)
-    })()
-
-    const params = new URLSearchParams(location.search || hashQuery)
+  const parseDockTarget = (): DockNavigationTarget | null => {
+    const hash = window.location.hash ?? ''
+    const queryStart = hash.indexOf('?')
+    if (queryStart === -1) return null
+    const params = new URLSearchParams(hash.slice(queryStart + 1))
     const rawTarget = params.get('dock')
     const allowedTargets: DockNavigationTarget[] = [
       'welcome-banner',
@@ -186,12 +174,41 @@ export default function App() {
       'glossary',
       'cms-485',
     ]
-    const target = allowedTargets.includes(rawTarget as DockNavigationTarget)
+    if (!rawTarget) return null
+    return allowedTargets.includes(rawTarget as DockNavigationTarget)
       ? (rawTarget as DockNavigationTarget)
-      : null
-    if (!target) return
-    navigateFromDock(target)
-  }, [location.search])
+      : 'light-card'
+  }
+
+  useEffect(() => {
+    const applyDockFromHash = () => {
+      const target = parseDockTarget()
+      if (!target) {
+        const nonce = Date.now()
+        const hash = `/?dock=light-card&n=${nonce}`
+        if (window.location.hash !== hash) {
+          window.location.hash = hash
+        }
+        navigateFromDock('light-card')
+        return
+      }
+      navigateFromDock(target)
+    }
+
+    const handleDockNav = (event: Event) => {
+      const detail = (event as CustomEvent<DockNavigationTarget>).detail
+      if (!detail) return
+      navigateFromDock(detail)
+    }
+
+    applyDockFromHash()
+    window.addEventListener('hashchange', applyDockFromHash)
+    window.addEventListener('dock-nav', handleDockNav as EventListener)
+    return () => {
+      window.removeEventListener('hashchange', applyDockFromHash)
+      window.removeEventListener('dock-nav', handleDockNav as EventListener)
+    }
+  }, [])
 
   const renderViewContent = () => {
     switch (viewMode) {
@@ -202,7 +219,7 @@ export default function App() {
       case 'FE': return <FinalExamWeb theme={theme as 'night' | 'day'} onExit={() => setViewMode(theme === 'day' ? 'LW' : 'NW')} />
       case 'LP': return <LearningProfessional qaEnabled={qaModeEnabled} startAtModuleSelection={learningStartTarget === 'course-selection'} startTarget={learningStartTarget} navigationNonce={learningNavigationNonce} />
       case 'HELP': return <HelpCenter />
-      case '485': return <Interactive485Form theme={theme as 'night' | 'day'} />
+      case '485': return <Interactive485Form theme={theme as 'night' | 'day'} qaMode={qaModeEnabled} />
       default: return null
     }
   }
@@ -212,23 +229,14 @@ export default function App() {
     <div className="min-h-screen flex items-center justify-center bg-[#FAFBF8] text-[#007970] font-mono animate-pulse">Loading…</div>
   )
 
-  if (appPhase === 'welcome') {
+  if (appPhase === 'welcome' || appPhase === 'calibration' || appPhase === 'challenge-notice') {
     return (
       <Suspense fallback={loadingFallback}>
-        <WelcomeBanner onStart={() => setAppPhase('calibration')} />
-      </Suspense>
-    )
-  }
-
-  if (appPhase === 'calibration') {
-    return (
-      <Suspense fallback={loadingFallback}>
-        <SystemsCalibration
+        <OnboardingCardFlow
           onComplete={(result) => {
-            const newTheme = result.mode === 'light' ? 'day' : 'night'
+            const newTheme = result.theme
             setTheme(newTheme)
-            applyTheme(result.mode === 'light' ? 'light' : 'night')
-            setActivePrize(result.prize)
+            applyTheme(newTheme === 'night' ? 'night' : 'light')
             setAppPhase('layout-challenge')
           }}
         />
@@ -256,7 +264,69 @@ export default function App() {
       <Suspense fallback={loadingFallback}>
         {cursorEnabled && activePrize === 'blob-cursor' && <BlobCursor />}
         {cursorEnabled && activePrize === 'splash-cursor' && <SplashCursor />}
-        <HendersonChallenge onExit={() => setAppPhase('course-selection')} />
+        <div
+          className="min-h-screen w-full flex flex-col"
+          style={{
+            background:
+              theme === 'night'
+                ? 'radial-gradient(circle at 20% 20%, #031213 0%, #010809 45%, #010809 100%)'
+                : 'linear-gradient(180deg, #F6F7F4 0%, #F0EBE6 100%)',
+          }}
+        >
+          <div className="max-w-6xl w-full mx-auto px-5 md:px-10 py-8 md:py-12 flex flex-col gap-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className="text-[11px] font-bold uppercase tracking-[0.24em]"
+                  style={{ color: theme === 'night' ? '#64F4F5' : '#C74601' }}
+                >
+                  Onboarding
+                </div>
+                <div className="flex items-center gap-2 text-xl font-heading font-bold" style={{ color: theme === 'night' ? '#FAFBF8' : '#1F1C1B' }}>
+                  4 <span className="text-sm font-normal" style={{ color: theme === 'night' ? '#64F4F5' : '#747474' }}>/ 5</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <span
+                    key={i}
+                    className="h-[6px] rounded-full"
+                    style={{
+                      width: i === 3 ? 32 : 18,
+                      background:
+                        i < 3
+                          ? theme === 'night' ? '#004142' : '#D9D6D5'
+                          : i === 3
+                            ? theme === 'night' ? '#64F4F5' : '#007970'
+                            : theme === 'night' ? '#07282A' : '#E5E4E3',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div
+              className="w-full rounded-[32px] shadow-2xl border overflow-hidden"
+              style={{
+                background: theme === 'night' ? '#031213f2' : '#FFFFFF',
+                borderColor: theme === 'night' ? '#004142' : '#E5E4E3',
+              }}
+            >
+              <div className="p-3 md:p-4 lg:p-6" style={{ background: theme === 'night' ? 'rgba(1,8,9,0.6)' : '#FFFFFF' }}>
+                <Interactive485Form
+                  theme={theme === 'night' ? 'night' : 'day'}
+                  qaMode={qaModeEnabled}
+                  challengeOnly
+                  onProceed={() => {
+                    const nonce = Date.now()
+                    window.location.hash = `/?dock=glossary&n=${nonce}`
+                    navigateFromDock('glossary')
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
         <RewardToggle prize={activePrize} enabled={cursorEnabled} onToggle={() => setCursorEnabled(e => !e)} />
       </Suspense>
     )
@@ -286,95 +356,6 @@ export default function App() {
         <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center bg-transparent text-white font-mono uppercase tracking-widest animate-pulse">Loading View...</div>}>
           {renderViewContent()}
         </Suspense>
-      </div>
-      {/* Debug Shortcuts */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2">
-        <div className="flex items-center gap-2 p-2 bg-black/85 backdrop-blur-md rounded-full border border-white/20">
-          <button
-            onClick={() => setQaModeEnabled(prev => !prev)}
-            className={`px-3 h-8 rounded-full text-[10px] font-black uppercase tracking-wide transition-all ${
-              qaModeEnabled
-                ? 'bg-emerald-500 text-slate-950 ring-2 ring-emerald-300/40'
-                : 'bg-slate-700 text-slate-200'
-            }`}
-            title="Toggle QA mode"
-          >
-            QA: {qaModeEnabled ? 'ON' : 'OFF'}
-          </button>
-          <button
-            onClick={() => setIsDebugDockMinimized(prev => !prev)}
-            className="w-8 h-8 rounded-full bg-white/10 text-white hover:bg-white/20 flex items-center justify-center transition-colors"
-            title={isDebugDockMinimized ? 'Expand debug dock' : 'Minimize debug dock'}
-          >
-            {isDebugDockMinimized ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
-          </button>
-        </div>
-
-        {isDebugDockMinimized ? (
-          <button
-            onClick={() => setIsDebugDockMinimized(false)}
-            className="w-12 h-12 rounded-full bg-black/90 border-2 border-red-500 text-red-300 shadow-[0_0_30px_rgba(239,68,68,0.35)] hover:scale-105 transition-all flex items-center justify-center"
-            title="Open debug dock"
-          >
-            <Bug size={18} />
-          </button>
-        ) : (
-          <>
-            {/* View mode shortcuts */}
-            <div className="flex gap-2 p-2 bg-black/90 backdrop-blur-xl rounded-full border-2 border-red-500 shadow-[0_0_60px_rgba(239,68,68,0.3)] hover:scale-105 transition-all">
-              <div className="flex items-center px-2 mr-1 border-r border-white/20">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping mr-2" />
-                <span className="text-[9px] font-black text-white tracking-widest uppercase italic">View</span>
-              </div>
-              {[
-                { id: 'NC', label: 'Night-Card', color: 'bg-teal-500 text-slate-950' },
-                { id: 'LC', label: 'Light-Card', color: 'bg-orange-500 text-white' },
-                { id: 'NW', label: 'Night-Web', color: 'bg-indigo-600 text-white' },
-                { id: 'LW', label: 'Light-Web', color: 'bg-sky-500 text-white' },
-                { id: 'LP', label: 'Learn-Pro', color: 'bg-emerald-600 text-white' },
-                { id: 'HELP', label: 'Glossary', color: 'bg-rose-500 text-white' },
-                { id: '485', label: 'CMS-485', color: 'bg-amber-600 text-white' },
-                { id: 'FE', label: 'Final Exam', color: 'bg-purple-600 text-white' },
-              ].map((v) => (
-                <button
-                  key={v.id}
-                  onClick={() => setViewMode(v.id)}
-                  className={`px-4 h-9 rounded-full text-[10px] font-black uppercase transition-all whitespace-nowrap shadow-sm ${
-                    viewMode === v.id ? v.color + ' ring-4 ring-white/30 scale-110' : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                  }`}
-                >
-                  {v.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Phase shortcuts */}
-            <div className="flex gap-2 p-2 bg-black/80 backdrop-blur-xl rounded-full border-2 border-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.3)] hover:scale-105 transition-all">
-              <div className="flex items-center px-2 mr-1 border-r border-white/20">
-                <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping mr-2" />
-                <span className="text-[9px] font-black text-white tracking-widest uppercase italic">Phase</span>
-              </div>
-              {([
-                { id: 'welcome' as AppPhase, label: 'Welcome', color: 'bg-cyan-500 text-slate-950' },
-                { id: 'calibration' as AppPhase, label: 'Calibrate', color: 'bg-teal-500 text-slate-950' },
-                { id: 'layout-challenge' as AppPhase, label: 'Layout', color: 'bg-orange-500 text-white' },
-                { id: 'henderson-challenge' as AppPhase, label: 'Henderson', color: 'bg-rose-500 text-white' },
-                { id: 'course-selection' as AppPhase, label: 'Courses', color: 'bg-indigo-500 text-white' },
-                { id: 'training' as AppPhase, label: 'Training', color: 'bg-emerald-600 text-white' },
-              ]).map((ph) => (
-                <button
-                  key={ph.id}
-                  onClick={() => setAppPhase(ph.id)}
-                  className={`px-4 h-9 rounded-full text-[10px] font-black uppercase transition-all whitespace-nowrap shadow-sm ${
-                    appPhase === ph.id ? ph.color + ' ring-4 ring-white/30 scale-110' : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                  }`}
-                >
-                  {ph.label}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
       </div>
     </>
   )

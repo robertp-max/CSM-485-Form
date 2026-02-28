@@ -4,11 +4,10 @@
  *  Supports light/night themes and web/card layout views.
  * ─────────────────────────────────────────────────────────────── */
 
-import { useState, useRef, useMemo, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
-  Check,
   CheckCircle2,
   Gift,
   Loader2,
@@ -22,7 +21,6 @@ import {
   Sun,
   Tablet,
   Volume2,
-  Zap,
 } from 'lucide-react'
 import BlobCursor from './BlobCursor'
 import SplashCursor from './SplashCursor'
@@ -382,7 +380,7 @@ export default function SystemsCalibration({ onComplete }: SystemsCalibrationPro
   }
 
   // ─── Card View Wrapper ─────────────────────────────────────
-  const cardWrapper = (content: React.ReactNode) => (
+  const cardWrapper = () => (
     <div
       className="min-h-screen flex items-center justify-center p-4 md:p-8 relative overflow-hidden"
       style={{
@@ -474,7 +472,7 @@ export default function SystemsCalibration({ onComplete }: SystemsCalibrationPro
   )
 
   // ─── Book View Wrapper ──────────────────────────────────────
-  const webWrapper = (content: React.ReactNode) => (
+  const webWrapper = () => (
     <div
       className="min-h-screen flex flex-col overflow-hidden"
       style={{
@@ -564,8 +562,7 @@ export default function SystemsCalibration({ onComplete }: SystemsCalibrationPro
   )
 
   // ─── Render ────────────────────────────────────────────────
-  const content = renderStepContent()
-  const layout = isCard ? cardWrapper(content) : webWrapper(content)
+  const layout = isCard ? cardWrapper() : webWrapper()
 
   // Show the actual cursor effect on the prize page so users can try it
   const showLiveCursor = currentKey === 'prize' && selectedPrize

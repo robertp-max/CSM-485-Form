@@ -294,7 +294,7 @@ export const MASTER_SCENARIO: PracticeScenario = {
       label: '15. Functional Limitations',
       correctChipId: '15-1',
       tooltipWhy: 'Why did the wound get so bad? The patient cannot feel their feet.',
-      validationAffirmation: 'Spot on. Identifying LOPS (Loss of Protective Sensation) justifies the need for advanced skilled teaching on foot inspections.',
+      validationAffirmation: 'Spot on. Loss of protective sensation (LOPS) is the driver—teach advanced foot inspections and neuropathy safety.',
     },
     {
       id: 'box-18',

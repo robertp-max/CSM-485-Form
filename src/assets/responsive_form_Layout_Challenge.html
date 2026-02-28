@@ -1,0 +1,496 @@
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { GripVertical, Trophy, RotateCcw, ArrowLeft, Sun, Moon } from 'lucide-react'
+
+/* ── Palette ─────────────────────────────────────────────────── */
+const palette = (t) => {
+  const n = t === 'night'
+  return {
+    bg: n ? '#010809' : '#FAFBF8',
+    bgAlt: n ? '#031213' : '#FAFBF8',
+    card: n ? '#031213' : '#ffffff',
+    cardBorder: n ? '#004142' : '#E5E4E3',
+    text: n ? '#FAFBF8' : '#1F1C1B',
+    textMuted: n ? '#D9D6D5' : '#524048',
+    textDim: n ? '#747474' : '#747474',
+    accent: n ? '#64F4F5' : '#007970',
+    accentDim: n ? '#007970' : '#006059',
+    accent2: n ? '#C74601' : '#C74601',
+    accent2Light: n ? '#FFD5BF' : '#FFD5BF',
+    formBg: n ? '#020C0D' : '#ffffff',
+    formHeaderBg: n ? '#002B2C' : '#004142',
+    chipBg: n ? '#002B2C' : '#E5FEFF',
+    chipBorder: n ? '#007970' : '#007970',
+    chipText: n ? '#64F4F5' : '#007970',
+    correctBg: n ? 'rgba(0,121,112,0.25)' : '#ecfdf5',
+    correctBorder: n ? '#007970' : '#10b981',
+    incorrectBg: n ? 'rgba(215,1,1,0.25)' : '#fef2f2',
+    incorrectBorder: n ? '#D70101' : '#ef4444',
+    bankBg: n ? '#031213' : '#F8F9FA',
+    dropHover: n ? 'rgba(0,65,66,0.5)' : '#e6f4f1',
+  }
+}
+
+/* ── Static data ───────────────────────────────────────────── */
+const FORM_PARTS = [
+  { id: 'chip-1', box: '1', label: 'Patient HI #' },
+  { id: 'chip-2', box: '2', label: 'SOC Date' },
+  { id: 'chip-3', box: '3', label: 'Cert Period' },
+  { id: 'chip-4', box: '4', label: 'Medical Rec #' },
+  { id: 'chip-5', box: '5', label: 'Provider #' },
+  { id: 'chip-6', box: '6', label: 'Patient Name, Address, DOB' },
+  { id: 'chip-11', box: '11', label: 'Principal Diagnosis' },
+  { id: 'chip-12', box: '12', label: 'Other Pertinent DX' },
+  { id: 'chip-14', box: '14', label: 'DME / Supplies' },
+  { id: 'chip-15', box: '15', label: 'Functional Limitations' },
+  { id: 'chip-16', box: '16', label: 'Mental Status' },
+  { id: 'chip-18', box: '18', label: 'Skilled Nursing Orders' },
+  { id: 'chip-21', box: '21', label: 'Visit Frequency' },
+  { id: 'chip-22', box: '22', label: 'Goals / Rehab Potential' },
+  { id: 'chip-safety', box: 'safety', label: 'Safety / Emergency Actions' },
+  { id: 'chip-23', box: '23', label: "Nurse's Signature & Date of Verbal SOC" },
+  { id: 'chip-24', box: '24', label: "Physician's Name & Address" },
+  { id: 'chip-25', box: '25', label: 'Date HHA Received Signed POT' },
+  { id: 'chip-26', box: '26', label: 'Certification / Recertification Statement' },
+  { id: 'chip-27', box: '27', label: "Attending Physician's Signature & Date" },
+  { id: 'chip-28', box: '28', label: 'Federal Penalty Warning (Misrepresentation)' },
+]
+
+const ZONES = [
+  { box: '1', label: 'Box 1' },
+  { box: '2', label: 'Box 2' },
+  { box: '3', label: 'Box 3' },
+  { box: '4', label: 'Box 4' },
+  { box: '5', label: 'Box 5' },
+  { box: '6', label: 'Box 6' },
+  { box: '11', label: 'Box 11' },
+  { box: '12', label: 'Box 12' },
+  { box: '14', label: 'Box 14' },
+  { box: '15', label: 'Box 15' },
+  { box: '16', label: 'Box 16' },
+  { box: '18', label: 'Box 18' },
+  { box: '21', label: 'Box 21' },
+  { box: '22', label: 'Box 22' },
+  { box: 'safety', label: 'Safety Addendum' },
+  { box: '23', label: 'Box 23' },
+  { box: '25', label: 'Box 25' },
+  { box: '24', boxRef: '24', label: 'Box 24' },
+  { box: '26', boxRef: '26', label: 'Box 26' },
+  { box: '27', boxRef: '27', label: 'Box 27' },
+  { box: '28', boxRef: '28', label: 'Box 28' },
+]
+
+function shuffle(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+export default function App() {
+  const [theme, setTheme] = useState('night')
+  const p = palette(theme)
+  const isNight = theme === 'night'
+
+  const [placements, setPlacements] = useState({})
+  const [dragOver, setDragOver] = useState(null)
+  const [validation, setValidation] = useState(null)
+  const [isComplete, setIsComplete] = useState(false)
+  const [score, setScore] = useState(100)
+  const startRef = useRef(Date.now())
+  const [elapsed, setElapsed] = useState(0)
+  const [shuffled] = useState(() => shuffle(FORM_PARTS))
+
+  const placedChipIds = useMemo(() => new Set(Object.values(placements)), [placements])
+  const bankChips = useMemo(() => shuffled.filter((c) => !placedChipIds.has(c.id)), [shuffled, placedChipIds])
+
+  useEffect(() => {
+    if (isComplete) return
+    const id = setInterval(() => {
+      const secs = Math.floor((Date.now() - startRef.current) / 1000)
+      setElapsed(secs)
+      let s = 100
+      if (secs > 180) {
+        s = 100 - 60 - (secs - 180) * 2
+      } else if (secs > 120) {
+        s = 100 - (secs - 120)
+      }
+      setScore(Math.max(0, s))
+    }, 500)
+    return () => clearInterval(id)
+  }, [isComplete])
+
+  const fmtTime = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+
+  const onDragStart = useCallback((e, chipId) => {
+    e.dataTransfer.setData('text/plain', chipId)
+    e.dataTransfer.effectAllowed = 'move'
+  }, [])
+
+  const onDragOverZone = useCallback((e, zoneBox) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOver(zoneBox)
+  }, [])
+
+  const onDragLeave = useCallback(() => setDragOver(null), [])
+
+  const onDropZone = useCallback(
+    (e, zoneBox) => {
+      e.preventDefault()
+      setDragOver(null)
+      if (isComplete) return
+      setValidation(null)
+      const chipId = e.dataTransfer.getData('text/plain')
+      if (!chipId) return
+
+      setPlacements((prev) => {
+        const next = { ...prev }
+        for (const [k, v] of Object.entries(next)) {
+          if (v === chipId) delete next[k]
+        }
+        next[zoneBox] = chipId
+        return next
+      })
+    },
+    [isComplete],
+  )
+
+  const onDropBank = useCallback(
+    (e) => {
+      e.preventDefault()
+      setDragOver(null)
+      if (isComplete) return
+      setValidation(null)
+      const chipId = e.dataTransfer.getData('text/plain')
+      if (!chipId) return
+      setPlacements((prev) => {
+        const next = { ...prev }
+        for (const [k, v] of Object.entries(next)) {
+          if (v === chipId) delete next[k]
+        }
+        return next
+      })
+    },
+    [isComplete],
+  )
+
+  const checkAnswers = useCallback(() => {
+    if (isComplete) return
+    const result = {}
+    let correct = 0
+    for (const zone of ZONES) {
+      const chipId = placements[zone.box]
+      if (chipId) {
+        const part = FORM_PARTS.find((fp) => fp.id === chipId)
+        if (part && part.box === zone.box) {
+          result[zone.box] = 'correct'
+          correct++
+        } else {
+          result[zone.box] = 'incorrect'
+        }
+      }
+    }
+    setValidation(result)
+    if (correct === FORM_PARTS.length) {
+      setIsComplete(true)
+    }
+  }, [placements, isComplete, score])
+
+  const handleReset = useCallback(() => {
+    setPlacements({})
+    setValidation(null)
+    setIsComplete(false)
+    setScore(100)
+    startRef.current = Date.now()
+    setElapsed(0)
+  }, [])
+
+  const renderChip = (part, inZone = false) => (
+    <div
+      key={part.id}
+      draggable={!isComplete}
+      onDragStart={(e) => onDragStart(e, part.id)}
+      style={{
+        background: inZone ? 'transparent' : p.chipBg,
+        borderColor: inZone ? 'transparent' : p.chipBorder,
+        color: inZone ? p.text : p.chipText,
+        cursor: isComplete ? 'default' : 'grab',
+        fontSize: inZone ? 10 : 12,
+        fontWeight: inZone ? 700 : 500,
+        textTransform: inZone ? 'uppercase' : undefined,
+        textAlign: inZone ? 'center' : 'left',
+      }}
+      className={`flex items-center gap-2 rounded-md border px-3 py-2 select-none transition-transform ${
+        isComplete ? '' : 'active:scale-[0.97]'
+      } ${inZone ? 'justify-center w-full' : 'shadow-sm'}`}
+    >
+      {!inZone && <GripVertical className="w-3.5 h-3.5 flex-shrink-0 opacity-50" />}
+      <span className={inZone ? '' : 'leading-snug'}>{part.label}</span>
+    </div>
+  )
+
+  const renderZone = (box, label, extraClass = '') => {
+    const chipId = placements[box]
+    const part = chipId ? FORM_PARTS.find((fp) => fp.id === chipId) : null
+    const val = validation?.[box]
+    const isOver = dragOver === box
+
+    let bg = p.formBg
+    let border = p.cardBorder
+    if (val === 'correct') {
+      bg = p.correctBg
+      border = p.correctBorder
+    } else if (val === 'incorrect') {
+      bg = p.incorrectBg
+      border = p.incorrectBorder
+    } else if (isOver) {
+      bg = p.dropHover
+      border = p.accentDim
+    }
+
+    return (
+      <div
+        key={box}
+        className={`relative flex items-center justify-center transition-all ${extraClass}`}
+        style={{ 
+          background: bg, 
+          borderColor: border,
+          height: '100%',
+          width: '100%',
+          padding: '20px 8px 8px'
+        }}
+        onDragOver={(e) => onDragOverZone(e, box)}
+        onDragLeave={onDragLeave}
+        onDrop={(e) => onDropZone(e, box)}
+      >
+        <span
+          className="absolute top-1 left-1.5 text-[9px] font-bold pointer-events-none uppercase tracking-wider opacity-60"
+          style={{ color: p.textDim }}
+        >
+          {label}
+        </span>
+        {part ? (
+          renderChip(part, true)
+        ) : (
+          <span className="text-[10px] italic font-medium opacity-30" style={{ color: p.textDim }}>
+            Drop
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  const scoreColor = score > 40 ? p.accent : score > 0 ? p.accent2 : '#ef4444'
+  const timerColor = elapsed > 180 ? '#ef4444' : elapsed > 120 ? p.accent2 : p.text
+
+  return (
+    <div className="flex flex-col h-screen w-screen overflow-hidden relative" style={{ background: p.bg, color: p.text }}>
+      <header
+        className="px-6 py-4 flex justify-between items-center border-b flex-shrink-0"
+        style={{ background: isNight ? p.bgAlt : p.card, borderColor: p.cardBorder }}
+      >
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <button 
+                onClick={() => setTheme(t => t === 'night' ? 'day' : 'night')}
+                className="p-2 rounded-full transition-all hover:bg-white/10"
+                style={{ color: p.accent }}
+            >
+                {isNight ? <Moon size={20} /> : <Sun size={20} />}
+            </button>
+            <div>
+              <h1 className="font-heading font-bold text-lg md:text-xl" style={{ color: p.text }}>
+                CMS-485 Layout Mastery
+              </h1>
+              <p className="text-xs mt-0.5" style={{ color: p.textMuted }}>
+                Drag all 21 parts. Points deduct after 2 minutes.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 md:gap-6">
+          <div className="text-right">
+            <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: p.textDim }}>Time</div>
+            <div className="font-heading font-bold text-xl leading-none mt-1" style={{ color: timerColor }}>
+              {fmtTime(elapsed)}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: p.textDim }}>Score</div>
+            <div className="font-heading font-bold text-2xl leading-none mt-1" style={{ color: scoreColor }}>
+              {score}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={checkAnswers}
+              className="px-4 py-2 rounded-lg text-sm font-heading font-bold transition-all hover:-translate-y-0.5 text-white"
+              style={{ background: p.accentDim, boxShadow: `0 4px 12px ${p.accentDim}66` }}
+            >
+              CHECK
+            </button>
+            <button
+              onClick={handleReset}
+              className="p-2 rounded-lg transition-colors hover:opacity-80"
+              style={{ color: p.textDim }}
+              title="Reset"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
+        <div
+          className="w-[260px] xl:w-[300px] border-r flex flex-col flex-shrink-0"
+          style={{ background: p.bankBg, borderColor: p.cardBorder }}
+        >
+          <div className="p-4 border-b flex-shrink-0" style={{ background: isNight ? p.bgAlt : '#fff', borderColor: p.cardBorder }}>
+            <h3 className="font-heading font-bold text-xs uppercase tracking-widest flex items-center gap-2" style={{ color: p.accent2 }}>
+              <GripVertical className="w-4 h-4" /> Form Parts Bank
+            </h3>
+            <p className="text-[11px] mt-1" style={{ color: p.textMuted }}>
+              {bankChips.length} of {FORM_PARTS.length} remaining
+            </p>
+          </div>
+          <div
+            className="p-3 flex-1 overflow-y-auto flex flex-col gap-1.5 custom-scrollbar"
+            onDragOver={(e) => {
+              e.preventDefault()
+              e.dataTransfer.dropEffect = 'move'
+            }}
+            onDrop={onDropBank}
+          >
+            {bankChips.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center text-center p-6">
+                <div>
+                  <Trophy className="w-10 h-10 mx-auto mb-2" style={{ color: p.accent }} />
+                  <p className="text-sm font-bold" style={{ color: p.accent }}>Complete!</p>
+                </div>
+              </div>
+            ) : (
+              bankChips.map((part) => renderChip(part))
+            )}
+          </div>
+        </div>
+
+        {/* Workspace */}
+        <div className="flex-1 overflow-hidden p-0" style={{ background: isNight ? '#020C0D' : '#F3F4F6' }}>
+          <div
+            className="w-full h-full flex flex-col border-r"
+            style={{ background: p.formBg, borderColor: p.cardBorder }}
+          >
+            {/* Row 1: Boxes 1-5 */}
+            <div className="flex-[0.8] flex border-b" style={{ borderColor: p.cardBorder }}>
+              {['1', '2', '3', '4', '5'].map((b, i) => (
+                <div key={b} className={`flex-1 ${i < 4 ? 'border-r' : ''}`} style={{ borderColor: p.cardBorder }}>
+                  {renderZone(b, `Box ${b}`)}
+                </div>
+              ))}
+            </div>
+
+            {/* Row 2: Box 6 */}
+            <div className="flex-[1] border-b" style={{ borderColor: p.cardBorder }}>
+              {renderZone('6', 'Box 6')}
+            </div>
+
+            {/* Row 3: Boxes 11-12 */}
+            <div className="flex-[1.2] flex border-b" style={{ borderColor: p.cardBorder }}>
+              <div className="w-[60%] border-r" style={{ borderColor: p.cardBorder }}>
+                {renderZone('11', 'Box 11')}
+              </div>
+              <div className="flex-1">{renderZone('12', 'Box 12')}</div>
+            </div>
+
+            {/* Row 4: Boxes 14-16 */}
+            <div className="flex-[1.2] flex border-b" style={{ borderColor: p.cardBorder }}>
+              <div className="w-[30%] border-r" style={{ borderColor: p.cardBorder }}>
+                {renderZone('14', 'Box 14')}
+              </div>
+              <div className="w-[40%] border-r" style={{ borderColor: p.cardBorder }}>
+                {renderZone('15', 'Box 15')}
+              </div>
+              <div className="flex-1">{renderZone('16', 'Box 16')}</div>
+            </div>
+
+            {/* Row 5: Box 18 */}
+            <div className="flex-[1.5] border-b" style={{ borderColor: p.cardBorder }}>
+              {renderZone('18', 'Box 18')}
+            </div>
+
+            {/* Row 6: Boxes 21-22 */}
+            <div className="flex-[1.4] flex border-b" style={{ borderColor: p.cardBorder }}>
+              <div className="w-[60%] border-r" style={{ borderColor: p.cardBorder }}>
+                {renderZone('21', 'Box 21')}
+              </div>
+              <div className="flex-1">{renderZone('22', 'Box 22')}</div>
+            </div>
+
+            {/* Row 7: Safety Addendum */}
+            <div className="flex-[1] border-b" style={{ borderColor: isNight ? p.accentDim : '#9CA3AF', borderBottomWidth: '4px' }}>
+              {renderZone('safety', 'Safety Addendum')}
+            </div>
+
+            {/* Row 8: Boxes 23, 25 */}
+            <div className="flex-[1] flex border-b" style={{ borderColor: p.cardBorder }}>
+              <div className="w-[70%] border-r" style={{ borderColor: p.cardBorder }}>
+                {renderZone('23', 'Box 23')}
+              </div>
+              <div className="flex-1">{renderZone('25', 'Box 25')}</div>
+            </div>
+
+            {/* Row 9: Boxes 24, 26 */}
+            <div className="flex-[1.2] flex border-b" style={{ borderColor: p.cardBorder }}>
+              <div className="w-[50%] border-r" style={{ borderColor: p.cardBorder }}>
+                {renderZone('24', 'Box 24')}
+              </div>
+              <div className="flex-1">{renderZone('26', 'Box 26')}</div>
+            </div>
+
+            {/* Row 10: Boxes 27, 28 */}
+            <div className="flex-[1.2] flex border-b last:border-0" style={{ borderColor: p.cardBorder }}>
+              <div className="w-[50%] border-r" style={{ borderColor: p.cardBorder }}>
+                {renderZone('27', 'Box 27')}
+              </div>
+              <div className="flex-1">{renderZone('28', 'Box 28')}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {isComplete && validation && Object.values(validation).every((v) => v === 'correct') && score > 0 && (
+        <div
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 p-6 rounded-2xl text-center z-50 animate-in slide-in-from-bottom shadow-2xl"
+          style={{ background: isNight ? `${p.accentDim}ee` : `${p.accentDim}ee`, backdropFilter: 'blur(20px)' }}
+        >
+          <div className="flex items-center justify-center gap-4 text-white">
+            <Trophy className="w-8 h-8" />
+            <div className="text-left">
+              <h3 className="font-heading font-bold text-xl leading-tight">Master Clinician!</h3>
+              <p className="text-sm opacity-90">Score: {score}/100 | Time: {fmtTime(elapsed)}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(116, 116, 116, 0.2);
+          border-radius: 10px;
+        }
+      `}</style>
+    </div>
+  )
+}

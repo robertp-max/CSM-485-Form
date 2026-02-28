@@ -2,11 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
-  Lock,
   Pause,
   Play,
-  RotateCcw,
-  Square,
   AlertCircle,
   CheckCircle,
   FileText,
@@ -176,20 +173,27 @@ const getAdditionalContentForTitle = (title: string) => {
   return null
 }
 
-const getChallengeOptions = (bullets: string[], objective: string) => {
-  const optionA = bullets[0] ?? objective
-  const optionB = bullets[1] ?? 'Use a generic template statement without patient-specific details.'
-  const optionC = bullets[2] ?? 'Delay documentation updates until end-of-episode review.'
+const getChallengeOptions = (card: typeof TRAINING_CARDS[number]) => {
+  if (card.challenge?.options?.length) return card.challenge.options
+  const optionA = card.bullets[0] ?? card.objective
+  const optionB = card.bullets[1] ?? 'Use a generic template statement without patient-specific details.'
+  const optionC = card.bullets[2] ?? 'Delay documentation updates until end-of-episode review.'
   return [optionA, optionB, optionC]
 }
 
-const getChallengeData = (title: string, bullets: string[], objective: string) => {
-  const baseOptions = getChallengeOptions(bullets, objective)
-  const seed = Array.from(title).reduce((acc, char) => acc + char.charCodeAt(0), 0)
+const getChallengeData = (card: typeof TRAINING_CARDS[number]) => {
+  const baseOptions = getChallengeOptions(card)
+  const seed = Array.from(card.title).reduce((acc, char) => acc + char.charCodeAt(0), 0)
   const rotation = seed % baseOptions.length
   const options = baseOptions.map((_, index) => baseOptions[(index + rotation) % baseOptions.length])
   const correctIndex = (baseOptions.length - rotation) % baseOptions.length
-  return { options, correctIndex }
+  return {
+    options,
+    correctIndex,
+    scenario: card.challenge?.scenario ?? '',
+    question: card.challenge?.question ?? 'Identify the optimal approach.',
+    correctLogic: card.challenge?.correctLogic ?? '',
+  }
 }
 
 /* ─── Final Test ─── */
@@ -264,7 +268,7 @@ export default function LearningProfessional({
   const [isPocPanelExpanded, setIsPocPanelExpanded] = useState(false)
   const [finalTestPageIndex, setFinalTestPageIndex] = useState(0)
   const [finalTestAnswers, setFinalTestAnswers] = useState<Record<string, number>>({})
-  const [liveStatus, setLiveStatus] = useState('')
+  const [, setLiveStatus] = useState('')
   const [showVirtualForm, setShowVirtualForm] = useState(false)
   const [settings, setSettings] = useState<SettingsState>(() => ({
     appearance: theme,
@@ -363,13 +367,6 @@ export default function LearningProfessional({
   }
 
   const handleAudioPauseClick = () => { audioElementRef.current?.pause(); setAudioPlaybackState('paused') }
-  const handleAudioStopClick = () => { stopCurrentAudioPlayback(); setAudioPlaybackState('idle') }
-  const handleAudioRestartClick = () => {
-    const audio = audioElementRef.current
-    if (!audio || !currentVoiceRecording) { setAudioPlaybackState('idle'); return }
-    audio.pause(); audio.currentTime = 0
-    audio.play().then(() => { setAudioPlaybackState('playing') }).catch(() => { setAudioPlaybackState('idle') })
-  }
 
   const handleChallengeClick = () => {
     if (!isChallengeUnlocked) {
@@ -554,20 +551,12 @@ export default function LearningProfessional({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [currentIndex, showReportGrid, canAdvanceFromCurrent, currentPanelMode, currentIsFinalTestCard, finalTestPageIndex, finalTestAnswers, currentCard])
 
-  /* ─── Audio status label ─── */
-  const getAudioStatusLabel = () => {
-    if (isDebugMode) return 'QA mode: challenge lock bypassed'
-    if (audioPlaybackState === 'playing') return 'Playing recording'
-    if (audioPlaybackState === 'paused') return 'Playback paused'
-    return currentVoiceRecording ? ' ' : 'No recording for this card'
-  }
-
   /* ─── Renderers ─── */
   const renderTrainingSection = (card: typeof TRAINING_CARDS[number], metadata: typeof CARD_METADATA[number] | undefined) => {
     const panelMode = getPanelModeForTitle(card.title)
     const additionalContent = getAdditionalContentForTitle(card.title)
     const challengeResult = challengeResultsByTitle[card.title] ?? null
-    const challengeData = getChallengeData(card.title, card.bullets, card.objective)
+    const challengeData = getChallengeData(card)
 
     return (
       <section className={`flex h-full flex-col justify-start overflow-hidden px-10 py-6 ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>
@@ -995,85 +984,6 @@ function CoverSection({ onView, isDarkMode }: { onView: () => void; isDarkMode: 
     </div>
   )
 }
-
-function ReportGrid({ items, onSelect, isDarkMode, unlockedCount, interactiveEffects }: {
-  items: typeof TRAINING_CARDS
-  onSelect: (index: number) => void
-  isDarkMode: boolean
-  unlockedCount: number
-  interactiveEffects: boolean
-}) {
-  const completedCount = Math.max(0, unlockedCount - 1)
-  const progressPercent = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0
-
-  return (
-    <div className={`flex h-full w-full flex-col p-6 ${isDarkMode ? 'text-white' : ''}`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.14em] border ${
-            isDarkMode ? 'border-white/10 bg-white/5 text-[#64F4F5]' : 'border-[#C74601]/15 bg-[#FFF8F5] text-[#C74601]'
-          }`}>
-            <FileText className="h-3 w-3" /> Module Selection
-          </div>
-          <h2 className="text-xl font-semibold" style={{ fontFamily: 'Montserrat, sans-serif' }}>Course Modules</h2>
-        </div>
-        <div className={`flex items-center gap-2 text-[10px] font-semibold ${isDarkMode ? 'text-gray-400' : 'text-[#747474]'}`}>
-          <div className={`h-1.5 w-14 rounded-full overflow-hidden ${isDarkMode ? 'bg-white/10' : 'bg-[#E5E4E3]'}`}>
-            <div className="h-full bg-[#007970] transition-all duration-500" style={{ width: `${progressPercent}%` }} />
-          </div>
-          {completedCount} / {items.length}
-        </div>
-      </div>
-
-      <div className="flex-1 min-h-0 overflow-auto">
-        <div className="grid w-full grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-1.5 auto-rows-fr">
-          {items.map((item, index) => {
-            const isLocked = index + 1 > unlockedCount
-            const isCompleted = index + 1 < unlockedCount
-            return (
-              <button
-                key={item.title}
-                onClick={() => onSelect(index)}
-                disabled={isLocked}
-                className={`relative flex flex-col items-start p-2 text-left rounded-xl border-2 transition-all ${
-                  isLocked
-                    ? (isDarkMode ? 'bg-white/[0.02] border-white/5 opacity-40 cursor-not-allowed' : 'bg-[#FAFBF8] border-[#ECEAE9] opacity-50 cursor-not-allowed')
-                    : (isDarkMode
-                      ? 'bg-white/[0.04] border-white/10 hover:border-[#007970]'
-                      : interactiveEffects
-                        ? 'bg-white border-[#E5E4E3] hover:border-[#007970] hover:shadow-[3px_3px_0_#007970] hover:-translate-y-0.5'
-                        : 'bg-white border-[#E5E4E3] hover:border-[#007970]')
-                }`}
-              >
-                <div className="flex w-full items-center justify-between mb-1">
-                  <div className={`flex h-5 w-5 items-center justify-center rounded text-[9px] font-bold ${
-                    isLocked
-                      ? (isDarkMode ? 'bg-white/5 text-gray-600' : 'bg-[#F2F2F1] text-[#B8B4B2]')
-                      : isCompleted
-                        ? (isDarkMode ? 'bg-[#007970]/30 text-[#64F4F5]' : 'bg-[#E5FEFF] text-[#007970]')
-                        : (isDarkMode ? 'bg-[#C74601]/20 text-[#C74601]' : 'bg-[#E5FEFF] text-[#007970]')
-                  }`}>{index + 1}</div>
-                  {isLocked && <Lock className={`h-2.5 w-2.5 ${isDarkMode ? 'text-gray-600' : 'text-[#B8B4B2]'}`} />}
-                  {isCompleted && <CheckCircle className="h-3 w-3 text-[#007970]" />}
-                </div>
-                <h3 className={`text-[9px] leading-tight font-semibold line-clamp-2 ${
-                  isLocked ? (isDarkMode ? 'text-gray-600' : 'text-[#B8B4B2]') : (isDarkMode ? 'text-gray-200' : 'text-[#1F1C1B]')
-                }`}>{item.title}</h3>
-                <div className={`mt-auto pt-1 flex items-center gap-1 text-[8px] font-medium uppercase tracking-wider ${
-                  isLocked ? (isDarkMode ? 'text-gray-700' : 'text-[#C5C2C0]') : (isDarkMode ? 'text-gray-500' : 'text-[#747474]')
-                }`}>
-                  <FileText className="h-2 w-2" />
-                  {isLocked ? 'Locked' : isCompleted ? 'Completed' : 'Topic'}
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function EndSection({ isDarkMode }: { isDarkMode: boolean }) {
   return (
     <div className={`flex h-full items-center justify-center p-8 ${isDarkMode ? '' : 'bg-white'}`}>
@@ -1098,7 +1008,7 @@ function EndSection({ isDarkMode }: { isDarkMode: boolean }) {
 
 function ChallengeView({ title, challengeData, challengeResult, isDarkMode, interactiveEffects, onSubmit }: {
   title: string
-  challengeData: { options: string[]; correctIndex: number }
+  challengeData: { options: string[]; correctIndex: number; scenario: string; question: string; correctLogic: string }
   challengeResult: ChallengeResult | null
   isDarkMode: boolean
   interactiveEffects: boolean
@@ -1114,8 +1024,11 @@ function ChallengeView({ title, challengeData, challengeResult, isDarkMode, inte
 
   return (
     <div>
+      {challengeData.scenario && (
+        <p className={`mb-3 text-sm leading-relaxed italic border-l-[3px] pl-3 ${isDarkMode ? 'text-gray-300 border-[#64F4F5]' : 'text-[#524048] border-[#007970]'}`}><TermHighlighter text={challengeData.scenario} /></p>
+      )}
       <p className={`mb-4 text-lg font-semibold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`} style={{ fontFamily: 'Montserrat, sans-serif' }}>
-        <Target className="text-[#C74601] h-5 w-5" /> Identify the optimal approach.
+        <Target className="text-[#C74601] h-5 w-5" /> <TermHighlighter text={challengeData.question || 'Identify the optimal approach.'} />
       </p>
 
       <div className="space-y-2">
@@ -1144,7 +1057,7 @@ function ChallengeView({ title, challengeData, challengeResult, isDarkMode, inte
               onClick={() => { setSelectedIndex(index); setSubmitted(true); onSubmit(index) }}
               className={`w-full text-left rounded-xl border p-3 text-sm transition-all duration-200 flex items-center justify-between ${cls}`}
             >
-              <span className="pr-3 leading-relaxed">{option}</span>
+              <span className="pr-3 leading-relaxed"><TermHighlighter text={option} /></span>
               <div className="shrink-0">
                 {submitted && isCorrect && <CheckCircle className={`h-5 w-5 ${isDarkMode ? 'text-[#64F4F5]' : 'text-white'}`} />}
                 {submitted && isSelected && !isCorrect && <XCircle className={`h-5 w-5 ${isDarkMode ? 'text-[#D70101]' : 'text-white'}`} />}
@@ -1172,8 +1085,13 @@ function ChallengeView({ title, challengeData, challengeResult, isDarkMode, inte
                 selectedIndex === challengeData.correctIndex ? (isDarkMode ? 'text-[#64F4F5]' : 'text-[#007970]') : (isDarkMode ? 'text-[#FF8A8A]' : 'text-[#D70101]')
               }`}>{selectedIndex === challengeData.correctIndex ? 'Correct' : 'Incorrect'}</p>
               <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-300' : 'text-[#524048]'}`}>
-                <span className="font-semibold">Answer:</span> {challengeData.options[challengeData.correctIndex]}
+                <span className="font-semibold">Answer:</span> <TermHighlighter text={challengeData.options[challengeData.correctIndex]} />
               </p>
+              {challengeData.correctLogic && (
+                <p className={`text-sm mt-2 leading-relaxed ${isDarkMode ? 'text-gray-400' : 'text-[#747474]'}`}>
+                  <span className="font-semibold">Why:</span> <TermHighlighter text={challengeData.correctLogic} />
+                </p>
+              )}
             </div>
           </div>
         </div>

@@ -15,11 +15,11 @@ export type GlossaryTermProps = {
   surfaceText: string
   /** Resolved glossary entry */
   entry: GlossaryEntry
-  /** Whether this is the first occurrence of the term (hovercard eligible) */
-  isFirst: boolean
+  /** Whether this is the first occurrence of the term (kept for future use) */
+  isFirst?: boolean
 }
 
-export default function GlossaryTerm({ surfaceText, entry, isFirst }: GlossaryTermProps) {
+export default function GlossaryTerm({ surfaceText, entry }: GlossaryTermProps) {
   const { isSeen, markSeen, shouldShow } = useGlossary()
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
@@ -28,7 +28,8 @@ export default function GlossaryTerm({ surfaceText, entry, isFirst }: GlossaryTe
   const tooltipId = useId()
   const closeTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
-  const showHovercard = isFirst && shouldShow(entry.key)
+  // All unseen terms are hoverable
+  const showHovercard = shouldShow(entry.key)
 
   // Position the hovercard relative to the trigger
   const updatePosition = useCallback(() => {

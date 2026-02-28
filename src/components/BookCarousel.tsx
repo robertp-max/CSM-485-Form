@@ -9,6 +9,7 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import type { Variants } from 'framer-motion'
 import {
   ArrowLeft,
   ArrowRight,
@@ -204,7 +205,7 @@ export default function BookCarousel({ items, onSelect, isDarkMode, unlockedCoun
 
   // ─── Flip animation variants ─────────────────────────────
   // Pages rotate around the left edge, like a real book
-  const variants = {
+  const variants: Variants = {
     enter: (dir: number) => ({
       rotateY: dir > 0 ? -90 : 90,
       opacity: 0,
@@ -214,13 +215,13 @@ export default function BookCarousel({ items, onSelect, isDarkMode, unlockedCoun
       rotateY: 0,
       opacity: 1,
       scale: 1,
-      transition: { type: 'spring', stiffness: 200, damping: 28, mass: 0.8 },
+      transition: { type: 'spring' as const, stiffness: 200, damping: 28, mass: 0.8 },
     },
     exit: (dir: number) => ({
       rotateY: dir > 0 ? 90 : -90,
       opacity: 0,
       scale: 0.95,
-      transition: { type: 'spring', stiffness: 200, damping: 28, mass: 0.8 },
+      transition: { type: 'spring' as const, stiffness: 200, damping: 28, mass: 0.8 },
     }),
   }
 

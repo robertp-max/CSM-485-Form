@@ -335,6 +335,268 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
     whyItMatters:
       'Aged unsigned orders create billing delays, compliance gaps, and audit vulnerabilities.',
   },
+
+  /* ── CMS Form ── */
+  {
+    key: 'cms485',
+    term: 'CMS-485',
+    aliases: ['CMS-485', '485', 'Plan of Treatment'],
+    definition:
+      'The Home Health Certification and Plan of Care form — the federally required document that communicates the physician-ordered plan of care for Medicare home health beneficiaries, including diagnoses, services, goals, and certification period.',
+    whyItMatters:
+      'Every field on the 485 must be accurate, complete, and consistent with the clinical record to withstand audit scrutiny.',
+  },
+
+  /* ── Clinical Roles & Disciplines ── */
+  {
+    key: 'sn',
+    term: 'Skilled Nursing',
+    aliases: ['SN', 'skilled nursing', 'skilled nurse'],
+    definition:
+      'A registered nurse (RN) or licensed practical nurse (LPN/LVN) providing services that require the skills of a licensed nurse, including assessment, teaching, training, and skilled interventions as defined in 42 CFR §409.44.',
+    whyItMatters:
+      'Skilled nursing is the most common qualifying service for the Medicare home health benefit.',
+  },
+  {
+    key: 'pt',
+    term: 'Physical Therapy',
+    aliases: ['PT', 'physical therapy', 'physical therapist'],
+    definition:
+      'A qualified physical therapist providing skilled rehabilitative services to restore function, improve mobility, relieve pain, or prevent disability. PT is a qualifying service for the Medicare home health benefit under 42 CFR §409.42.',
+    whyItMatters:
+      'PT services require documented functional limitations and measurable, time-bound goals.',
+  },
+  {
+    key: 'ot',
+    term: 'Occupational Therapy',
+    aliases: ['OT', 'occupational therapy', 'occupational therapist'],
+    definition:
+      'A qualified occupational therapist providing skilled services to restore, maintain, or prevent decline in functional abilities related to self-care, work, and daily living tasks.',
+    whyItMatters:
+      'OT can continue as a stand-alone qualifying service once another skilled service has established eligibility.',
+  },
+  {
+    key: 'slp',
+    term: 'Speech-Language Pathology',
+    aliases: ['SLP', 'speech-language pathology', 'speech therapy', 'speech therapist'],
+    definition:
+      'A qualified speech-language pathologist providing skilled services for speech, language, cognitive-communication, voice, swallowing, and fluency disorders.',
+    whyItMatters:
+      'SLP is a qualifying service; swallowing disorders often drive medical necessity documentation.',
+  },
+  {
+    key: 'dme',
+    term: 'DME',
+    aliases: ['DME', 'durable medical equipment'],
+    definition:
+      'Durable Medical Equipment — equipment that can withstand repeated use, is primarily for a medical purpose, is appropriate for home use, and is ordered by a physician. Examples include wheelchairs, walkers, hospital beds, and oxygen equipment.',
+    whyItMatters:
+      'DME listed on the Plan of Care must be medically necessary and supported by clinical documentation.',
+  },
+
+  /* ── Plan of Care Details ── */
+  {
+    key: 'freq',
+    term: 'Frequency',
+    aliases: ['frequency'],
+    definition:
+      'The number of visits per discipline per unit of time as ordered on the Plan of Care (e.g., "3 times per week" or "2W1, 1W3"). CMS requires that frequency be stated explicitly and be adequate to meet the patient\'s needs.',
+    whyItMatters:
+      'Missing or vague frequency statements on the CMS-485 are a common deficiency and audit trigger.',
+  },
+  {
+    key: 'dur',
+    term: 'Duration',
+    aliases: ['duration'],
+    definition:
+      'The length of time over which ordered services are to be provided, typically expressed in weeks and aligned with the 60-day certification period. Duration must be explicitly stated on the Plan of Care alongside frequency.',
+    whyItMatters:
+      'Duration must match the certification period and support the clinical rationale for the ordered visits.',
+  },
+  {
+    key: 'mgoal',
+    term: 'Measurable Goals',
+    aliases: ['measurable goals', 'measurable goal'],
+    definition:
+      'Patient-centered, objective, and quantifiable outcomes documented on the Plan of Care. Per CMS guidance, goals must include a specific target, a timeframe for achievement, and a linkage to the skilled intervention addressing the goal.',
+    whyItMatters:
+      'Vague or non-measurable goals do not meet CMS standards and weaken the clinical record\'s defensibility.',
+  },
+  {
+    key: 'intord',
+    term: 'Interim Order',
+    aliases: ['interim order', 'interim orders'],
+    definition:
+      'A physician order issued between certification periods to add, change, or discontinue services on an existing Plan of Care. Interim orders must be incorporated into the current POC and signed by the physician.',
+    whyItMatters:
+      'Unsigned or undocumented interim orders create gaps in the authorized plan and risk claim denials.',
+  },
+  {
+    key: 'dcpln',
+    term: 'Discharge Planning',
+    aliases: ['discharge planning', 'discharge plan'],
+    definition:
+      'The process of preparing for the patient\'s transition from home health services, documented on the Plan of Care. CMS requires that discharge planning be initiated at admission and updated throughout the episode.',
+    whyItMatters:
+      'Absent or boilerplate discharge plans signal lack of individualized care planning during audits.',
+  },
+
+  /* ── Clinical Documentation ── */
+  {
+    key: 'skrat',
+    term: 'Skilled Rationale',
+    aliases: ['skilled rationale'],
+    definition:
+      'The documented clinical reasoning that explains why a patient\'s care requires the skills of a licensed professional rather than non-skilled personnel. The rationale must connect the patient\'s condition, complexity, and risk to the specific skilled intervention.',
+    whyItMatters:
+      'Missing skilled rationale is the most common reason for medical necessity denials on audit.',
+  },
+  {
+    key: 'clnec',
+    term: 'Clinical Necessity',
+    aliases: ['clinical necessity', 'clinically necessary'],
+    definition:
+      'The requirement that ordered services are driven by clinical assessment findings and that continuing care is supported by demonstrated patient need, complexity, or instability.',
+    whyItMatters:
+      'Clinical necessity must be supported with patient-specific evidence in every visit note and reassessment.',
+  },
+  {
+    key: 'adl',
+    term: 'ADL',
+    aliases: ['ADL', 'ADLs', 'activities of daily living'],
+    definition:
+      'Activities of Daily Living — basic self-care tasks including bathing, dressing, toileting, transferring, continence, and eating. Functional limitations in ADLs support homebound status, skilled need, and OASIS assessment.',
+    whyItMatters:
+      'ADL documentation provides the functional evidence that supports homebound status and medical necessity.',
+  },
+  {
+    key: 'sob',
+    term: 'SOB',
+    aliases: ['SOB', 'shortness of breath'],
+    definition:
+      'Shortness of Breath (Dyspnea) — a subjective clinical symptom documented in patient assessments. SOB severity and its functional impact are relevant to homebound status justification and skilled nursing assessment.',
+    whyItMatters:
+      'SOB must be documented with specific details (onset, severity, triggers) to support clinical findings.',
+  },
+  {
+    key: 'bnfy',
+    term: 'Beneficiary',
+    aliases: ['beneficiary', 'beneficiaries'],
+    definition:
+      'An individual enrolled in and entitled to benefits under the Medicare program. In home health, the beneficiary is the patient receiving services covered by Medicare Parts A or B.',
+    whyItMatters:
+      'Beneficiary eligibility must be verified at SOC and each recertification to prevent coverage issues.',
+  },
+
+  /* ── Compliance, Audit & Oversight ── */
+  {
+    key: 'mac',
+    term: 'MAC',
+    aliases: ['MAC', 'Medicare Administrative Contractor'],
+    definition:
+      'Medicare Administrative Contractor — a private entity that CMS contracts with to process and pay Medicare claims for a defined geographic jurisdiction. MACs also perform medical review, provider enrollment, and provider education.',
+    whyItMatters:
+      'Understanding your MAC\'s Local Coverage Determinations helps prevent claim denials.',
+  },
+  {
+    key: 'rac',
+    term: 'RAC',
+    aliases: ['RAC', 'Recovery Audit Contractor'],
+    definition:
+      'Recovery Audit Contractor — an entity contracted by CMS to identify and correct improper payments (overpayments and underpayments) in the Medicare program through post-payment review.',
+    whyItMatters:
+      'RAC audits look for documentation patterns that suggest systematic billing errors.',
+  },
+  {
+    key: 'zpic',
+    term: 'ZPIC',
+    aliases: ['ZPIC', 'Zone Program Integrity Contractor'],
+    definition:
+      'Zone Program Integrity Contractor — CMS contractors responsible for investigating potential fraud, waste, and abuse in Medicare through data analysis, medical record review, and law enforcement referrals.',
+    whyItMatters:
+      'ZPIC investigations carry serious consequences and can lead to payment suspensions and fraud referrals.',
+  },
+  {
+    key: 'upic',
+    term: 'UPIC',
+    aliases: ['UPIC', 'Unified Program Integrity Contractor'],
+    definition:
+      'Unified Program Integrity Contractor — the successor to ZPICs, UPICs perform fraud, waste, and abuse investigations across both Medicare and Medicaid programs within assigned jurisdictions.',
+    whyItMatters:
+      'UPICs have expanded authority and can suspend payments during active investigations.',
+  },
+  {
+    key: 'tpe',
+    term: 'TPE',
+    aliases: ['TPE', 'Targeted Probe and Educate'],
+    definition:
+      'Targeted Probe and Educate — a CMS medical review strategy where MACs select providers with high claim error rates for focused review. Providers receive individualized education after each round.',
+    whyItMatters:
+      'TPE rounds are an early-warning system; agencies that correct errors avoid escalation to full review.',
+  },
+  {
+    key: 'noa',
+    term: 'NOA',
+    aliases: ['NOA', 'Notice of Admission'],
+    definition:
+      'Notice of Admission — a one-time notice that home health agencies must submit to Medicare within 5 calendar days of the start of a 60-day episode to establish payment.',
+    whyItMatters:
+      'Missed or late NOA submission directly reduces Medicare reimbursement for the episode.',
+  },
+  {
+    key: 'utrev',
+    term: 'Utilization Review',
+    aliases: ['utilization review'],
+    definition:
+      'The process of evaluating the medical necessity, appropriateness, and efficiency of home health services delivered to a patient. May be conducted prospectively, concurrently, or retrospectively.',
+    whyItMatters:
+      'Internal utilization review catches over- and under-utilization patterns before payers do.',
+  },
+  {
+    key: 'pprev',
+    term: 'Post-Payment Review',
+    aliases: ['post-payment review'],
+    definition:
+      'A retrospective audit conducted after a claim has been paid, examining the medical record to determine whether services billed were medically necessary, properly documented, and correctly coded.',
+    whyItMatters:
+      'Post-payment review findings can trigger broader audits and significant recoupment demands.',
+  },
+  {
+    key: 'deny',
+    term: 'Claim Denial',
+    aliases: ['claim denial', 'claim denials'],
+    definition:
+      'A determination by a payer that a Medicare home health claim does not meet coverage criteria, medical necessity requirements, or documentation standards.',
+    whyItMatters:
+      'Denial patterns reveal systemic documentation weaknesses that must be addressed agency-wide.',
+  },
+  {
+    key: 'dfns',
+    term: 'Defensibility',
+    aliases: ['defensibility', 'defensible'],
+    definition:
+      'The degree to which a clinical record can withstand external scrutiny during audit, medical review, or legal proceedings. A defensible record contains complete, consistent, patient-specific documentation.',
+    whyItMatters:
+      'Defensibility is the single most important quality of a clinical record in the current regulatory environment.',
+  },
+  {
+    key: 'srvy',
+    term: 'Survey',
+    aliases: ['survey', 'surveyor', 'surveys', 'surveyors'],
+    definition:
+      'An on-site inspection conducted by state survey agencies on behalf of CMS to evaluate a home health agency\'s compliance with the Conditions of Participation.',
+    whyItMatters:
+      'Survey readiness requires that every active clinical record demonstrate current compliance.',
+  },
+  {
+    key: 'cite',
+    term: 'Citation',
+    aliases: ['citation', 'citations'],
+    definition:
+      'A formal finding of non-compliance with a specific Condition of Participation identified during a survey. Citations document the deficient practice, the regulatory reference, and the scope and severity.',
+    whyItMatters:
+      'Citations require corrective action plans and repeat deficiencies can trigger sanctions or decertification.',
+  },
 ]
 
 // ── Derived lookups ────────────────────────────────────────────

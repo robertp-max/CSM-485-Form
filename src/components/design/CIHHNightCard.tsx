@@ -1,11 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
-  Play, Pause, RotateCcw,
+  Play, Pause,
   ArrowRight, ArrowLeft, CheckCircle2, XCircle,
   ShieldCheck, FileText, Activity, Check,
   Home, Settings, LayoutGrid, HeartPulse, GraduationCap,
 } from 'lucide-react'
-import { Dock } from '../Dock'
 import { TRAINING_CARDS } from '../../data/trainingCards'
 import { FINAL_TEST_TITLE, FINAL_TEST_OBJECTIVE, FINAL_TEST_KEY_POINTS, FINAL_TEST_QUESTIONS } from '../../data/finalTest'
 
@@ -68,7 +67,7 @@ export default function CIHHNightCard({ onNavigate }: { onNavigate?: (phase: str
   const [panelMode, setPanelMode] = useState<'main' | 'additional' | 'challenge'>('main')
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number | null>>(() => ({}))
   const [submittedAnswers, setSubmittedAnswers] = useState<Record<number, boolean>>(() => ({}))
-  const [statusMsg, setStatusMsg] = useState('QA mode bypasses locks')
+  const [, setStatusMsg] = useState('QA mode bypasses locks')
   const [isPlaying, setIsPlaying] = useState(false)
   const [qaMode, setQaMode] = useState(true)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -97,7 +96,7 @@ export default function CIHHNightCard({ onNavigate }: { onNavigate?: (phase: str
   })()
 
   const dockItems = [
-    { icon: <FileText className="w-5 h-5" />, label: 'Help', onClick: () => alert('Open help') },
+    { icon: <FileText className="w-5 h-5" />, label: 'Help Center', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=glossary&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'glossary' })); } },
     { icon: <Activity className="w-5 h-5" />, label: 'Top', onClick: () => { setCardIndex(0); setPanelMode('main') } },
     ...(onNavigate ? [
       { icon: <Home className="w-5 h-5" />, label: 'Welcome', onClick: () => onNavigate('welcome') },
@@ -255,7 +254,7 @@ export default function CIHHNightCard({ onNavigate }: { onNavigate?: (phase: str
             ) : (
               <>
                 <p className="text-[#FFD5BF] text-xs font-bold tracking-widest uppercase mb-3">
-                  {card.section} • {panelMode.toUpperCase()}
+                  {card.section} / {panelMode.toUpperCase()}
                 </p>
                 <h1 className="font-heading text-3xl md:text-4xl font-bold text-white mb-8 leading-tight">
                   {card.title}

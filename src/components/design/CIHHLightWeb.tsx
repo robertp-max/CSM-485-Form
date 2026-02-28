@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  Play, Pause, Square, RotateCcw, Swords,
+  Play,
   ArrowRight, ArrowLeft, CheckCircle2, XCircle,
   ShieldCheck, FileText, Activity, Check,
-  Home, Settings, LayoutGrid, HeartPulse, GraduationCap
+  Home, Settings, LayoutGrid, HeartPulse, GraduationCap, ClipboardCheck
 } from 'lucide-react';
 
 const StyleInjector = () => (
@@ -70,7 +70,7 @@ export default function CIHHLightWeb({ onNavigate }: { onNavigate?: (phase: stri
   const [panelMode, setPanelMode] = useState('main');
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number | null>>(() => ({}));
   const [submittedAnswers, setSubmittedAnswers] = useState<Record<number, boolean>>(() => ({}));
-  const [statusMsg, setStatusMsg] = useState('QA mode bypasses locks');
+  const [, setStatusMsg] = useState('QA mode bypasses locks');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const VOICE_RECORDINGS = {
     ...import.meta.glob('../../assets/Voice Recordings/*.wav', { eager: true, import: 'default' }),
@@ -95,7 +95,7 @@ export default function CIHHLightWeb({ onNavigate }: { onNavigate?: (phase: stri
   })();
 
   const dockItems = [
-    { icon: <FileText className="w-5 h-5" />, label: 'Help', onClick: () => alert('Open help') },
+    { icon: <FileText className="w-5 h-5" />, label: 'Help Center', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=glossary&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'glossary' })); } },
     { icon: <ShieldCheck className="w-5 h-5" />, label: debugMode ? 'QA: ON' : 'QA: OFF', onClick: () => setStatusMsg(prev => prev === 'QA: ON' ? 'QA: OFF' : 'QA: ON'), isActive: debugMode },
     { icon: <Activity className="w-5 h-5" />, label: 'Top', onClick: () => { setCardIndex(0); setPanelMode('main'); } },
     ...(onNavigate ? [
@@ -104,6 +104,7 @@ export default function CIHHLightWeb({ onNavigate }: { onNavigate?: (phase: stri
       { icon: <LayoutGrid className="w-5 h-5" />, label: 'Layout', onClick: () => onNavigate('layout-challenge') },
       { icon: <HeartPulse className="w-5 h-5" />, label: 'Henderson', onClick: () => onNavigate('henderson-challenge') },
       { icon: <GraduationCap className="w-5 h-5" />, label: 'Courses', onClick: () => onNavigate('course-selection') },
+      { icon: <ClipboardCheck className="w-5 h-5" />, label: 'Final Exam', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=final-exam&n=${nonce}`; } },
     ] : []),
   ];
 

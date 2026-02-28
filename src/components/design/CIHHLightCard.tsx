@@ -85,6 +85,8 @@ const StyleInjector = () => (
 
 const debugMode = true;
 import { Dock } from '../Dock';
+import { TermHighlighter } from '../TermHighlighter';
+import { useGlossary } from '../GlossaryProvider';
 import { TRAINING_CARDS } from '../../data/trainingCards';
 import LayoutChallenge from '../LayoutChallenge';
 import HendersonChallenge from '../HendersonChallenge';
@@ -104,7 +106,7 @@ type ChallengeOption = {
 const normalizeText = (value: string) =>
   value
     .toLowerCase()
-    .replace(/['â€™`".,:;!?()\-]/g, ' ')
+    .replace(/['™`".,:;!?()\-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 
@@ -224,11 +226,14 @@ const shuffleChallengeOptions = (options: string[], seedKey: string): ChallengeO
 const mapCardFromTraining = (c: any) => {
   const fallbackAdditional = [c.auditFocus, c.objective, ...(c.bullets ?? [])].filter(Boolean).join(' ')
   const challengeSeed = `${c.section ?? ''}-${c.title ?? ''}`
-  const challengeOptions = shuffleChallengeOptions([
-    c.bullets?.[0] ?? c.objective ?? 'Select the most defensible response.',
-    c.bullets?.[1] ?? 'Use a generic template statement without patient-specific details.',
-    c.bullets?.[2] ?? 'Delay documentation updates until episode end.',
-  ], challengeSeed)
+  const challengeOptions = shuffleChallengeOptions(
+    c.challenge?.options ?? [
+      c.bullets?.[0] ?? c.objective ?? 'Select the most defensible response.',
+      c.bullets?.[1] ?? 'Use a generic template statement without patient-specific details.',
+      c.bullets?.[2] ?? 'Delay documentation updates until episode end.',
+    ],
+    challengeSeed,
+  )
 
   return {
     title: c.title,
@@ -237,6 +242,9 @@ const mapCardFromTraining = (c: any) => {
     bullets: c.bullets ?? [],
     additional: fallbackAdditional,
     challenge: challengeOptions,
+    challengeScenario: c.challenge?.scenario ?? '',
+    challengeQuestion: c.challenge?.question ?? 'Which response best aligns with this card\'s objective?',
+    correctLogic: c.challenge?.correctLogic ?? '',
   }
 }
 
@@ -318,6 +326,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number | null>>(() => ({}));
   const [submittedAnswers, setSubmittedAnswers] = useState<Record<number, boolean>>(() => ({}));
   const [, setStatusMsg] = useState('QA mode bypasses locks');
+  const { resetClaims } = useGlossary();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pointerStartX = useRef<number | null>(null)
   const pointerStartY = useRef<number | null>(null)
@@ -330,6 +339,9 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
   useEffect(() => {
     localStorage.setItem(GATING_KEY, JSON.stringify(introCompleted))
   }, [introCompleted])
+
+  // Reset glossary first-occurrence claims when navigating cards
+  useEffect(() => { resetClaims() }, [cardIndex, resetClaims])
 
   const card = cards[cardIndex] as any;
   const isOnIntroCard = Boolean(card?.intro)
@@ -971,7 +983,45 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                   </div>
                 )}
 
-                {/* ── 5. Course Selection ── */}
+                {/* ── 3. Henderson Challenge Notice ── */}
+                {card.intro === 'henderson-challenge' && (
+                  <div className="space-y-8 max-w-md w-full">
+                    <div className="w-20 h-20 rounded-2xl bg-[#FFF3EC] dark:bg-[#2B1400] flex items-center justify-center mx-auto shadow-[0_8px_24px_rgba(199,70,1,0.12)]">
+                      <ShieldCheck className="w-10 h-10 text-[#C74601] dark:text-[#FF8A50]" />
+                    </div>
+                    <div className="space-y-3">
+                      <h2 className="font-heading text-[1.8rem] font-bold">Clinical Competency Checkpoint</h2>
+                      <p className="text-[#524048] dark:text-[#D9D6D5] text-base max-w-sm mx-auto leading-relaxed">
+                        Before proceeding to the training modules, you will complete a clinical documentation assessment.
+                      </p>
+                    </div>
+                    <div className="space-y-3 text-left">
+                      <div className="p-5 rounded-2xl border border-[#E5E4E3] dark:border-[#07282A] bg-white/40 dark:bg-white/[0.02]">
+                        <div className="flex items-start gap-3">
+                          <FileText className="w-5 h-5 text-[#C74601] dark:text-[#FF8A50] mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="font-heading font-semibold text-[0.95rem] mb-1">What to Expect</p>
+                            <ul className="space-y-1.5 text-[0.82rem] text-[#524048] dark:text-[#D9D6D5] leading-snug">
+                              <li className="flex items-start gap-2"><Check className="w-3.5 h-3.5 text-[#007970] dark:text-[#64F4F5] mt-0.5 flex-shrink-0" />Real&#8209;world patient scenario</li>
+                              <li className="flex items-start gap-2"><Check className="w-3.5 h-3.5 text-[#007970] dark:text-[#64F4F5] mt-0.5 flex-shrink-0" />Timed documentation exercise</li>
+                              <li className="flex items-start gap-2"><Check className="w-3.5 h-3.5 text-[#007970] dark:text-[#64F4F5] mt-0.5 flex-shrink-0" />Performance tracked for your record</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-[#FFF3EC] dark:bg-[#2B1400]/40 border border-[#FFD5BF] dark:border-[#C74601]/30">
+                        <p className="text-[0.82rem] text-[#C74601] dark:text-[#FF8A50] font-medium leading-snug">
+                          This assessment is mandatory. Your results will be recorded as part of your onboarding completion.
+                        </p>
+                      </div>
+                    </div>
+                    <button onClick={handleNext} className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(199,70,1,0.25)] hover:shadow-[0_18px_44px_rgba(199,70,1,0.3)]">
+                      I&apos;m Ready <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
+                )}
+
+                {/* ── 4. Course Selection ── */}
                 {card.intro === 'course-selection' && (
                   <div className="w-full max-w-4xl space-y-5">
                     <div className="text-center space-y-2">
@@ -1033,7 +1083,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
             ) : (
               <>
                 <p className="text-[#C74601] dark:text-[#E56E2E] text-[0.9075rem] font-bold tracking-widest uppercase mb-3 -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">
-                  {card.section} â€¢ {panelMode.toUpperCase()}
+                  {card.section} • {panelMode.toUpperCase()}
                 </p>
                 <h1 className="font-heading text-3xl md:text-4xl font-bold text-[#1F1C1B] dark:text-[#FAFBF8] mb-8 leading-tight -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">
                   {card.title}
@@ -1041,8 +1091,11 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
 
                 {panelMode === 'challenge' ? (
                   <div className="flex-1 max-w-3xl">
-                    <p className="text-[#524048] dark:text-[#D9D6D5] mb-6 text-[1.3613rem]">Which response best aligns with this card's objective?</p>
-                    <div className="space-y-3">
+                    {(card as any).challengeScenario && (
+                      <p className="text-[#524048] dark:text-[#D9D6D5] mb-3 text-[0.95rem] leading-relaxed italic border-l-[3px] border-l-[#007970] dark:border-l-[#64F4F5] pl-4"><TermHighlighter text={(card as any).challengeScenario} /></p>
+                    )}
+                    <p className="text-[#524048] dark:text-[#D9D6D5] mb-4 text-[1.15rem] font-semibold"><TermHighlighter text={(card as any).challengeQuestion || 'Which response best aligns with this card\'s objective?'} /></p>
+                    <div className="space-y-1.5">
                         {card.challenge.map((option: ChallengeOption, i: number) => {
                         const isSelected = (selectedAnswers[cardIndex] ?? null) === i;
                         const submitted = Boolean(submittedAnswers[cardIndex]);
@@ -1054,7 +1107,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                             key={i}
                             disabled={submitted}
                             onClick={() => { sfxClick(); setSelectedAnswers(prev => ({ ...prev, [cardIndex]: i })); }}
-                            className={`w-full text-left p-5 rounded-[16px] transition-all duration-300 flex items-start gap-4 bg-transparent border-l-[3.3px] ${showCorrect || showWrong || isSelected ? 'border-l-[#00BFB4]' : 'border-l-[#747474] dark:border-l-[#07282A] hover:border-l-[#007970] dark:hover:border-l-[#64F4F5]'} shadow-[0_6px_14px_-10px_rgba(31,28,27,0.2)] dark:shadow-[0_6px_14px_-10px_rgba(0,0,0,0.4)] hover:bg-white/[0.30] dark:hover:bg-white/[0.04] hover:shadow-[0_0_26px_-6px_rgba(0,121,112,0.62),0_12px_26px_-12px_rgba(31,28,27,0.28)] dark:hover:shadow-[0_0_26px_-6px_rgba(100,244,245,0.35),0_12px_26px_-12px_rgba(0,0,0,0.5)] ${
+                            className={`w-full text-left px-4 py-2.5 rounded-[12px] transition-all duration-300 flex items-start gap-3 bg-transparent border-l-[3.3px] ${showCorrect || showWrong || isSelected ? 'border-l-[#00BFB4]' : 'border-l-[#747474] dark:border-l-[#07282A] hover:border-l-[#007970] dark:hover:border-l-[#64F4F5]'} shadow-[0_6px_14px_-10px_rgba(31,28,27,0.2)] dark:shadow-[0_6px_14px_-10px_rgba(0,0,0,0.4)] hover:bg-white/[0.30] dark:hover:bg-white/[0.04] hover:shadow-[0_0_26px_-6px_rgba(0,121,112,0.62),0_12px_26px_-12px_rgba(31,28,27,0.28)] dark:hover:shadow-[0_0_26px_-6px_rgba(100,244,245,0.35),0_12px_26px_-12px_rgba(0,0,0,0.5)] ${
                               showCorrect ? 'glow-teal border-l-[#00BFB4] shadow-[0_0_32px_-4px_rgba(0,191,180,0.78),0_12px_28px_-12px_rgba(31,28,27,0.32)]' :
                               showWrong ? 'border-l-[#00BFB4] shadow-[0_0_30px_-5px_rgba(0,191,180,0.72),0_12px_28px_-12px_rgba(31,28,27,0.32)]' :
                               isSelected ? 'border-l-[#00BFB4] shadow-[0_0_30px_-5px_rgba(0,191,180,0.72),0_12px_28px_-12px_rgba(31,28,27,0.32)]' :
@@ -1069,19 +1122,19 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                               {showCorrect && <CheckCircle2 className="w-4 h-4" />}
                               {showWrong && <XCircle className="w-4 h-4" />}
                             </div>
-                            <span className={`text-[18.15px] leading-relaxed ${
+                            <span className={`text-[14.5px] leading-snug ${
                               showCorrect ? 'text-[#004142] dark:text-[#C4F4F5] font-semibold' :
                               showWrong ? 'text-[#D70101] dark:text-[#FBE6E6]' :
                               isSelected ? 'text-[#421700] dark:text-[#FFD5BF] font-medium' : 'text-[#524048] dark:text-[#D9D6D5]'
                             }`}>
-                              {option.text}
+                              <TermHighlighter text={option.text} />
                             </span>
                           </button>
                         );
                       })}
                     </div>
 
-                    <div className="mt-8 flex items-center justify-between">
+                    <div className="mt-5 flex items-center justify-between">
                       <button
                         onClick={handleSubmitChallenge}
                         disabled={Boolean(submittedAnswers[cardIndex])}
@@ -1096,16 +1149,23 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
 
                       {submittedAnswers[cardIndex] && (
                         <p className={`text-[1.21rem] font-bold flex items-center gap-2 ${isCorrect(cardIndex) ? 'text-[#007970] dark:text-[#64F4F5]' : 'text-[#D70101] dark:text-[#FBE6E6]'}`}>
-                          {isCorrect(cardIndex) ? <><CheckCircle2 className="w-5 h-5"/> Correct â€” great job.</> : <><XCircle className="w-5 h-5"/> Incorrect â€” review before advancing.</>}
+                          {isCorrect(cardIndex) ? <><CheckCircle2 className="w-5 h-5"/> Correct — great job.</> : <><XCircle className="w-5 h-5"/> Incorrect — review before advancing.</>}
                         </p>
                       )}
                     </div>
+
+                    {submittedAnswers[cardIndex] && (card as any).correctLogic && (
+                      <div className="mt-4 p-4 rounded-[12px] border-l-[3.3px] border-l-[#007970] dark:border-l-[#64F4F5] bg-white/[0.15] dark:bg-white/[0.04] shadow-[0_6px_14px_-10px_rgba(31,28,27,0.2)] dark:shadow-[0_6px_14px_-10px_rgba(0,0,0,0.4)]">
+                        <p className="text-[#C74601] dark:text-[#E56E2E] text-[0.75rem] font-bold tracking-widest uppercase mb-1.5">Why This Is Correct</p>
+                        <p className="text-[#524048] dark:text-[#D9D6D5] text-[0.92rem] leading-relaxed"><TermHighlighter text={(card as any).correctLogic} /></p>
+                      </div>
+                    )}
                   </div>
                 ) : panelMode === 'additional' ? (
                   <div className="flex-1 flex">
                     <div className="bg-transparent rounded-[24px] p-8 w-full h-full overflow-y-auto -translate-y-[1px] hover:-translate-y-[2px] border-l-[3.3px] border-l-[#007970] dark:border-l-[#64F4F5] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_18px_-10px_rgba(0,121,112,0.35)] dark:shadow-[0_7px_17px_-5px_rgba(0,0,0,0.4),0_0_18px_-10px_rgba(100,244,245,0.15)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_30px_-6px_rgba(0,121,112,0.72)] dark:hover:shadow-[0_14px_34px_-10px_rgba(0,0,0,0.5),0_0_30px_-6px_rgba(100,244,245,0.35)] transition-all duration-300 hover:bg-white/[0.30] dark:hover:bg-white/[0.04]">
                       <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.21rem] leading-relaxed whitespace-pre-line">
-                        {currentAdditionalContent}
+                        <TermHighlighter text={currentAdditionalContent} />
                       </p>
                     </div>
                   </div>
@@ -1113,7 +1173,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                   <div className="flex flex-col gap-6 h-full">
                     <div className="bg-transparent rounded-[24px] p-6 -translate-y-[1px] hover:-translate-y-[2px] border-l-[3px] border-l-[#007970] dark:border-l-[#64F4F5] shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_16px_-10px_rgba(0,121,112,0.3)] dark:shadow-[0_7px_17px_-5px_rgba(0,0,0,0.4),0_0_16px_-10px_rgba(100,244,245,0.15)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_28px_-6px_rgba(0,121,112,0.68)] dark:hover:shadow-[0_14px_34px_-10px_rgba(0,0,0,0.5),0_0_28px_-6px_rgba(100,244,245,0.35)] transition-all duration-300 hover:bg-white/[0.30] dark:hover:bg-white/[0.04]">
                       <h2 className="text-[#007970] dark:text-[#64F4F5] font-heading font-bold text-[1.3613rem] mb-2">Learning Objective</h2>
-                      <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.3613rem]">{card.objective}</p>
+                      <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[1.3613rem]"><TermHighlighter text={card.objective} /></p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
@@ -1122,7 +1182,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                         <ul className="space-y-3 list-none">
                           {card.bullets.map((b: string, i: number) => (
                             <li key={i} className="text-[#524048] dark:text-[#FAFBF8] text-[1.21rem]">
-                              {b}
+                              <TermHighlighter text={b} />
                             </li>
                           ))}
                         </ul>
@@ -1164,7 +1224,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
         </AnimatePresence>
       </div>
       ) : (
-      /* â•â•â• BOOK VIEW â€” two-page spread with flip â•â•â• */
+      /* â•â•â• BOOK VIEW — two-page spread with flip â•â•â• */
       <div className="w-full max-w-[1584px] relative z-10" style={{ perspective: '2400px' }}>
         <AnimatePresence mode="wait" custom={navDirection}>
           <motion.div
@@ -1376,7 +1436,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?
                 <ChevronLeft className="w-3.5 h-3.5" /> Previous
               </button>
               <div className="flex items-center gap-3 text-[1.1rem] text-[#747474] dark:text-[#D9D6D5] font-medium tabular-nums">
-                <span>Pages {leftIdx + 1}{rightCard ? `â€“${rightIdx + 1}` : ''} of {webCards.length}</span>
+                <span>Pages {leftIdx + 1}{rightCard ? `“${rightIdx + 1}` : ''} of {webCards.length}</span>
               </div>
               {webCardIndex < totalSpreads - 1 ? (
                 <button

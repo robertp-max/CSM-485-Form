@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { AlertTriangle, GripVertical, Trophy, RotateCcw, Eye, ArrowLeft } from 'lucide-react'
+import { GripVertical, Trophy, ArrowLeft, CheckCircle2, XCircle, ChevronLeft, ChevronRight, FileText } from 'lucide-react'
 
 /* ── Types ─────────────────────────────────────────────────── */
 interface FormPart {
@@ -13,6 +13,7 @@ interface LayoutChallengeProps {
   onComplete?: (score: number, correct: number, total: number) => void
   onBack?: () => void
   inline?: boolean
+  qaMode?: boolean
 }
 
 /* ── Palette (mirrors Interactive485Form) ──────────────────── */
@@ -93,6 +94,31 @@ const ZONES: { box: string; label: string }[] = [
   { box: '28', label: 'Box 28' },
 ]
 
+/* ── Box descriptions for review panel ─────────────────────── */
+const BOX_DESCRIPTIONS: Record<string, string> = {
+  '1': 'Patient Health Insurance Claim Number — the Medicare beneficiary identifier that links the patient to their insurance coverage. Required for all CMS billing.',
+  '2': 'Start of Care (SOC) Date — the date home health services begin for the current episode. Drives the 60-day certification period calculation.',
+  '3': 'Certification Period — the 60-day episode window. "From" is SOC date; "To" is 60 days later. Must align with physician orders.',
+  '4': 'Medical Record Number — the agency\'s internal patient identifier. Used for record retrieval and cross-referencing within the agency\'s system.',
+  '5': 'Provider Number — the home health agency\'s CMS-assigned provider ID. Required for Medicare billing and regulatory compliance.',
+  '6': 'Patient Name, Address, and Date of Birth — core demographics. Must match Medicare enrollment records exactly for claim processing.',
+  '11': 'Principal Diagnosis — the primary ICD-10 code driving the home health episode. Must be the condition most related to the current plan of care.',
+  '12': 'Other Pertinent Diagnoses — secondary ICD-10 codes that affect treatment. Listed in order of clinical importance for PDGM grouping.',
+  '14': 'DME and Supplies — durable medical equipment and supplies ordered. Must be medically necessary and tied to the plan of care.',
+  '15': 'Functional Limitations — documented physical and cognitive deficits. Drives OASIS scoring and justifies skilled care necessity.',
+  '16': 'Mental Status — cognitive and behavioral assessment. Affects safety planning, caregiver training needs, and OASIS scoring.',
+  '18': 'Skilled Nursing Orders — specific interventions ordered by the physician. Must include frequency, duration, and measurable goals.',
+  '21': 'Visit Frequency — the discipline-specific visit schedule across the certification period. Written as "Xw Y" (X visits per week for Y weeks).',
+  '22': 'Goals and Rehabilitation Potential — measurable patient outcomes and the clinician\'s assessment of the patient\'s ability to improve.',
+  'safety': 'Safety / Emergency Actions — critical safety measures and emergency protocols. Must be addressed before clinical interventions begin.',
+  '23': 'Nurse\'s Signature & Date of Verbal SOC — documents the clinician who established the plan and when verbal orders were obtained.',
+  '24': 'Physician\'s Name & Address — the certifying/ordering physician. Required for order authentication and Medicare billing.',
+  '25': 'Date HHA Received Signed POT — documents when the agency received the physician-signed plan of treatment. Compliance tracking.',
+  '26': 'Certification / Recertification Statement — the physician\'s attestation that home health services are medically necessary.',
+  '27': 'Attending Physician\'s Signature & Date — the physician\'s authentication of the entire plan of care. Must be obtained within required timeframes.',
+  '28': 'Federal Penalty Warning — the legal notice about penalties for misrepresentation of information on federal forms.',
+}
+
 /* ── Shuffle helper ────────────────────────────────────────── */
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
@@ -104,7 +130,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 /* ── Component ─────────────────────────────────────────────── */
-export default function LayoutChallenge({ theme, onComplete, onBack, inline }: LayoutChallengeProps) {
+export default function LayoutChallenge({ theme, onComplete, onBack, inline, qaMode }: LayoutChallengeProps) {
   const p = palette(theme)
   const isNight = theme === 'night'
 
@@ -113,11 +139,14 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline }: L
   const [dragOver, setDragOver] = useState<string | null>(null)
   const [validation, setValidation] = useState<Record<string, 'correct' | 'incorrect'> | null>(null)
   const [isComplete, setIsComplete] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [showReview, setShowReview] = useState(false)
+  const [reviewIdx, setReviewIdx] = useState(0)
+  const [correctCount, setCorrectCount] = useState(0)
   const [score, setScore] = useState(100)
   const startRef = useRef(Date.now())
   const [elapsed, setElapsed] = useState(0)
   const [shuffled] = useState(() => shuffle(FORM_PARTS))
-  const [blurred, setBlurred] = useState(false)
 
   // Bank chips = those not placed
   const placedChipIds = useMemo(() => new Set(Object.values(placements)), [placements])
@@ -125,7 +154,7 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline }: L
 
   // Timer + score penalty
   useEffect(() => {
-    if (isComplete) return
+    if (isComplete || isSubmitted) return
     const id = setInterval(() => {
       const secs = Math.floor((Date.now() - startRef.current) / 1000)
       setElapsed(secs)
@@ -138,20 +167,7 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline }: L
       setScore(Math.max(0, s))
     }, 500)
     return () => clearInterval(id)
-  }, [isComplete])
-
-  // Anti-cheat blur
-  useEffect(() => {
-    if (isComplete) return
-    const onBlur = () => setBlurred(true)
-    const onFocus = () => setBlurred(false)
-    window.addEventListener('blur', onBlur)
-    window.addEventListener('focus', onFocus)
-    return () => {
-      window.removeEventListener('blur', onBlur)
-      window.removeEventListener('focus', onFocus)
-    }
-  }, [isComplete])
+  }, [isComplete, isSubmitted])
 
   const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 
@@ -173,7 +189,7 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline }: L
     (e: React.DragEvent, zoneBox: string) => {
       e.preventDefault()
       setDragOver(null)
-      if (isComplete) return
+      if (isComplete || isSubmitted) return
       setValidation(null) // clear previous check
       const chipId = e.dataTransfer.getData('text/plain')
       if (!chipId) return
@@ -190,14 +206,14 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline }: L
         return next
       })
     },
-    [isComplete],
+    [isComplete, isSubmitted],
   )
 
   const onDropBank = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault()
       setDragOver(null)
-      if (isComplete) return
+      if (isComplete || isSubmitted) return
       setValidation(null)
       const chipId = e.dataTransfer.getData('text/plain')
       if (!chipId) return
@@ -209,16 +225,27 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline }: L
         return next
       })
     },
-    [isComplete],
+    [isComplete, isSubmitted],
   )
 
   /* ── Check Answers ────────────────────────────────────────── */
   const checkAnswers = useCallback(() => {
-    if (isComplete) return
+    if (isSubmitted) return
+    const effectivePlacements = qaMode
+      ? FORM_PARTS.reduce<Record<string, string>>((acc, part) => {
+          acc[part.box] = part.id
+          return acc
+        }, {})
+      : placements
+
+    if (qaMode) {
+      setPlacements(effectivePlacements)
+    }
+
     const result: Record<string, 'correct' | 'incorrect'> = {}
     let correct = 0
     for (const zone of ZONES) {
-      const chipId = placements[zone.box]
+      const chipId = effectivePlacements[zone.box]
       if (chipId) {
         const part = FORM_PARTS.find((fp) => fp.id === chipId)
         if (part && part.box === zone.box) {
@@ -227,53 +254,57 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline }: L
         } else {
           result[zone.box] = 'incorrect'
         }
+      } else {
+        result[zone.box] = 'incorrect'
       }
     }
-    setValidation(result)
-    if (correct === FORM_PARTS.length) {
-      setIsComplete(true)
-      onComplete?.(score, correct, FORM_PARTS.length)
+
+    const payload = {
+      challenge: 'layout-challenge',
+      submittedAt: new Date().toISOString(),
+      elapsed,
+      score,
+      correct,
+      total: FORM_PARTS.length,
+      qaMode: Boolean(qaMode),
+      placements: effectivePlacements,
     }
-  }, [placements, isComplete, score, onComplete])
 
-  const showKey = useCallback(() => {
-    setIsComplete(true)
-    setScore(0)
-    const auto: Record<string, string> = {}
-    for (const part of FORM_PARTS) auto[part.box] = part.id
-    setPlacements(auto)
-    const result: Record<string, 'correct' | 'incorrect'> = {}
-    ZONES.forEach((z) => (result[z.box] = 'correct'))
+    if (!qaMode) {
+      localStorage.setItem('cms485.layoutChallenge.lastAttempt', JSON.stringify(payload))
+    }
     setValidation(result)
-  }, [])
+    setCorrectCount(correct)
+    setIsSubmitted(true)
+    setIsComplete(correct === FORM_PARTS.length)
+    // Show review panel so user can browse results before proceeding
+    setShowReview(true)
+    setReviewIdx(0)
+  }, [placements, isSubmitted, score, elapsed, qaMode])
 
-  const handleReset = useCallback(() => {
-    setPlacements({})
-    setValidation(null)
-    setIsComplete(false)
-    setScore(100)
-    startRef.current = Date.now()
-    setElapsed(0)
-  }, [])
+  const handleProceed = useCallback(() => {
+    if (!isSubmitted) return
+    onComplete?.(score, correctCount, FORM_PARTS.length)
+  }, [isSubmitted, onComplete, score, correctCount])
 
   /* ── Chip renderer ────────────────────────────────────────── */
   const renderChip = (part: FormPart, inZone = false) => (
     <div
       key={part.id}
-      draggable={!isComplete}
+      draggable={!isComplete && !isSubmitted}
       onDragStart={(e) => onDragStart(e, part.id)}
       style={{
         background: inZone ? 'transparent' : p.chipBg,
         borderColor: inZone ? 'transparent' : p.chipBorder,
         color: inZone ? p.text : p.chipText,
-        cursor: isComplete ? 'default' : 'grab',
+        cursor: isComplete || isSubmitted ? 'default' : 'grab',
         fontSize: inZone ? 10 : 12,
         fontWeight: inZone ? 700 : 500,
         textTransform: inZone ? 'uppercase' : undefined,
         textAlign: inZone ? 'center' : 'left',
       }}
       className={`flex items-center gap-2 rounded-md border px-3 py-2 select-none transition-transform ${
-        isComplete ? '' : 'active:scale-[0.97]'
+        isComplete || isSubmitted ? '' : 'active:scale-[0.97]'
       } ${inZone ? 'justify-center w-full' : 'shadow-sm'}`}
     >
       {!inZone && <GripVertical className="w-3.5 h-3.5 flex-shrink-0 opacity-50" />}
@@ -305,13 +336,19 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline }: L
       <div
         key={box}
         className={`relative flex items-center justify-center transition-all ${extraClass}`}
-        style={{ background: bg, borderColor: border, minHeight: 60, padding: '20px 8px 8px' }}
+        style={{
+          background: bg,
+          borderColor: border,
+          height: '100%',
+          width: '100%',
+          padding: '20px 8px 8px',
+        }}
         onDragOver={(e) => onDragOverZone(e, box)}
         onDragLeave={onDragLeave}
         onDrop={(e) => onDropZone(e, box)}
       >
         <span
-          className="absolute top-1 left-1.5 text-[10px] font-bold pointer-events-none"
+          className="absolute top-1 left-1.5 text-[9px] font-bold pointer-events-none uppercase tracking-wider opacity-60"
           style={{ color: p.textDim }}
         >
           {label}
@@ -319,8 +356,8 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline }: L
         {part ? (
           renderChip(part, true)
         ) : (
-          <span className="text-[10px] italic" style={{ color: p.textDim }}>
-            Drop here
+          <span className="text-[10px] italic font-medium opacity-30" style={{ color: p.textDim }}>
+            Drop
           </span>
         )}
       </div>
@@ -330,21 +367,224 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline }: L
   const scoreColor = score > 40 ? p.accent : score > 0 ? p.accent2 : '#ef4444'
   const timerColor = elapsed > 180 ? '#ef4444' : elapsed > 120 ? p.accent2 : p.text
 
+  /* ── Review Panel ─────────────────────────────────────────── */
+  if (showReview && validation) {
+    const reviewItems = ZONES.map((zone) => {
+      const chipId = placements[zone.box]
+      const placedPart = chipId ? FORM_PARTS.find((fp) => fp.id === chipId) : null
+      const correctPart = FORM_PARTS.find((fp) => fp.box === zone.box)
+      const isCorrectPlacement = validation[zone.box] === 'correct'
+      const description = BOX_DESCRIPTIONS[zone.box] ?? ''
+      return { zone, placedPart, correctPart, isCorrectPlacement, description }
+    })
+
+    const clampedIdx = Math.min(reviewIdx, reviewItems.length - 1)
+    const active = reviewItems[clampedIdx]
+
+    return (
+      <div
+        className="flex flex-col h-full w-full overflow-hidden relative"
+        style={inline ? { color: p.text } : { background: p.bg, color: p.text }}
+      >
+        {/* Review Header */}
+        <div
+          className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0"
+          style={{ borderBottom: `1px solid ${p.cardBorder}` }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center"
+              style={{ background: isNight ? 'rgba(100,244,245,0.1)' : '#E5FEFF' }}
+            >
+              <FileText className="h-4 w-4" style={{ color: p.accent }} />
+            </div>
+            <div>
+              <h1 className="font-heading font-bold text-base leading-tight" style={{ color: p.text }}>
+                Layout Review
+              </h1>
+              <p className="text-[0.72rem]" style={{ color: p.textMuted }}>
+                <strong style={{ color: p.accent }}>{correctCount}/{FORM_PARTS.length}</strong> correct
+                {' · '}Score: <strong style={{ color: scoreColor }}>{score}</strong>
+                {' · '}Time: {fmtTime(elapsed)}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleProceed}
+              className="px-4 py-1.5 rounded-lg text-white font-bold text-[0.72rem] tracking-wide transition-all hover:-translate-y-0.5"
+              style={{ background: p.accentDim, boxShadow: `0 6px 20px -6px ${p.accentDim}88` }}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+
+        {/* Split panel */}
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* Left sidebar — zone list */}
+          <div
+            className="w-[200px] shrink-0 flex flex-col py-1 overflow-y-auto"
+            style={{ borderRight: `1px solid ${p.cardBorder}` }}
+          >
+            {reviewItems.map((item, i) => {
+              const selected = i === clampedIdx
+              return (
+                <button
+                  key={item.zone.box}
+                  onClick={() => setReviewIdx(i)}
+                  className={`w-full text-left px-3 py-2 flex items-center gap-2 transition-all duration-150 ${selected ? '' : 'hover:opacity-80'}`}
+                  style={{
+                    background: selected
+                      ? (isNight
+                        ? item.isCorrectPlacement ? 'rgba(0,121,112,0.18)' : 'rgba(215,1,1,0.12)'
+                        : item.isCorrectPlacement ? '#F0FDFA' : '#FFF7F5')
+                      : 'transparent',
+                    borderLeft: selected
+                      ? `3px solid ${item.isCorrectPlacement ? p.accent : '#ef4444'}`
+                      : '3px solid transparent',
+                  }}
+                >
+                  {item.isCorrectPlacement
+                    ? <CheckCircle2 className="w-3 h-3 shrink-0" style={{ color: p.accent }} />
+                    : <XCircle className="w-3 h-3 shrink-0" style={{ color: '#ef4444' }} />
+                  }
+                  <span
+                    className={`text-[0.72rem] leading-tight ${selected ? 'font-bold' : 'font-medium'}`}
+                    style={{ color: selected ? p.text : p.textMuted }}
+                  >
+                    {item.zone.label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Right detail panel */}
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {active && (
+                <div key={active.zone.box} style={{ animation: 'layoutReviewFade 0.2s ease forwards' }}>
+                  {/* Zone title + badge */}
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.68rem] font-bold uppercase tracking-widest"
+                      style={{
+                        background: active.isCorrectPlacement ? (isNight ? 'rgba(0,121,112,0.3)' : '#E5FEFF') : (isNight ? 'rgba(215,1,1,0.2)' : '#FBE6E6'),
+                        color: active.isCorrectPlacement ? p.accent : '#ef4444',
+                      }}
+                    >
+                      {active.isCorrectPlacement
+                        ? <><CheckCircle2 className="w-3 h-3" /> Correct</>
+                        : <><XCircle className="w-3 h-3" /> Incorrect</>
+                      }
+                    </span>
+                    <h2 className="font-heading font-bold text-base" style={{ color: p.text }}>
+                      {active.zone.label}
+                    </h2>
+                  </div>
+
+                  {/* What they placed (if wrong) */}
+                  {!active.isCorrectPlacement && (
+                    <div
+                      className="rounded-xl px-4 py-3 mb-3 text-[0.8rem]"
+                      style={{
+                        background: isNight ? 'rgba(215,1,1,0.1)' : '#FFF0F0',
+                        border: `1px solid ${isNight ? 'rgba(215,1,1,0.25)' : '#F5C6C6'}`,
+                        color: isNight ? '#FFB8B8' : '#7A1A1A',
+                      }}
+                    >
+                      <span className="font-bold" style={{ color: isNight ? '#FF8A8A' : '#ef4444' }}>Your answer: </span>
+                      {active.placedPart ? active.placedPart.label : <em>Empty — nothing was placed</em>}
+                      {active.placedPart && active.placedPart.box !== active.zone.box && (
+                        <p className="mt-1.5 italic text-[0.76rem]" style={{ color: isNight ? '#FFD5BF' : '#8B4513' }}>
+                          This part belongs in Box {active.placedPart.box}.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Correct answer */}
+                  {!active.isCorrectPlacement && active.correctPart && (
+                    <div
+                      className="rounded-xl px-4 py-3 mb-3 text-[0.8rem]"
+                      style={{
+                        background: isNight ? 'rgba(0,121,112,0.1)' : '#E5FEFF',
+                        border: `1px solid ${isNight ? 'rgba(0,121,112,0.25)' : '#B8E8E8'}`,
+                        color: isNight ? '#C4F4F5' : '#004142',
+                      }}
+                    >
+                      <span className="font-bold" style={{ color: p.accent }}>Correct answer: </span>
+                      {active.correctPart.label}
+                    </div>
+                  )}
+
+                  {/* Box description / clinical explanation */}
+                  <div
+                    className="rounded-xl px-4 py-4 text-[0.82rem] leading-relaxed"
+                    style={{
+                      background: isNight
+                        ? active.isCorrectPlacement ? 'rgba(0,121,112,0.06)' : 'rgba(199,70,1,0.04)'
+                        : active.isCorrectPlacement ? '#F8FFFE' : '#FFFCFB',
+                      border: `1px solid ${isNight ? 'rgba(100,244,245,0.08)' : '#F0EFEE'}`,
+                      color: isNight ? '#D8EDFF' : p.textMuted,
+                    }}
+                  >
+                    <span className="font-bold block mb-2 text-[0.76rem] uppercase tracking-wider" style={{ color: active.isCorrectPlacement ? p.accent : p.accent2 }}>
+                      {active.isCorrectPlacement ? 'What this box contains' : 'Why this matters'}
+                    </span>
+                    <p>{active.description}</p>
+                    {active.isCorrectPlacement && active.correctPart && (
+                      <p className="mt-3 font-medium" style={{ color: p.accent }}>
+                        You correctly identified that <strong>{active.correctPart.label}</strong> belongs in {active.zone.label}.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom nav */}
+            <div
+              className="shrink-0 px-5 py-3 flex items-center justify-between"
+              style={{ borderTop: `1px solid ${p.cardBorder}` }}
+            >
+              <button
+                onClick={() => setReviewIdx(i => Math.max(0, i - 1))}
+                disabled={reviewIdx === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[0.76rem] font-bold tracking-wide transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:-translate-y-0.5"
+                style={{ color: p.textMuted }}
+              >
+                <ChevronLeft className="w-3.5 h-3.5" /> Previous
+              </button>
+              <span className="text-[0.72rem] font-medium tabular-nums" style={{ color: p.textDim }}>
+                {clampedIdx + 1} / {reviewItems.length}
+              </span>
+              <button
+                onClick={() => setReviewIdx(i => Math.min(reviewItems.length - 1, i + 1))}
+                disabled={reviewIdx >= reviewItems.length - 1}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[0.76rem] font-bold tracking-wide transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:-translate-y-0.5"
+                style={{ color: p.textMuted }}
+              >
+                Next <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <style>{`
+          @keyframes layoutReviewFade {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
+      </div>
+    )
+  }
+
   /* ── Render ───────────────────────────────────────────────── */
   return (
     <div className="flex flex-col h-full w-full overflow-hidden relative" style={inline ? { color: p.text } : { background: p.bg, color: p.text }}>
-      {/* Anti-cheat overlay */}
-      {blurred && !isComplete && (
-        <div
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
-          style={{ background: isNight ? 'rgba(1,8,9,0.98)' : 'rgba(255,255,255,0.98)', backdropFilter: 'blur(10px)' }}
-        >
-          <AlertTriangle className="w-16 h-16 mb-4" style={{ color: p.accent2 }} />
-          <h2 className="text-2xl font-bold font-heading" style={{ color: p.text }}>Assessment Paused</h2>
-          <p className="mt-2" style={{ color: p.textMuted }}>Click back into this window to resume.</p>
-        </div>
-      )}
-
       {/* Header — standalone mode only */}
       {!inline && (
         <header
@@ -383,19 +623,11 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline }: L
 
             <div className="flex items-center gap-2">
               <button
-                onClick={checkAnswers}
+                onClick={isSubmitted ? handleProceed : checkAnswers}
                 className="px-4 py-2 rounded-lg text-sm font-heading font-bold transition-all hover:-translate-y-0.5 text-white"
                 style={{ background: p.accentDim, boxShadow: `0 4px 12px ${p.accentDim}66` }}
               >
-                CHECK
-              </button>
-              <button
-                onClick={handleReset}
-                className="p-2 rounded-lg transition-colors hover:opacity-80"
-                style={{ color: p.textDim }}
-                title="Reset"
-              >
-                <RotateCcw className="w-4 h-4" />
+                {isSubmitted ? 'PROCEED' : 'CHECK'}
               </button>
             </div>
           </div>
@@ -417,29 +649,21 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline }: L
             <span className="text-[10px] font-bold uppercase tracking-widest ml-1" style={{ color: p.textDim }}>Score</span>
             <span className="font-heading font-bold text-xl" style={{ color: scoreColor }}>{score}</span>
             <button
-              onClick={checkAnswers}
+              onClick={isSubmitted ? handleProceed : checkAnswers}
               className="px-3 py-1.5 rounded-lg text-xs font-heading font-bold text-white transition-all hover:-translate-y-0.5"
               style={{ background: p.accentDim }}
             >
-              CHECK
-            </button>
-            <button
-              onClick={handleReset}
-              className="p-1.5 rounded-lg hover:opacity-80"
-              style={{ color: p.textDim }}
-              title="Reset"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
+              {isSubmitted ? 'PROCEED' : 'CHECK'}
             </button>
           </div>
         </div>
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] overflow-hidden">
         {/* Left: Parts Bank */}
         <div
-          className="w-full lg:w-[300px] xl:w-[340px] border-r flex flex-col flex-shrink-0"
+          className="w-full border-r flex flex-col"
           style={{ background: p.bankBg, borderColor: p.cardBorder }}
         >
           <div className="p-4 border-b flex-shrink-0" style={{ background: isNight ? p.bgAlt : '#fff', borderColor: p.cardBorder }}>
@@ -451,7 +675,7 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline }: L
             </p>
           </div>
           <div
-            className="p-3 flex-1 overflow-y-auto flex flex-col gap-2"
+            className="p-3 flex-1 overflow-y-auto flex flex-col gap-1.5"
             onDragOver={(e) => {
               e.preventDefault()
               e.dataTransfer.dropEffect = 'move'
@@ -473,84 +697,74 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline }: L
         </div>
 
         {/* Right: CMS-485 Form Grid */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 flex items-start justify-center" style={{ background: isNight ? '#020C0D' : '#F3F4F6' }}>
+        <div className="flex-1 overflow-hidden p-0" style={{ background: isNight ? '#020C0D' : '#F3F4F6' }}>
           <div
-            className="w-full max-w-4xl border-y-[6px] shadow-md"
-            style={{ background: p.formBg, borderColor: isNight ? p.accentDim : '#2C3E50' }}
+            className="w-full h-full flex flex-col border-r"
+            style={{ background: p.formBg, borderColor: p.cardBorder }}
           >
-            {/* Row 1: 5 equal columns */}
-            <div className="grid grid-cols-5" style={{ borderBottom: `1px solid ${p.cardBorder}` }}>
+            <div className="flex-[0.8] flex border-b" style={{ borderColor: p.cardBorder }}>
               {['1', '2', '3', '4', '5'].map((b, i) => (
-                <div key={b} style={{ borderRight: i < 4 ? `1px solid ${p.cardBorder}` : undefined }}>
+                <div key={b} className={`flex-1 ${i < 4 ? 'border-r' : ''}`} style={{ borderColor: p.cardBorder }}>
                   {renderZone(b, `Box ${b}`)}
                 </div>
               ))}
             </div>
 
-            {/* Row 2: Full-width Box 6 */}
-            <div style={{ borderBottom: `1px solid ${p.cardBorder}` }}>
-              {renderZone('6', 'Box 6', 'min-h-[60px]')}
+            <div className="flex-[1] border-b" style={{ borderColor: p.cardBorder }}>
+              {renderZone('6', 'Box 6')}
             </div>
 
-            {/* Row 3: 60/40 split — Box 11, 12 */}
-            <div className="flex" style={{ borderBottom: `1px solid ${p.cardBorder}` }}>
-              <div className="w-[60%]" style={{ borderRight: `1px solid ${p.cardBorder}` }}>
-                {renderZone('11', 'Box 11', 'min-h-[70px]')}
+            <div className="flex-[1.2] flex border-b" style={{ borderColor: p.cardBorder }}>
+              <div className="w-[60%] border-r" style={{ borderColor: p.cardBorder }}>
+                {renderZone('11', 'Box 11')}
               </div>
-              <div className="w-[40%]">{renderZone('12', 'Box 12', 'min-h-[70px]')}</div>
+              <div className="flex-1">{renderZone('12', 'Box 12')}</div>
             </div>
 
-            {/* Row 4: 30/40/30 — Box 14, 15, 16 */}
-            <div className="flex" style={{ borderBottom: `1px solid ${p.cardBorder}` }}>
-              <div className="w-[30%]" style={{ borderRight: `1px solid ${p.cardBorder}` }}>
-                {renderZone('14', 'Box 14', 'min-h-[70px]')}
+            <div className="flex-[1.2] flex border-b" style={{ borderColor: p.cardBorder }}>
+              <div className="w-[30%] border-r" style={{ borderColor: p.cardBorder }}>
+                {renderZone('14', 'Box 14')}
               </div>
-              <div className="w-[40%]" style={{ borderRight: `1px solid ${p.cardBorder}` }}>
-                {renderZone('15', 'Box 15', 'min-h-[70px]')}
+              <div className="w-[40%] border-r" style={{ borderColor: p.cardBorder }}>
+                {renderZone('15', 'Box 15')}
               </div>
-              <div className="w-[30%]">{renderZone('16', 'Box 16', 'min-h-[70px]')}</div>
+              <div className="flex-1">{renderZone('16', 'Box 16')}</div>
             </div>
 
-            {/* Row 5: Full-width Box 18 */}
-            <div style={{ borderBottom: `1px solid ${p.cardBorder}` }}>
-              {renderZone('18', 'Box 18', 'min-h-[80px]')}
+            <div className="flex-[1.5] border-b" style={{ borderColor: p.cardBorder }}>
+              {renderZone('18', 'Box 18')}
             </div>
 
-            {/* Row 6: 60/40 — Box 21, 22 */}
-            <div className="flex" style={{ borderBottom: `1px solid ${p.cardBorder}` }}>
-              <div className="w-[60%]" style={{ borderRight: `1px solid ${p.cardBorder}` }}>
-                {renderZone('21', 'Box 21', 'min-h-[80px]')}
+            <div className="flex-[1.4] flex border-b" style={{ borderColor: p.cardBorder }}>
+              <div className="w-[60%] border-r" style={{ borderColor: p.cardBorder }}>
+                {renderZone('21', 'Box 21')}
               </div>
-              <div className="w-[40%]">{renderZone('22', 'Box 22', 'min-h-[80px]')}</div>
+              <div className="flex-1">{renderZone('22', 'Box 22')}</div>
             </div>
 
-            {/* Row 7: Safety Addendum — thick bottom border */}
-            <div style={{ borderBottom: `4px solid ${isNight ? p.accentDim : '#9CA3AF'}` }}>
-              {renderZone('safety', 'Safety Addendum', 'min-h-[60px]')}
+            <div className="flex-[1] border-b" style={{ borderColor: isNight ? p.accentDim : '#9CA3AF', borderBottomWidth: '4px' }}>
+              {renderZone('safety', 'Safety Addendum')}
             </div>
 
-            {/* Row 8: 70/30 — Box 23, 25 */}
-            <div className="flex" style={{ borderBottom: `1px solid ${p.cardBorder}` }}>
-              <div className="w-[70%]" style={{ borderRight: `1px solid ${p.cardBorder}` }}>
-                {renderZone('23', 'Box 23', 'min-h-[60px]')}
+            <div className="flex-[1] flex border-b" style={{ borderColor: p.cardBorder }}>
+              <div className="w-[70%] border-r" style={{ borderColor: p.cardBorder }}>
+                {renderZone('23', 'Box 23')}
               </div>
-              <div className="w-[30%]">{renderZone('25', 'Box 25', 'min-h-[60px]')}</div>
+              <div className="flex-1">{renderZone('25', 'Box 25')}</div>
             </div>
 
-            {/* Row 9: 50/50 — Box 24, 26 */}
-            <div className="flex" style={{ borderBottom: `1px solid ${p.cardBorder}` }}>
-              <div className="w-[50%]" style={{ borderRight: `1px solid ${p.cardBorder}` }}>
-                {renderZone('24', 'Box 24', 'min-h-[80px]')}
+            <div className="flex-[1.2] flex border-b" style={{ borderColor: p.cardBorder }}>
+              <div className="w-[50%] border-r" style={{ borderColor: p.cardBorder }}>
+                {renderZone('24', 'Box 24')}
               </div>
-              <div className="w-[50%]">{renderZone('26', 'Box 26', 'min-h-[80px]')}</div>
+              <div className="flex-1">{renderZone('26', 'Box 26')}</div>
             </div>
 
-            {/* Row 10: 50/50 — Box 27, 28 */}
-            <div className="flex">
-              <div className="w-[50%]" style={{ borderRight: `1px solid ${p.cardBorder}` }}>
-                {renderZone('27', 'Box 27', 'min-h-[80px]')}
+            <div className="flex-[1.2] flex border-b last:border-0" style={{ borderColor: p.cardBorder }}>
+              <div className="w-[50%] border-r" style={{ borderColor: p.cardBorder }}>
+                {renderZone('27', 'Box 27')}
               </div>
-              <div className="w-[50%]">{renderZone('28', 'Box 28', 'min-h-[80px]')}</div>
+              <div className="flex-1">{renderZone('28', 'Box 28')}</div>
             </div>
           </div>
         </div>

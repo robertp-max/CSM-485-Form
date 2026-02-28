@@ -455,21 +455,17 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── Glossary Hovercard System ──────────────────────────────── */
 
-/* Inline underline: unseen term (first-occurrence eligible) */
+/* Inline style: unseen term (first-occurrence eligible) — teal text */
 .glossary-term-unseen {
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: rgba(0, 121, 112, 0.55);
-  text-underline-offset: 3px;
-  text-decoration-thickness: 1.5px;
+  color: #007970 !important;
+  text-decoration: none;
   cursor: help;
-  transition: text-decoration-color 180ms ease, text-decoration-style 180ms ease;
+  transition: color 180ms ease;
 }
 
 .glossary-term-unseen:hover,
 .glossary-term-unseen:focus-visible {
-  text-decoration-style: solid;
-  text-decoration-color: rgba(0, 121, 112, 0.85);
+  color: #00564f !important;
   text-shadow: 0 0 8px rgba(0, 121, 112, 0.12);
 }
 
@@ -479,14 +475,19 @@ h1, h2, h3, h4, h5, h6 {
   cursor: default;
 }
 
-/* Trigger button reset */
+/* Trigger button reset (no 'all: unset' — preserves .glossary-term-unseen color) */
 .glossary-term-trigger {
-  all: unset;
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
   display: inline;
   font: inherit;
   color: inherit;
   line-height: inherit;
   letter-spacing: inherit;
+  text-align: inherit;
 }
 
 .glossary-term-inline {
