@@ -82,7 +82,7 @@ export default function StandaloneCourseSelection() {
   }, [])
 
   const dockItems = useMemo(() => [
-    { icon: <Home className="w-5 h-5" />, label: 'Training', onClick: () => fire('course-selection') },
+    { icon: <Home className="w-5 h-5" />, label: 'Training', onClick: () => fire('light-card') },
     { icon: <FileText className="w-5 h-5" />, label: 'Help Center', onClick: () => fire('glossary') },
     { icon: <ClipboardCheck className="w-5 h-5" />, label: 'Final Test', onClick: () => fire('final-exam') },
   ], [fire])

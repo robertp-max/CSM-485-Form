@@ -11,7 +11,6 @@ const Interactive485Form = lazy(() => import('./components/Interactive485Form'))
 const FinalExamWeb = lazy(() => import('./components/FinalExamWeb'))
 const OnboardingCardFlow = lazy(() => import('./components/OnboardingCardFlow'))
 const LayoutChallenge = lazy(() => import('./components/LayoutChallenge'))
-const CourseSelectionPage = lazy(() => import('./components/CourseSelectionPage'))
 const StandaloneCourseSelection = lazy(() => import('./components/StandaloneCourseSelection'))
 const BlobCursor = lazy(() => import('./components/BlobCursor'))
 const SplashCursor = lazy(() => import('./components/SplashCursor'))
@@ -127,7 +126,8 @@ export default function App() {
         setViewMode('FE')
         return
       case 'course-selection':
-        setAppPhase('course-selection')
+        setAppPhase('training')
+        setViewMode('SCS')
         return
       case 'first-card':
         setLearningStartTarget('first-card')
@@ -341,10 +341,7 @@ export default function App() {
       <Suspense fallback={loadingFallback}>
         {cursorEnabled && activePrize === 'blob-cursor' && <BlobCursor />}
         {cursorEnabled && activePrize === 'splash-cursor' && <SplashCursor />}
-        <CourseSelectionPage
-          theme={theme === 'night' ? 'night' : 'day'}
-          onSelect={handleModuleSelect}
-        />
+        <StandaloneCourseSelection />
         <RewardToggle prize={activePrize} enabled={cursorEnabled} onToggle={() => setCursorEnabled(e => !e)} />
       </Suspense>
     )
