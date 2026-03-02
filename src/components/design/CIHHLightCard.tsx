@@ -1110,11 +1110,11 @@ export default function CIHHLightCard({ onNavigate: _onNavigate, initialCardInde
                                         : isDarkMode ? 'hover:bg-white/[0.04]' : 'hover:bg-[#FAFBF8]'
                                       }`}
                                     >
-                                      {/* Number */}
-                                      <span className={`flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[0.68rem] font-bold transition-colors ${done
-                                        ? isDarkMode ? 'bg-[#007970]/30 text-[#64F4F5]' : 'bg-[#E5FEFF] text-[#007970]'
-                                        : isDarkMode ? 'bg-white/5 text-white/40' : 'bg-[#F2F2F1] text-[#747474] group-hover:bg-[#E5FEFF] group-hover:text-[#007970]'
-                                      }`}>{idx + 1}</span>
+                                      {/* Status dot */}
+                                      <span className={`flex-shrink-0 w-2 h-2 rounded-full transition-colors ${done
+                                        ? 'bg-[#007970] dark:bg-[#64F4F5]'
+                                        : isDarkMode ? 'bg-white/20 group-hover:bg-[#C74601]' : 'bg-[#D9D6D5] group-hover:bg-[#007970]'
+                                      }`} />
                                       {/* Title */}
                                       <span className={`flex-1 text-[0.82rem] leading-snug transition-colors ${done
                                         ? isDarkMode ? 'text-[#64F4F5] font-medium' : 'text-[#007970] font-medium'

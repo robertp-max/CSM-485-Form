@@ -12,6 +12,7 @@ const FinalExamWeb = lazy(() => import('./components/FinalExamWeb'))
 const OnboardingCardFlow = lazy(() => import('./components/OnboardingCardFlow'))
 const LayoutChallenge = lazy(() => import('./components/LayoutChallenge'))
 const CourseSelectionPage = lazy(() => import('./components/CourseSelectionPage'))
+const StandaloneCourseSelection = lazy(() => import('./components/StandaloneCourseSelection'))
 const BlobCursor = lazy(() => import('./components/BlobCursor'))
 const SplashCursor = lazy(() => import('./components/SplashCursor'))
 const RewardToggle = lazy(() => import('./components/RewardToggle'))
@@ -66,8 +67,7 @@ export default function App() {
   const handleModuleSelect = (moduleId: CourseModule) => {
     switch (moduleId) {
       case 'card-training':
-        setLightCardInitialIndex(4)
-        setViewMode('LC')
+        setViewMode('SCS')
         break
       case 'book-training':
         setViewMode(theme === 'night' ? 'NW' : 'LW')
@@ -223,6 +223,7 @@ export default function App() {
       case 'LP': return <LearningProfessional qaEnabled={qaModeEnabled} startAtModuleSelection={learningStartTarget === 'course-selection'} startTarget={learningStartTarget} navigationNonce={learningNavigationNonce} />
       case 'HELP': return <HelpCenter />
       case '485': return <Interactive485Form theme={theme as 'night' | 'day'} qaMode={qaModeEnabled} />
+      case 'SCS': return <StandaloneCourseSelection />
       default: return null
     }
   }
