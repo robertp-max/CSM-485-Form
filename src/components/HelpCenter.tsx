@@ -40,7 +40,7 @@ function searchArticles(query: string): HelpArticle[] {
 
 /* ── Component ───────────────────────────────────────── */
 export default function HelpCenter() {
-  const { isDarkMode, toggle } = useTheme()
+  const { isDarkMode } = useTheme()
   const [query, setQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<HelpCategory | null>(null)
   const [activeArticle, setActiveArticle] = useState<HelpArticle | null>(null)
@@ -67,11 +67,13 @@ export default function HelpCenter() {
 
   const proceedToTraining = useCallback(() => {
     const nonce = Date.now()
-    window.location.hash = `/?dock=light-card&n=${nonce}`
+    window.location.hash = `/?dock=course-selection&n=${nonce}`
   }, [])
 
   /* ── dark/light tokens ────────────────────────────────── */
-  const bg = isDarkMode ? 'bg-[#09090b]' : 'bg-[#FAFBF8]'
+  const pageGradient = isDarkMode
+    ? 'radial-gradient(ellipse at 20% 0%, rgba(0,121,112,0.10) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(199,70,1,0.06) 0%, transparent 55%), #010809'
+    : 'var(--app-gradient)'
   const surface = isDarkMode ? 'bg-[#121214] border-white/10' : 'bg-white border-[#E5E4E3]'
   const text = isDarkMode ? 'text-[#F3F4F6]' : 'text-[#1F1C1B]'
   const muted = isDarkMode ? 'text-white/60' : 'text-[#747474]'
@@ -84,13 +86,17 @@ export default function HelpCenter() {
   if (activeArticle) {
     const cat = HELP_CATEGORIES.find((c) => c.id === activeArticle.category)
     return (
-      <div className={`min-h-screen flex items-center justify-center ${bg} ${text} font-sans`}>
+      <div className={`min-h-screen flex items-center justify-center ${text} font-sans p-4 md:p-8`} style={{ background: pageGradient }}>
         <div
-          className="w-full max-w-5xl mx-auto my-10 rounded-[32px] border shadow-2xl overflow-hidden"
+          className="w-full max-w-5xl mx-auto my-10 rounded-[32px] overflow-hidden border-l-[4.3px]"
           style={{
-            background: isDarkMode ? 'rgba(12,12,16,0.9)' : 'rgba(255,255,255,0.9)',
-            borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#E5E4E3',
+            background: isDarkMode ? 'rgba(1,8,8,0.55)' : 'rgba(255,255,255,0)',
+            borderLeftColor: isDarkMode ? '#64F4F5' : '#C74601',
             backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            boxShadow: isDarkMode
+              ? '0 24px 90px rgba(0, 10, 10, 0.82)'
+              : '0 24px 60px rgba(31, 28, 27, 0.12)',
           }}
         >
           <header className="flex items-center justify-between gap-4 px-6 py-4 border-b" style={{ borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#E5E4E3' }}>
@@ -138,13 +144,17 @@ export default function HelpCenter() {
   }
 
   return (
-    <div className={`min-h-screen flex items-center justify-center ${bg} ${text} font-sans`}>
+    <div className={`min-h-screen flex items-center justify-center ${text} font-sans p-4 md:p-8`} style={{ background: pageGradient }}>
       <div
-        className="w-full max-w-6xl mx-auto my-8 rounded-[32px] border shadow-2xl overflow-hidden"
+        className="w-full max-w-6xl mx-auto my-8 rounded-[32px] overflow-hidden border-l-[4.3px]"
         style={{
-          background: isDarkMode ? 'rgba(12,12,16,0.9)' : 'rgba(255,255,255,0.9)',
-          borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#E5E4E3',
+          background: isDarkMode ? 'rgba(1,8,8,0.55)' : 'rgba(255,255,255,0)',
+          borderLeftColor: isDarkMode ? '#64F4F5' : '#C74601',
           backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          boxShadow: isDarkMode
+            ? '0 24px 90px rgba(0, 10, 10, 0.82)'
+            : '0 24px 60px rgba(31, 28, 27, 0.12)',
         }}
       >
         {/* Header */}
@@ -154,12 +164,6 @@ export default function HelpCenter() {
             <span className="font-heading text-lg font-bold">Help Center</span>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={toggle}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${isDarkMode ? 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10' : 'border-[#E5E4E3] bg-white text-[#1F1C1B] hover:bg-[#F7FEFF]'}`}
-            >
-              {isDarkMode ? 'Light Mode' : 'Night Mode'}
-            </button>
             <button
               onClick={proceedToTraining}
               className="px-10 py-3 rounded-[16px] text-white text-sm font-bold uppercase tracking-widest transition-all hover:-translate-y-0.5"
@@ -322,22 +326,10 @@ export default function HelpCenter() {
 
           {/* Footer CTA */}
           <div className="pt-6 border-t" style={{ borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#E5E4E3' }}>
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center">
               <div className={`text-xs uppercase tracking-[0.18em] font-bold ${muted}`}>
                 CareIndeed Training · Internal Use Only
               </div>
-              <button
-                onClick={proceedToTraining}
-                className="px-10 py-4 rounded-[16px] text-white font-bold tracking-wide text-base transition-all hover:-translate-y-1"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(0,121,112,0.92), rgba(0,92,85,0.92))',
-                  boxShadow: '0 20px 50px -18px rgba(0,121,112,0.65)',
-                  border: '1px solid rgba(255,255,255,0.25)',
-                  backdropFilter: 'blur(12px)',
-                }}
-              >
-                Proceed to Training
-              </button>
             </div>
           </div>
         </div>

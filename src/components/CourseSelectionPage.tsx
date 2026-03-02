@@ -7,10 +7,8 @@
 import { useState } from 'react'
 import {
   ArrowRight,
-  BookOpen,
   CheckCircle2,
   FileText,
-  GraduationCap,
   HelpCircle,
   Layers,
   Sparkles,
@@ -92,29 +90,11 @@ const MODULES: Array<{
   {
     id: 'card-training',
     icon: Layers,
-    title: 'Card Training',
-    desc: 'Step-by-step, card-based CMS-485 lessons with quizzes, audio narration, and key-point breakdowns.',
-    time: '20–30 min',
-    tag: 'Recommended',
+    title: 'Course Module Selection',
+    desc: 'Open the interactive course modules and progress through topics in sequence.',
+    time: '30–45 min to complete',
+    tag: 'Required',
     tagAccent: true,
-  },
-  {
-    id: 'book-training',
-    icon: BookOpen,
-    title: 'Book Training',
-    desc: 'Two-page spread layout for an immersive reading experience with full content depth and side-by-side review.',
-    time: '20–30 min',
-    tag: null,
-    tagAccent: false,
-  },
-  {
-    id: 'learning-pro',
-    icon: GraduationCap,
-    title: 'Learning Professional',
-    desc: 'Comprehensive guided learning path with video introduction, narration, and progressive module flow.',
-    time: '25–35 min',
-    tag: null,
-    tagAccent: false,
   },
   {
     id: 'interactive-form',
@@ -122,7 +102,7 @@ const MODULES: Array<{
     title: 'Interactive CMS-485',
     desc: 'Hands-on practice with the CMS-485 form structure, clinical narratives, and documentation fields.',
     time: '15–20 min',
-    tag: null,
+    tag: 'Sandbox',
     tagAccent: false,
   },
   {
@@ -131,16 +111,16 @@ const MODULES: Array<{
     title: 'Final Assessment',
     desc: 'Comprehensive competency exam covering CMS-485 structure, safety protocols, and documentation standards.',
     time: '10–15 min',
-    tag: 'Assessment',
+    tag: 'Training Retention (Complete course to unlock)',
     tagAccent: false,
   },
   {
     id: 'glossary',
     icon: HelpCircle,
-    title: 'Clinical Glossary',
-    desc: 'Reference guide for CMS-485 terminology, abbreviations, and home health documentation standards.',
+    title: 'Help Center',
+    desc: 'Searchable help articles, FAQ, references, and clinical support resources.',
     time: 'Reference',
-    tag: null,
+    tag: 'User Guide',
     tagAccent: false,
   },
 ]
@@ -153,7 +133,7 @@ export default function CourseSelectionPage({ theme, onSelect }: CourseSelection
 
   return (
     <div
-      className="min-h-screen flex flex-col overflow-hidden relative"
+      className="min-h-screen flex items-center justify-center overflow-hidden relative p-4 md:p-8"
       style={{
         background: isNight
           ? 'radial-gradient(ellipse at 20% 0%, rgba(0,121,112,0.10) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(199,70,1,0.06) 0%, transparent 55%), #010809'
@@ -161,9 +141,19 @@ export default function CourseSelectionPage({ theme, onSelect }: CourseSelection
         fontFamily: 'Roboto, sans-serif',
       }}
     >
+      <div
+        className="w-full max-w-5xl rounded-[32px] overflow-hidden border-l-[4.3px] backdrop-blur-2xl"
+        style={{
+          background: isNight ? 'rgba(1,8,8,0.55)' : 'rgba(255,255,255,0)',
+          borderLeftColor: isNight ? '#64F4F5' : '#C74601',
+          boxShadow: isNight
+            ? '0 24px 90px rgba(0, 10, 10, 0.82)'
+            : '0 24px 60px rgba(31, 28, 27, 0.12)',
+        }}
+      >
       {/* ── Header ── */}
       <header
-        className="px-8 lg:px-16 py-5 flex items-center justify-between relative z-10 border-b backdrop-blur-xl"
+        className="px-8 lg:px-12 py-5 flex items-center justify-between relative z-10 border-b"
         style={{ background: p.headerBg, borderColor: p.footerBorder }}
       >
         <div className="flex items-center gap-4">
@@ -194,8 +184,8 @@ export default function CourseSelectionPage({ theme, onSelect }: CourseSelection
       </header>
 
       {/* ── Main ── */}
-      <main className="flex-1 flex flex-col items-center px-6 lg:px-16 py-12 lg:py-16 relative z-10">
-        <div className="max-w-5xl w-full">
+      <main className="flex-1 flex flex-col items-center px-6 lg:px-12 py-10 lg:py-12 relative z-10">
+        <div className="max-w-4xl w-full">
           {/* Hero */}
           <div className="text-center mb-14">
             <div
@@ -226,7 +216,7 @@ export default function CourseSelectionPage({ theme, onSelect }: CourseSelection
           </div>
 
           {/* ── Module Grid ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {MODULES.map((mod) => {
               const isHovered = hoveredId === mod.id
               return (
@@ -308,12 +298,13 @@ export default function CourseSelectionPage({ theme, onSelect }: CourseSelection
 
       {/* ── Footer ── */}
       <footer
-        className="px-8 lg:px-16 py-4 border-t flex items-center justify-between text-xs relative z-10"
+        className="px-8 lg:px-12 py-4 border-t flex items-center justify-between text-xs relative z-10"
         style={{ color: p.textDim, borderColor: p.footerBorder }}
       >
         <span>&copy; {new Date().getFullYear()} CareIndeed Home Health</span>
         <span>v2.0 · CMS-485 Training Platform</span>
       </footer>
+      </div>
     </div>
   )
 }

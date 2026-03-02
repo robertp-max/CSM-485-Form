@@ -1,11 +1,13 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { sfxClick, sfxSwipe, sfxModeToggle } from '../utils/sfx'
 import {
   FileText, BookOpen, Settings, LayoutGrid, HeartPulse,
   GraduationCap, CheckCircle2, ArrowRight, Sun, Moon,
-  Volume2, AlertTriangle, Lock, Trophy, Shield
+  Volume2, AlertTriangle, Lock, Trophy, Shield, Target, Layers,
+  ChevronLeft, ChevronRight
 } from 'lucide-react'
+import { TRAINING_CARDS } from '../data/trainingCards'
 
 /* ── Glass style injector — identical to CIHHLightCard ── */
 const StyleInjector = () => (
@@ -72,7 +74,7 @@ const StyleInjector = () => (
  *   bg-transparent, left-accent only, glowing shadow, hover glass
  */
 const glassPanel = (accentColor: string) =>
-  `bg-transparent rounded-[24px] p-6 border-l-[3.3px] ${accentColor} shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_16px_-10px_rgba(0,121,112,0.3)] dark:shadow-[0_7px_17px_-5px_rgba(0,0,0,0.4),0_0_16px_-10px_rgba(100,244,245,0.15)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_28px_-6px_rgba(0,121,112,0.68)] dark:hover:shadow-[0_14px_34px_-10px_rgba(0,0,0,0.5),0_0_28px_-6px_rgba(100,244,245,0.35)] transition-all duration-300 hover:bg-white/[0.30] dark:hover:bg-white/[0.04] -translate-y-[1px] hover:-translate-y-[2px]`
+  `bg-transparent rounded-[24px] p-6 border-l-[3.3px] ${accentColor} shadow-[0_7px_17px_-5px_rgba(31,28,27,0.15),0_0_16px_-10px_rgba(0,121,112,0.3)] dark:shadow-[0_7px_17px_-5px_rgba(0,0,0,0.4),0_0_16px_-10px_rgba(100,244,245,0.15)] hover:shadow-[0_14px_34px_-10px_rgba(31,28,27,0.3),0_0_28px_-6px_rgba(0,121,112,0.68)] dark:hover:shadow-[0_14px_34px_-10px_rgba(0,0,0,0.5),0_0_28px_-6px_rgba(100,244,245,0.35)] transition-all duration-300 hover:bg-white/[0.33] dark:hover:bg-white/[0.33] -translate-y-[1px] hover:-translate-y-[2px]`
 
 /* ── Animation variants ── */
 const cardShellVariants = {
@@ -81,7 +83,7 @@ const cardShellVariants = {
   exit: (direction: number) => ({ x: direction >= 0 ? '-100vw' : '100vw' }),
 }
 
-const STEP_COUNT = 3
+const STEP_COUNT = 6
 
 /* ── Props ── */
 interface OnboardingCardFlowProps {
@@ -103,6 +105,20 @@ export default function OnboardingCardFlow({ onComplete }: OnboardingCardFlowPro
   const [showCurtain, setShowCurtain] = useState(false)
   const [curtainDirection, setCurtainDirection] = useState<'day' | 'night'>('day')
   const [modeTransitionKey, setModeTransitionKey] = useState(0)
+  const [carouselIndex, setCarouselIndex] = useState(0)
+
+  /* ── Derive unique topic sections (first card of each section) ── */
+  const topicSections = useMemo(() => {
+    const seen = new Set<string>()
+    const result: { section: string; title: string; objective: string; bullets: string[]; cardIndex: number }[] = []
+    TRAINING_CARDS.forEach((c, idx) => {
+      if (c.section && !seen.has(c.section)) {
+        seen.add(c.section)
+        result.push({ section: c.section, title: c.title, objective: c.objective, bullets: c.bullets, cardIndex: idx })
+      }
+    })
+    return result
+  }, [])
 
   const pointerStartX = useRef<number | null>(null)
   const pointerStartY = useRef<number | null>(null)
@@ -141,6 +157,7 @@ export default function OnboardingCardFlow({ onComplete }: OnboardingCardFlowPro
   }
   const handlePointerUp = () => {
     if (pointerStartX.current == null || pointerCurrentX.current == null || pointerStartY.current == null || pointerCurrentY.current == null) return
+    if (step === 4) { pointerStartX.current = pointerStartY.current = pointerCurrentX.current = pointerCurrentY.current = null; return }
     const dx = pointerCurrentX.current - pointerStartX.current
     const dy = pointerCurrentY.current - pointerStartY.current
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 70) dx < 0 ? handleNext() : handleBack()
@@ -150,6 +167,7 @@ export default function OnboardingCardFlow({ onComplete }: OnboardingCardFlowPro
   /* ── Edge-click ── */
   const isInteractive = (t: EventTarget | null) => t instanceof HTMLElement && Boolean(t.closest('button, a, input, textarea, select, [role="button"], label'))
   const handleCardEdgeClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (step === 4) return
     if (isInteractive(e.target)) return
     const rect = e.currentTarget.getBoundingClientRect()
     const edge = Math.max(56, rect.width * 0.1)
@@ -160,10 +178,14 @@ export default function OnboardingCardFlow({ onComplete }: OnboardingCardFlowPro
 
   /* ── Keys ── */
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'ArrowRight') handleNext(); if (e.key === 'ArrowLeft') handleBack() }
+    const onKey = (e: KeyboardEvent) => {
+      if (step === 4) return
+      if (e.key === 'ArrowRight') handleNext()
+      if (e.key === 'ArrowLeft') handleBack()
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [handleNext, handleBack])
+  }, [handleNext, handleBack, step])
 
   /* ── Theme toggle ── */
   const toggleToNight = () => {
@@ -190,7 +212,7 @@ export default function OnboardingCardFlow({ onComplete }: OnboardingCardFlowPro
      RENDER — full glass, zero white borders
      ════════════════════════════════════════════════════════════ */
   return (
-    <div className={`night-transition min-h-screen bg-[radial-gradient(circle_at_top_right,_#FAFBF8_0%,_#D9D6D5_100%)] dark:bg-[radial-gradient(circle_at_top_right,_#020F10_0%,_#010808_100%)] text-[#1F1C1B] dark:text-[#FAFBF8] font-body p-4 md:p-8 flex items-center overflow-hidden justify-center relative ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`night-transition min-h-screen app-gradient-bg dark:bg-[radial-gradient(circle_at_top_right,_#020F10_0%,_#010808_100%)] text-[#1F1C1B] dark:text-[#FAFBF8] font-body p-4 md:p-8 flex items-center overflow-hidden justify-center relative ${isDarkMode ? 'dark' : ''}`}>
       <StyleInjector />
 
       {/* ── Edge-sweep curtain ── */}
@@ -204,7 +226,7 @@ export default function OnboardingCardFlow({ onComplete }: OnboardingCardFlowPro
       <div className="absolute bottom-[-10%] right-[-10%] w-[44%] h-[44%] bg-[#C74601] rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[150px] opacity-[0.13] dark:opacity-[0.18] animate-aurora-b pointer-events-none" />
 
       {/* ── Card shell ── */}
-      <div className="w-full max-w-[1200px] min-h-[1000px] relative z-10">
+      <div className="w-full max-w-[1200px] min-h-[700px] relative z-10">
         <AnimatePresence mode="wait" custom={navDirection}>
           <motion.div
             key={step}
@@ -215,7 +237,7 @@ export default function OnboardingCardFlow({ onComplete }: OnboardingCardFlowPro
             onPointerDown={handlePointerDown} onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}
             onClick={handleCardEdgeClick}
-            className="relative w-full min-h-[1000px] bg-white/0 dark:bg-[#010808]/55 backdrop-blur-2xl rounded-[32px] overflow-hidden flex flex-col border-l-[4.3px]"
+            className="relative w-full min-h-[700px] bg-white/0 dark:bg-[#010808]/55 backdrop-blur-2xl rounded-[32px] overflow-hidden flex flex-col border-l-[4.3px]"
             style={{
               touchAction: 'pan-y',
               borderLeftColor: isDarkMode ? '#64F4F5' : '#C74601',
@@ -400,6 +422,208 @@ export default function OnboardingCardFlow({ onComplete }: OnboardingCardFlowPro
                     </div>
                     <button onClick={handleNext} className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#C74601] hover:bg-[#E56E2E] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(199,70,1,0.25)] glow-orange hover:shadow-[0_18px_44px_rgba(199,70,1,0.35)]">
                       Begin Challenges <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
+                )}
+
+                {/* ═══════════ STEP 5 — Help Center ═══════════ */}
+                {step === 5 && (
+                  <div className="space-y-6 max-w-2xl w-full text-left">
+                    <div className="w-20 h-20 rounded-2xl bg-transparent flex items-center justify-center mx-auto">
+                      <FileText className="w-10 h-10 text-[#007970] dark:text-[#64F4F5]" />
+                    </div>
+                    <div className="space-y-3">
+                      <h2 className="font-heading text-[1.8rem] font-bold">Help Center</h2>
+                      <p className="text-[#524048] dark:text-[#D9D6D5] text-base max-w-xl mx-auto leading-relaxed">
+                        Find quick guidance, glossary terms, and troubleshooting tips for using the CMS-485 training module. Open the full Help Center to access searchable documentation and FAQs.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className={glassPanel('border-l-[#007970] dark:border-l-[#64F4F5]')}>
+                        <p className="font-heading font-semibold">Glossary & Definitions</p>
+                        <p className="text-sm text-[#747474] dark:text-[#D9D6D5] mt-2">Access key terms and clinical definitions used throughout the training.</p>
+                      </div>
+                      <div className={glassPanel('border-l-[#C74601] dark:border-l-[#E56E2E]')}>
+                        <p className="font-heading font-semibold">Troubleshooting</p>
+                        <p className="text-sm text-[#747474] dark:text-[#D9D6D5] mt-2">Quick steps to resolve common UI issues, audio checks, and contact info for support.</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          const nonce = Date.now()
+                          window.location.hash = `/?dock=glossary&n=${nonce}`
+                          window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'glossary' }))
+                        }}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold"
+                      >
+                        Open Help Center
+                      </button>
+                      <button onClick={handleNext} className="px-5 py-3 rounded-2xl border font-bold text-sm" style={{ borderColor: '#E5E4E3' }}>
+                        Continue
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ═══════════ STEP 3 — Layout Challenge ═══════════ */}
+                {step === 3 && (
+                  <div className="space-y-8 max-w-lg w-full">
+                    <div className="w-20 h-20 rounded-2xl bg-transparent flex items-center justify-center mx-auto">
+                      <LayoutGrid className="w-10 h-10 text-[#007970] dark:text-[#64F4F5]" />
+                    </div>
+                    <div className="space-y-3">
+                      <h2 className="font-heading text-[1.8rem] font-bold -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">Layout Challenge</h2>
+                      <p className="text-[#524048] dark:text-[#D9D6D5] text-base max-w-sm mx-auto leading-relaxed">
+                        Test your knowledge of the <strong className="text-[#007970] dark:text-[#64F4F5]">CMS-485 form structure</strong>. Identify correct field placements and required sections.
+                      </p>
+                    </div>
+                    <div className="space-y-4 text-left">
+                      {/* Form — glass */}
+                      <div className={glassPanel('border-l-[#007970] dark:border-l-[#64F4F5]')}>
+                        <div className="flex items-start gap-3">
+                          <FileText className="w-5 h-5 mt-0.5 text-[#007970] dark:text-[#64F4F5] flex-shrink-0" />
+                          <div>
+                            <p className="font-heading font-semibold text-[0.95rem] mb-0.5">Form Structure</p>
+                            <p className="text-[0.85rem] text-[#524048] dark:text-[#D9D6D5] leading-relaxed">Questions cover patient demographics, physician orders, and service frequencies.</p>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Target — glass */}
+                      <div className={glassPanel('border-l-[#C74601] dark:border-l-[#E56E2E]')}>
+                        <div className="flex items-start gap-3">
+                          <Target className="w-5 h-5 mt-0.5 text-[#C74601] dark:text-[#FFD5BF] flex-shrink-0" />
+                          <div>
+                            <p className="font-heading font-semibold text-[0.95rem] mb-0.5">Accuracy Required</p>
+                            <p className="text-[0.85rem] text-[#524048] dark:text-[#D9D6D5] leading-relaxed">Each question has one correct answer. Review the form layout before starting.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <button onClick={handleNext} className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(0,121,112,0.25)] hover:shadow-[0_18px_44px_rgba(0,121,112,0.3)]">
+                      Start Layout Challenge <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
+                )}
+
+                {/* ═══════════ STEP 4 — Course Selection Carousel ═══════════ */}
+                {step === 4 && (
+                  <div className="space-y-6 w-full max-w-3xl">
+                    <div className="space-y-2">
+                      <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-transparent backdrop-blur-md border-l-[3px] border-l-[#007970] dark:border-l-[#64F4F5] text-[#007970] dark:text-[#64F4F5] text-[0.75rem] font-bold uppercase tracking-[0.18em] shadow-[0_4px_14px_-6px_rgba(0,121,112,0.3)] dark:shadow-[0_4px_14px_-6px_rgba(100,244,245,0.2)]">
+                        <GraduationCap className="w-4 h-4" /> Course Topics
+                      </div>
+                      <h2 className="font-heading text-[1.8rem] font-bold -translate-y-[1px] hover:-translate-y-[2px] transition-transform duration-300">Browse Training Topics</h2>
+                      <p className="text-[#524048] dark:text-[#D9D6D5] text-sm max-w-lg mx-auto leading-relaxed">
+                        Preview the <strong className="text-[#007970] dark:text-[#64F4F5]">{topicSections.length} topic sections</strong> you&apos;ll master in this course.
+                      </p>
+                    </div>
+
+                    {/* ── Carousel ── */}
+                    <div className="relative">
+                      {/* Prev / Next buttons */}
+                      <button
+                        onClick={() => { sfxClick(); setCarouselIndex(i => Math.max(0, i - 1)) }}
+                        disabled={carouselIndex === 0}
+                        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 w-10 h-10 rounded-full flex items-center justify-center bg-white/60 dark:bg-[#010808]/60 backdrop-blur-md shadow-lg text-[#007970] dark:text-[#64F4F5] hover:bg-white/80 dark:hover:bg-[#010808]/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => { sfxClick(); setCarouselIndex(i => Math.min(topicSections.length - 1, i + 1)) }}
+                        disabled={carouselIndex === topicSections.length - 1}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 w-10 h-10 rounded-full flex items-center justify-center bg-white/60 dark:bg-[#010808]/60 backdrop-blur-md shadow-lg text-[#007970] dark:text-[#64F4F5] hover:bg-white/80 dark:hover:bg-[#010808]/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+
+                      {/* Mini card preview — matches CIHHLightCard objective view */}
+                      <div className="overflow-hidden rounded-[24px] mx-6">
+                        <AnimatePresence mode="wait" custom={carouselIndex}>
+                          <motion.div
+                            key={carouselIndex}
+                            initial={{ opacity: 0, x: 60 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -60 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="bg-white/[0.25] dark:bg-[#010808]/40 backdrop-blur-xl rounded-[24px] border-l-[4px] border-l-[#C74601] dark:border-l-[#E56E2E] shadow-[0_14px_40px_-10px_rgba(31,28,27,0.18)] dark:shadow-[0_14px_40px_-10px_rgba(0,0,0,0.5)] p-6"
+                          >
+                            {(() => {
+                              const topic = topicSections[carouselIndex]
+                              const topicCardNumber = topic.cardIndex + 1
+                              const totalCards = TRAINING_CARDS.filter(c => c.section !== '').length
+                              return (
+                                <div className="space-y-4">
+                                  {/* Mini header */}
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className="text-[#007970] dark:text-[#64F4F5] font-bold text-[0.7rem] tracking-widest uppercase mb-1 flex items-center gap-1.5">
+                                        <FileText className="w-3 h-3" /> CMS-485 Training
+                                      </p>
+                                      <p className="font-heading text-[1.5rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] tracking-tight">
+                                        {topicCardNumber} <span className="text-[#747474] dark:text-[#D9D6D5] text-[1rem]">/ {totalCards}</span>
+                                      </p>
+                                    </div>
+                                    <img className="h-[1.8rem] w-auto object-contain" src={logo} alt="CareIndeed Logo" />
+                                  </div>
+
+                                  {/* Progress dots (mini) */}
+                                  <div className="flex gap-1.5">
+                                    {topicSections.map((_, i) => (
+                                      <div key={i} className={`h-1 rounded-full transition-all duration-500 ${
+                                        i === carouselIndex ? 'w-8 bg-[#C74601] dark:bg-[#E56E2E]' : i < carouselIndex ? 'w-4 bg-[#FFD5BF] dark:bg-[#021A1B]' : 'w-1.5 bg-[#E5E4E3] dark:bg-[#07282A]'
+                                      }`} />
+                                    ))}
+                                  </div>
+
+                                  {/* Section + title */}
+                                  <div>
+                                    <p className="text-[#C74601] dark:text-[#E56E2E] text-[0.7rem] font-bold tracking-widest uppercase mb-1">
+                                      {topic.section} &middot; MAIN
+                                    </p>
+                                    <h3 className="font-heading text-[1.35rem] md:text-[1.5rem] font-bold text-[#1F1C1B] dark:text-[#FAFBF8] leading-tight">
+                                      {topic.title}
+                                    </h3>
+                                  </div>
+
+                                  {/* Learning Objective */}
+                                  <div className="bg-transparent rounded-[16px] p-4 border-l-[3px] border-l-[#007970] dark:border-l-[#64F4F5] shadow-[0_5px_14px_-5px_rgba(31,28,27,0.12)] dark:shadow-[0_5px_14px_-5px_rgba(0,0,0,0.3)]">
+                                    <h4 className="text-[#007970] dark:text-[#64F4F5] font-heading font-bold text-[0.95rem] mb-1">Learning Objective</h4>
+                                    <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[0.92rem] leading-relaxed">{topic.objective}</p>
+                                  </div>
+
+                                  {/* Key Points + Clinical Lens row */}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-transparent rounded-[16px] p-4 border-l-[3px] border-l-[#524048] dark:border-l-[#64F4F5] shadow-[0_5px_14px_-5px_rgba(31,28,27,0.12)] dark:shadow-[0_5px_14px_-5px_rgba(0,0,0,0.3)]">
+                                      <h4 className="text-[#747474] dark:text-[#D9D6D5] font-heading font-bold text-[0.75rem] uppercase tracking-widest mb-2">Key Points</h4>
+                                      <ul className="space-y-2">
+                                        {topic.bullets.map((b, bi) => (
+                                          <li key={bi} className="text-[#524048] dark:text-[#FAFBF8] text-[0.8rem] leading-snug">{b}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                    <div className="bg-transparent rounded-[16px] p-4 border-l-[3px] border-l-[#C74601] dark:border-l-[#E56E2E] shadow-[0_5px_14px_-5px_rgba(31,28,27,0.12)] dark:shadow-[0_5px_14px_-5px_rgba(0,0,0,0.3)]">
+                                      <h4 className="text-[#C74601] dark:text-[#E56E2E] font-heading font-bold text-[0.75rem] uppercase tracking-widest mb-2">Clinical Lens</h4>
+                                      <p className="text-[#1F1C1B] dark:text-[#FAFBF8] text-[0.8rem] leading-relaxed">Translate this concept into clear, patient-specific, defensible documentation language.</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })()}
+                          </motion.div>
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Carousel indicator */}
+                      <p className="text-center text-[0.82rem] text-[#747474] dark:text-[#D9D6D5] mt-3">
+                        Topic {carouselIndex + 1} of {topicSections.length}
+                      </p>
+                    </div>
+
+                    <button onClick={handleNext} className="group inline-flex items-center gap-3 px-10 py-4 rounded-2xl bg-[#007970] hover:bg-[#006059] text-white font-bold text-base tracking-wide transition-all duration-300 hover:-translate-y-0.5 shadow-[0_12px_40px_rgba(0,121,112,0.25)] hover:shadow-[0_18px_44px_rgba(0,121,112,0.3)]">
+                      Begin Training <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </button>
                   </div>
                 )}

@@ -65,7 +65,9 @@ export default function App() {
   const handleModuleSelect = (moduleId: CourseModule) => {
     switch (moduleId) {
       case 'card-training':
-        setViewMode(theme === 'night' ? 'NC' : 'LC')
+        setLearningStartTarget('course-selection')
+        setLearningNavigationNonce(prev => prev + 1)
+        setViewMode('LP')
         break
       case 'book-training':
         setViewMode(theme === 'night' ? 'NW' : 'LW')

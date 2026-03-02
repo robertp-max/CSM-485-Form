@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   ChevronRight,
   FileText,
-  Grid3X3,
   Heart,
   Home,
   Info,
@@ -285,21 +284,32 @@ export default function Interactive485Form({ theme = 'night', onProceed }: Props
   const p = theme === 'night' ? NIGHT : LIGHT
   const isNight = theme === 'night'
 
-  const [activeTab, setActiveTab] = useState<string>('COVER')
-  const [challengeAttempted, setChallengeAttempted] = useState(false)
+  const goBackToTraining = useCallback(() => {
+    const nonce = Date.now()
+    window.location.hash = `/?dock=course-selection&n=${nonce}`
+    window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'course-selection' }))
+  }, [])
 
-  // Scenario routing — picks data set for EASY / INTERMEDIATE / CHALLENGE
+  const goToInteractiveForm = useCallback(() => {
+    const nonce = Date.now()
+    window.location.hash = `/?dock=interactive-form&n=${nonce}`
+    window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'interactive-form' }))
+    handleReset()
+    setActiveTab('EASY')
+  }, [])
+
+  const [activeTab, setActiveTab] = useState<string>('EASY')
+
+  // Scenario routing — picks data set for EASY / INTERMEDIATE
   const activeScenario = useMemo<PracticeScenario | null>(() => {
     if (activeTab === 'EASY') return EASY_SCENARIO
     if (activeTab === 'INTERMEDIATE') return INTERMEDIATE_SCENARIO
-    if (activeTab === 'CHALLENGE') return MASTER_SCENARIO
     return null
   }, [activeTab])
   const isScenarioMode = !!activeScenario
   const scenarioChips = activeScenario?.chips ?? ANSWER_CHIPS
   const scenarioBoxes = activeScenario?.boxes ?? FORM_BOXES
   const scenarioNarrative = activeScenario?.narrative ?? HENDERSON_NARRATIVE
-  const challengeLocked = activeTab === 'CHALLENGE' || activeTab === 'LAYOUT'
 
   // Challenge state
   const [placements, setPlacements] = useState<Record<string, string>>({})
@@ -359,21 +369,7 @@ export default function Interactive485Form({ theme = 'night', onProceed }: Props
     setSubmissionResult({ correct, incorrect, safetyFirst })
     setActiveField(null)
     if (correct.length === scenarioBoxes.length && safetyFirst) setShowBreakdown(true)
-
-    // Mark challenge as attempted (gates Proceed to Training)
-    if (activeTab === 'CHALLENGE') setChallengeAttempted(true)
-
-    // Fire-and-forget email of results — only for the master challenge
-    if (activeTab === 'CHALLENGE') {
-      sendChallengeResults({
-        correct,
-        incorrect,
-        safetyFirst,
-        totalBoxes: scenarioBoxes.length,
-        timestamp: new Date().toISOString(),
-      })
-    }
-  }, [placements, safetyPlacedOrder, scenarioBoxes, activeTab])
+  }, [placements, safetyPlacedOrder, scenarioBoxes])
 
   const handleReset = () => {
     setPlacements({})
@@ -384,7 +380,6 @@ export default function Interactive485Form({ theme = 'night', onProceed }: Props
   }
 
   const allBoxesFilled = scenarioBoxes.every((b) => placements[b.id])
-  const showCrisisWarning = allBoxesFilled && !placements['box-24']
 
   // ─── Animations / scrollbar dynamic style ──────────────────
   const dynamicCSS = `
@@ -463,14 +458,14 @@ export default function Interactive485Form({ theme = 'night', onProceed }: Props
               <button
                 onClick={() => {
                   handleReset()
-                  setActiveTab('COVER')
+                  setActiveTab('EASY')
                 }}
                 className="rounded-[16px] text-white px-10 py-4 font-bold text-lg tracking-wide transition-all hover:-translate-y-1"
                 style={{ background: p.accent2, boxShadow: `0 0 24px -4px ${p.accent2}99` }}
               >
                 Practice Again
               </button>
-              {onProceed && challengeAttempted && (
+              {onProceed && (
                 <button
                   onClick={onProceed}
                   className="rounded-[16px] text-white px-10 py-4 font-bold text-lg tracking-wide transition-all hover:-translate-y-1"
@@ -823,8 +818,29 @@ export default function Interactive485Form({ theme = 'night', onProceed }: Props
 
   // ─── MAIN RENDER ───────────────────────────────────────────
   return (
-    <div className="i485-root flex flex-col h-screen w-full font-body overflow-hidden" style={{ background: p.bg, color: p.text }}>
+    <div
+      className="i485-root min-h-screen w-full font-body p-8 md:p-14 flex items-center justify-center"
+      style={{
+        background: isNight
+          ? 'radial-gradient(135deg, #020F10 0%, #001A1A 50%, #010808 100%)'
+          : 'linear-gradient(135deg, #E2F0EE 0%, #F4F7F6 40%, #EBF3F1 100%)',  
+        color: p.text,
+      }}
+    >
       <style>{dynamicCSS}</style>
+
+      <div
+        className="w-full max-w-[1200px] min-h-[500px] max-h-[calc(100vh-7rem)] rounded-[32px] overflow-hidden flex flex-col border-l-[4.3px]"
+        style={{
+          background: isNight ? 'rgba(1,8,8,0.55)' : 'rgba(255,255,255,0)',
+          borderLeftColor: isNight ? '#64F4F5' : '#C74601',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          boxShadow: isNight
+            ? '0 24px 90px rgba(0, 10, 10, 0.82)'
+            : '0 24px 60px rgba(31, 28, 27, 0.12)',
+        }}
+      >
 
       {/* TOP NAVBAR */}
       <header className="border-b px-6 pt-4 pb-0 flex-shrink-0 z-20 relative" style={{ background: isNight ? p.bg : p.card, borderColor: p.cardBorder }}>
@@ -848,120 +864,58 @@ export default function Interactive485Form({ theme = 'night', onProceed }: Props
               { id: 'EASY', label: 'Easy Practice' },
               { id: 'INTERMEDIATE', label: 'Intermediate' },
               { id: 'SANDBOX', label: 'Sandbox' },
-            ].map((tab) => {
-              const locked = challengeLocked && tab.id !== activeTab
-              return (
-                <button
-                  key={tab.id}
-                  disabled={locked}
-                  onClick={() => {
-                    if (locked) return
-                    setActiveTab(tab.id)
-                    handleReset()
-                  }}
-                  className="px-4 md:px-6 py-3 text-[10px] md:text-[11px] font-bold tracking-widest uppercase transition-all whitespace-nowrap flex items-center gap-1.5"
-                  style={{
-                    borderBottom: activeTab === tab.id ? `2px solid ${p.accent2}` : '2px solid transparent',
-                    color: locked ? p.textDim : activeTab === tab.id ? p.accent2 : p.textMuted,
-                    background: activeTab === tab.id ? `${p.accent2}15` : 'transparent',
-                    opacity: locked ? 0.45 : 1,
-                    cursor: locked ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {locked && <Lock className="w-3 h-3" />} {tab.label}
-                </button>
-              )
-            })}
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id)
+                  handleReset()
+                }}
+                className="px-4 md:px-6 py-3 text-[10px] md:text-[11px] font-bold tracking-widest uppercase transition-all whitespace-nowrap"
+                style={{
+                  borderBottom: activeTab === tab.id ? `2px solid ${p.accent2}` : '2px solid transparent',
+                  color: activeTab === tab.id ? p.accent2 : p.textMuted,
+                  background: activeTab === tab.id ? `${p.accent2}15` : 'transparent',
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           <div className="flex items-center gap-2 ml-4 mb-1">
             <button
-              onClick={() => { handleReset(); setActiveTab('CHALLENGE') }}
+              onClick={goToInteractiveForm}
               className="px-5 py-2.5 rounded-t-[8px] text-[11px] font-bold tracking-widest uppercase transition-all flex items-center gap-2"
               style={{
-                background: activeTab === 'CHALLENGE' ? p.accent2 : isNight ? p.bgAlt : p.card,
-                color: activeTab === 'CHALLENGE' ? '#fff' : p.accent2,
-                border: activeTab === 'CHALLENGE' ? 'none' : `1px solid ${p.cardBorder}`,
+                background: isNight ? p.bgAlt : p.card,
+                color: p.accent2,
+                border: `1px solid ${p.cardBorder}`,
                 borderBottom: 0,
-                boxShadow: activeTab === 'CHALLENGE' ? `0 0 24px -4px ${p.accent2}99` : undefined,
+                boxShadow: `0 0 24px -6px ${p.accent2}66`,
               }}
             >
-              <Trophy className="w-3.5 h-3.5" /> Clinical Challenge
+              <FileText className="w-3.5 h-3.5" /> Interactive CMS-485 Form
             </button>
             <button
-              onClick={() => { handleReset(); setActiveTab('LAYOUT') }}
+              onClick={goBackToTraining}
               className="px-5 py-2.5 rounded-t-[8px] text-[11px] font-bold tracking-widest uppercase transition-all flex items-center gap-2"
               style={{
-                background: activeTab === 'LAYOUT' ? p.accent2 : isNight ? p.bgAlt : p.card,
-                color: activeTab === 'LAYOUT' ? '#fff' : p.accent2,
-                border: activeTab === 'LAYOUT' ? 'none' : `1px solid ${p.cardBorder}`,
+                background: 'linear-gradient(135deg, rgba(0,121,112,0.92), rgba(0,92,85,0.92))',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.25)',
                 borderBottom: 0,
-                boxShadow: activeTab === 'LAYOUT' ? `0 0 24px -4px ${p.accent2}99` : undefined,
+                boxShadow: '0 20px 50px -18px rgba(0,121,112,0.65)',
+                backdropFilter: 'blur(12px)',
               }}
             >
-              <Grid3X3 className="w-3.5 h-3.5" /> Layout Challenge
+              <ArrowLeft className="w-3.5 h-3.5" /> Back to Training
             </button>
           </div>
         </div>
       </header>
 
-      {/* COVER */}
-      {activeTab === 'COVER' && (
-        <main className="flex-1 overflow-y-auto flex flex-col items-center justify-center i485-slide-up p-6" style={{ background: p.coverBg }}>
-          <div className="text-center max-w-xl relative z-10">
-            <Presentation className="w-24 h-24 mx-auto mb-8" style={{ color: isNight ? p.accentDim : '#D9D6D5' }} />
-            <h2 className="font-heading text-4xl font-bold mb-4" style={{ color: p.text }}>CMS-485 Master Training</h2>
-            <p className="text-lg leading-relaxed mb-6 font-light" style={{ color: p.textMuted }}>
-              Practice with real clinical scenarios at your own pace, then prove your expertise in the challenge.
-            </p>
 
-            {!challengeAttempted && (
-              <div className="rounded-[20px] border p-6 mb-8 text-left" style={{ background: `${p.accent2}10`, borderColor: `${p.accent2}4d` }}>
-                <div className="flex items-start gap-3">
-                  <Zap className="w-6 h-6 flex-shrink-0 mt-0.5" style={{ color: p.accent2 }} />
-                  <div>
-                    <h3 className="font-heading font-bold text-base mb-1" style={{ color: p.accent2Light }}>
-                      Feeling confident? Skip straight to the Challenge
-                    </h3>
-                    <p className="text-sm leading-relaxed" style={{ color: p.textMuted }}>
-                      Top performers who ace the Clinical Challenge on their first attempt earn the prestigious{' '}
-                      <strong style={{ color: p.accent }}>Clinical Master</strong> designation and unlock exclusive rewards.
-                      You must attempt the challenge before proceeding to training — pass or fail.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                onClick={() => setActiveTab('EASY')}
-                className="w-full sm:w-auto px-8 py-3 rounded-[12px] text-white font-bold uppercase tracking-widest text-sm shadow-md transition-all hover:-translate-y-0.5"
-                style={{ background: p.accentDim, boxShadow: `0 8px 24px -6px ${p.accentDim}66` }}
-              >
-                Start with Easy Practice
-              </button>
-              <button
-                onClick={() => { handleReset(); setActiveTab('CHALLENGE') }}
-                className="w-full sm:w-auto px-8 py-3 rounded-[12px] font-bold uppercase tracking-widest text-sm shadow-md transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2"
-                style={{ background: p.accent2, color: '#fff', boxShadow: `0 8px 24px -6px ${p.accent2}66` }}
-              >
-                <Trophy className="w-4 h-4" /> Go Straight to Challenge
-              </button>
-            </div>
-
-            {challengeAttempted && onProceed && (
-              <button
-                onClick={onProceed}
-                className="mt-6 px-10 py-3 rounded-[12px] text-white font-bold uppercase tracking-widest text-sm shadow-md transition-all hover:-translate-y-0.5"
-                style={{ background: p.accent, boxShadow: `0 8px 24px -6px ${p.accent}66` }}
-              >
-                Proceed to Training
-              </button>
-            )}
-          </div>
-        </main>
-      )}
 
       {/* SANDBOX — free-form editable practice */}
       {activeTab === 'SANDBOX' && (
@@ -981,7 +935,7 @@ export default function Interactive485Form({ theme = 'night', onProceed }: Props
           )}
 
           {/* Difficulty badge for practice scenarios */}
-          {activeScenario && activeTab !== 'CHALLENGE' && (
+          {activeScenario && (
             <div className="px-6 py-2 flex items-center justify-center gap-3 z-20 flex-shrink-0 border-b" style={{ background: isNight ? p.bgDeep : '#fff', borderColor: p.cardBorder }}>
               <span className="text-xs font-bold uppercase tracking-widest" style={{ color: p.accent }}>
                 {activeScenario.difficultyLabel} Practice
@@ -991,14 +945,7 @@ export default function Interactive485Form({ theme = 'night', onProceed }: Props
             </div>
           )}
 
-          {showCrisisWarning && !submissionResult && activeTab === 'CHALLENGE' && (
-            <div className="text-white px-6 py-2 flex items-center justify-center gap-3 animate-pulse shadow-md z-20 flex-shrink-0 border-b" style={{ background: p.accent2, borderColor: '#E56E2E' }}>
-              <AlertTriangle className="h-5 w-5" />
-              <span className="text-sm font-bold uppercase tracking-widest text-center">
-                Critical Safety Warning: Address HR 48 and unsecured firearm BEFORE wound care.
-              </span>
-            </div>
-          )}
+
 
           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden max-w-[1800px] mx-auto w-full z-10">
             {/* LEFT: Clinical Data */}
@@ -1078,15 +1025,7 @@ export default function Interactive485Form({ theme = 'night', onProceed }: Props
                   >
                     Validate Plan
                   </button>
-                  {submissionResult && onProceed && challengeAttempted && (
-                    <button
-                      onClick={onProceed}
-                      className="px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-widest transition-all hover:-translate-y-0.5"
-                      style={{ background: p.accent, color: isNight ? '#010809' : '#fff', boxShadow: `0 0 24px -4px ${p.accent}99` }}
-                    >
-                      Proceed to Training
-                    </button>
-                  )}
+
                 </div>
               </div>
 
@@ -1160,16 +1099,7 @@ export default function Interactive485Form({ theme = 'night', onProceed }: Props
         </div>
       )}
 
-      {/* LAYOUT CHALLENGE */}
-      {activeTab === 'LAYOUT' && (
-        <div className="flex-1 overflow-hidden i485-slide-up">
-          <LayoutChallenge
-            theme={theme}
-            onComplete={() => setChallengeAttempted(true)}
-            onBack={() => setActiveTab('COVER')}
-          />
-        </div>
-      )}
+      </div>
     </div>
   )
 }

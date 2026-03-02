@@ -8,11 +8,25 @@ html {
   scroll-behavior: smooth;
 }
 
+:root {
+  --app-gradient: radial-gradient(circle at 18% 12%, rgba(0, 121, 112, 0.18) 0%, rgba(229, 254, 255, 0.95) 38%, rgba(255, 238, 229, 0.95) 100%);
+}
+
+html, body, #root {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   font-family: 'Roboto', system-ui, sans-serif;
-  background-color: #FAFBF8;
+  background: var(--app-gradient);
+  background-attachment: fixed;
   color: #1F1C1B;
+}
+
+.app-gradient-bg {
+  background: var(--app-gradient);
+  background-attachment: fixed;
 }
 
 h1, h2, h3, h4, h5, h6 {

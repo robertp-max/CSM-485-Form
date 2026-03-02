@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
+  ArrowLeft,
   ArrowRight,
   BookOpen,
   ClipboardCheck,
@@ -45,7 +46,7 @@ const NIGHT: Palette = {
   sidebarBg: '#060D0E', challengeBg: 'radial-gradient(circle at top right, #002B2C 0%, #010809 100%)',
   coverBg: 'radial-gradient(circle at top right, #001A1A 0%, #010809 100%)',
   scrollTrack: '#0A1214', scrollThumb: '#1E3A3B', scrollHover: '#2A4A4B',
-  logoUrl: '/branding/CI_Logo_Horizontal_White.png',
+  logoUrl: '/branding/careindeed-logo.png',
 }
 
 const LIGHT: Palette = {
@@ -58,7 +59,7 @@ const LIGHT: Palette = {
   sidebarBg: '#F7F6F5', challengeBg: 'rgba(229,228,227,0.4)',
   coverBg: 'linear-gradient(to bottom right, #E5FEFF, #FAFBF8, #FFEEE5)',
   scrollTrack: '#F2F0EF', scrollThumb: '#D9D6D5', scrollHover: '#B8B4B2',
-  logoUrl: '/branding/CareIndeed_Logo.png',
+  logoUrl: '/branding/careindeed-logo.png',
 }
 
 // ─── Difficulty accent colours ────────────────────────────────────
@@ -122,7 +123,7 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
   const dockItems = [
     { icon: <Home className="w-5 h-5" />, label: 'Training', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=light-card&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'light-card' })); } },
     { icon: <FileText className="w-5 h-5" />, label: 'Help Center', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=glossary&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'glossary' })); } },
-    { icon: <ClipboardCheck className="w-5 h-5" />, label: 'Final Exam', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=final-exam&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'final-exam' })); }, isActive: true },
+    { icon: <ClipboardCheck className="w-5 h-5" />, label: 'Final Test', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=final-exam&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'final-exam' })); }, isActive: true },
   ]
 
   // ── Phase & case ────────────────────────────────────────────────
@@ -448,55 +449,70 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
   //  RENDER
   // ══════════════════════════════════════════════════════════════════
   return (
-    <div className="relative">
-      <div className={`fe-root flex flex-col ${inline ? 'h-full' : 'h-screen'} w-full font-body overflow-hidden`} style={{ background: inline ? 'transparent' : p.bg, color: p.text }}>
+    <div
+      className={inline ? 'relative' : 'relative min-h-screen w-full overflow-hidden'}
+      style={{
+        background: inline
+          ? 'transparent'
+          : (isNight
+            ? 'radial-gradient(circle at top right, #020F10 0%, #010808 100%)'
+            : 'transparent'),
+      }}
+    >
+      <div
+        className={`fe-root flex flex-col ${inline ? 'h-full' : 'h-screen'} w-full font-body overflow-hidden`}
+        style={{
+          background: inline ? 'transparent' : 'rgba(255,255,255,0)',
+          color: p.text,
+          borderColor: 'rgba(255,255,255,0)',
+          boxShadow: 'none',
+        }}
+      >
       <style>{dynamicCSS}</style>
 
       {/* ═══════════════════════════════════════════
           PHASE: COVER
           ═══════════════════════════════════════════ */}
       {phase === 'cover' && (
-        <main className="flex-1 overflow-y-auto flex items-center justify-center fe-slide-up p-6 relative" style={{ background: iCoverBg }}>
+        <main className="flex-1 overflow-hidden flex items-center justify-center fe-slide-up p-6 relative" style={{ background: iCoverBg }}>
           {/* Aurora-style glows */}
           {!inline && <div className="absolute -top-10 -left-10 w-[38%] h-[38%] rounded-full mix-blend-multiply dark:mix-blend-screen blur-[140px] opacity-[0.18]" style={{ background: isNight ? '#64F4F5' : '#007970' }} />}
           {!inline && <div className="absolute -bottom-12 -right-10 w-[42%] h-[42%] rounded-full mix-blend-multiply dark:mix-blend-screen blur-[140px] opacity-[0.16]" style={{ background: isNight ? '#E56E2E' : '#C74601' }} />}
 
-          <div className="w-full max-w-4xl relative z-10">
+          <div className="w-full max-w-[1030px] relative z-10">
             <div
-              className="rounded-[32px] overflow-hidden border-l-[4px] shadow-[0_24px_70px_rgba(0,0,0,0.22)] backdrop-blur-2xl"
+              className="rounded-[32px] overflow-hidden border shadow-[0_24px_70px_rgba(0,0,0,0.22)] backdrop-blur-2xl"
               style={{
-                borderColor: inline ? 'transparent' : (isNight ? '#64F4F5' : '#C74601'),
-                background: inline ? 'transparent' : (isNight ? 'linear-gradient(135deg, rgba(1,8,9,0.92), rgba(0,65,66,0.55))' : 'linear-gradient(135deg, rgba(255,255,255,0.85), rgba(229,228,227,0.75))'),
+                borderColor: 'rgba(255,255,255,0)',
+                background: inline ? 'transparent' : (isNight ? 'rgba(1,8,9,0.35)' : 'rgba(255,255,255,0.15)'),
                 boxShadow: inline ? 'none' : undefined,
               }}
             >
-              <div className="text-center px-8 md:px-12 py-12 md:py-14">
+              <div className="text-center px-8 md:px-12 py-9 md:py-10">
                 {/* Badge */}
                 <div
                   className="inline-flex items-center gap-2 rounded-full border px-4 py-1.5 mb-8 shadow-sm"
                   style={{ borderColor: `${p.accent2}66`, background: `${p.accent2}15`, color: p.accent2Light }}
                 >
                   <Shield className="h-4 w-4" />
-                  <span className="text-xs font-bold uppercase tracking-[0.2em]">Final Assessment · Web Only</span>
+                  <span className="text-xs font-bold uppercase tracking-[0.2em]">Final Test · Web Only</span>
                 </div>
 
-                <Presentation className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-8" style={{ color: isNight ? p.accentDim : '#D9D6D5' }} />
+                <Presentation className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-6" style={{ color: isNight ? p.accentDim : '#D9D6D5' }} />
 
-                <h2 className="font-heading text-[2.8rem] md:text-[3.6rem] font-black mb-4 leading-[0.95]" style={{ color: p.text }}>
-                  Clinical Audit
-                  <br />
-                  <span style={{ color: p.accent }}>Simulator</span>
+                <h2 className="font-heading text-3xl md:text-4xl font-bold mb-3 leading-tight" style={{ color: p.text }}>
+                  Final Test
                 </h2>
 
-                <p className="text-lg leading-relaxed mb-3 font-light" style={{ color: p.textMuted }}>
+                <p className="text-base leading-relaxed mb-2 font-light" style={{ color: p.textMuted }}>
                   Three progressive patient cases. CMS-485 form challenges. Trap logic, remediation feedback, and safety-violation scoring.
                 </p>
-                <p className="text-sm mb-10 font-light" style={{ color: p.textDim }}>
-                  Complete all three clinical audits to earn your certification. Pass threshold: {passThreshold}/{maxScore} points.
+                <p className="text-sm mb-8 font-light" style={{ color: p.textDim }}>
+                  Complete all three final test cases to earn your certification. Pass threshold: {passThreshold}/{maxScore} points.
                 </p>
 
                 {/* Case Preview Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12 text-left">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-left">
                   {AUDIT_CASES.map((c: AuditCase, i: number) => {
                     const dc = DIFF_COLORS[c.difficulty] ?? DIFF_COLORS.easy
                     return (
@@ -526,7 +542,7 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
 
                 {/* Scoring Rules */}
                 <div
-                  className="rounded-[20px] border px-6 py-6 max-w-2xl mx-auto mb-10 text-left shadow-[0_14px_34px_-12px_rgba(0,0,0,0.25)]"
+                  className="rounded-[20px] border px-6 py-5 max-w-2xl mx-auto mb-8 text-left shadow-[0_14px_34px_-12px_rgba(0,0,0,0.25)]"
                   style={{ background: isNight ? 'rgba(1,8,9,0.85)' : (inline ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.9)'), borderColor: p.cardBorder }}
                 >
                   <h3 className="font-heading text-sm font-bold uppercase tracking-widest mb-3 flex items-center gap-2" style={{ color: p.accent2 }}>
@@ -541,13 +557,26 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
                   </ul>
                 </div>
 
-                <button
-                  onClick={() => setPhase('case')}
-                  className="px-10 py-4 rounded-[14px] text-white font-bold uppercase tracking-widest text-sm shadow-xl transition-all hover:-translate-y-0.5"
-                  style={{ background: p.accentDim, boxShadow: `0 12px 36px -10px ${p.accentDim}66` }}
-                >
-                  Begin Clinical Audit
-                </button>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button
+                    onClick={() => {
+                      const nonce = Date.now()
+                      window.location.hash = `/?dock=course-selection&n=${nonce}`
+                      window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'course-selection' }))
+                    }}
+                    className="px-8 py-3.5 rounded-[14px] font-bold uppercase tracking-widest text-sm shadow-sm transition-all hover:-translate-y-0.5 flex items-center gap-2"
+                    style={{ background: isNight ? p.bgAlt : p.bgDeep, color: p.textMuted, border: `1px solid ${p.cardBorder}` }}
+                  >
+                    <ArrowLeft className="w-4 h-4" /> Back to Training
+                  </button>
+                  <button
+                    onClick={() => setPhase('case')}
+                    className="px-10 py-3.5 rounded-[14px] text-white font-bold uppercase tracking-widest text-sm shadow-xl transition-all hover:-translate-y-0.5"
+                    style={{ background: p.accentDim, boxShadow: `0 12px 36px -10px ${p.accentDim}66` }}
+                  >
+                    Begin Final Test
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -558,7 +587,7 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
           PHASE: RESULTS
           ═══════════════════════════════════════════ */}
       {phase === 'results' && (
-        <main className="flex-1 overflow-y-auto fe-slide-up p-6" style={{ background: iCoverBg }}>
+        <main className="flex-1 overflow-hidden fe-slide-up p-6" style={{ background: iCoverBg }}>
           <div className="max-w-3xl mx-auto py-12">
             <div className="text-center mb-12">
               <div
@@ -635,13 +664,20 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
           PHASE: CASE
           ═══════════════════════════════════════════ */}
       {phase === 'case' && (
-        <>
+        <div className="flex-1 flex flex-col p-4 md:p-6 min-h-0">
+          <div
+            className="flex-1 min-h-0 w-full max-w-[1200px] mx-auto rounded-[32px] overflow-hidden border shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-2xl flex flex-col"
+            style={{
+              background: inline ? 'transparent' : (isNight ? 'rgba(1,8,9,0.55)' : 'rgba(255,255,255,0.55)'),
+              borderColor: 'rgba(255,255,255,0)',
+            }}
+          >
           {/* ── Top Navbar ──────────────────────────── */}
-          <header className="border-b px-6 pt-4 pb-3 flex-shrink-0 z-20 relative" style={{ background: inline ? 'transparent' : (isNight ? p.bg : p.card), borderColor: p.cardBorder }}>
-            <div className="flex justify-between items-center max-w-[1800px] mx-auto w-full">
+          <header className="border-b px-4 pt-3 pb-2 flex-shrink-0 z-20 relative" style={{ background: inline ? 'transparent' : (isNight ? p.bg : p.card), borderColor: p.cardBorder }}>
+            <div className="flex justify-between items-center w-full">
               <div>
-                <h1 className="font-heading font-bold text-xl md:text-2xl leading-tight" style={{ color: p.text }}>
-                  CMS-485 Clinical Audit
+                <h1 className="font-heading font-bold text-base md:text-lg leading-tight" style={{ color: p.text }}>
+                  Final Test
                 </h1>
                 <p className="text-xs md:text-sm mt-1 flex items-center gap-2 flex-wrap" style={{ color: isNight ? p.accentDim : p.textDim }}>
                   Case {caseIndex + 1} of {AUDIT_CASES.length}
@@ -666,13 +702,13 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
             </div>
 
             {/* Progress bar */}
-            <div className="max-w-[1800px] mx-auto w-full mt-3 flex items-center gap-3">
+            <div className="w-full mt-2 flex items-center gap-3">
               {AUDIT_CASES.map((c: AuditCase, i: number) => (
                 <div key={c.id} className="flex items-center gap-2">
                   <div
                     className="h-2 rounded-full transition-all"
                     style={{
-                      width: i === caseIndex ? '80px' : '40px',
+                      width: i === caseIndex ? '64px' : '32px',
                       background: i < caseIndex ? p.accentDim : i === caseIndex ? p.accent2 : p.cardBorder,
                       opacity: i > caseIndex ? 0.3 : 1,
                     }}
@@ -693,7 +729,7 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
             )}
 
             {/* Case subtitle banner */}
-            <div className="px-6 py-2 flex items-center justify-center gap-3 z-20 flex-shrink-0 border-b" style={{ background: inline ? 'transparent' : (isNight ? p.bgDeep : '#fff'), borderColor: p.cardBorder }}>
+            <div className="px-4 py-2 flex items-center justify-center gap-3 z-20 flex-shrink-0 border-b" style={{ background: inline ? 'transparent' : (isNight ? p.bgDeep : '#fff'), borderColor: p.cardBorder }}>
               <span className="text-xs font-bold uppercase tracking-widest" style={{ color: diffColors.badge }}>
                 {currentCase.difficultyLabel}
               </span>
@@ -701,13 +737,13 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
               <span className="text-xs font-medium" style={{ color: p.textMuted }}>{currentCase.summary}</span>
             </div>
 
-            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden max-w-[1800px] mx-auto w-full z-10">
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden w-full z-10">
               {/* ── LEFT: Clinical Data Sidebar ──────── */}
               <aside
-                className="w-full lg:w-[350px] xl:w-[400px] border-r flex flex-col flex-shrink-0 h-[50vh] lg:h-auto shadow-2xl relative"
+                className="w-full lg:w-[260px] xl:w-[300px] border-r flex flex-col flex-shrink-0 h-[44vh] lg:h-auto shadow-2xl relative"
                 style={{ borderColor: p.cardBorder, background: iSidebarBg }}
               >
-                <div className="p-5 md:p-6 space-y-4 border-b flex-shrink-0 z-10" style={{ borderColor: p.cardBorder, background: inline ? 'transparent' : (isNight ? p.bgDeep : p.card) }}>
+                <div className="p-4 space-y-4 border-b flex-shrink-0 z-10" style={{ borderColor: p.cardBorder, background: inline ? 'transparent' : (isNight ? p.bgDeep : p.card) }}>
                   <h2 className="font-heading font-bold text-lg flex items-center gap-2" style={{ color: p.text }}>
                     <FileText className="w-5 h-5" style={{ color: p.accent }} /> Clinical Case Data
                   </h2>
@@ -746,7 +782,7 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
                 </div>
 
                 {/* Expandable Sections (accordion — only one open at a time) */}
-                <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-4" style={{ background: iSidebarBg }}>
+                <div className="flex-1 overflow-hidden p-4 space-y-4" style={{ background: iSidebarBg }}>
                   {sections.map((s, i) => (
                     <ExpandableCard key={i} title={s.title} content={s.content} isOpen={openSection === i} onToggle={() => setOpenSection(openSection === i ? -1 : i)} p={p} />
                   ))}
@@ -754,10 +790,10 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
               </aside>
 
               {/* ── RIGHT: Form + Answer Bank ────────── */}
-              <main className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col h-[70vh] lg:h-auto scroll-smooth" style={{ background: inline ? 'transparent' : (isNight ? undefined : 'rgba(229,228,227,0.4)') }}>
+              <main className="flex-1 overflow-hidden p-4 md:p-5 flex flex-col h-full" style={{ background: inline ? 'transparent' : (isNight ? undefined : 'rgba(229,228,227,0.4)') }}>
                 {/* Case Header Bar */}
                 <div
-                  className="max-w-4xl mx-auto w-full mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 rounded-[16px] border shadow-xl"
+                  className="max-w-2xl mx-auto w-full mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 rounded-[16px] border shadow-xl"
                   style={{ background: inline ? 'transparent' : (isNight ? 'rgba(3,18,19,0.8)' : p.card), borderColor: p.cardBorder, backdropFilter: isNight ? 'blur(12px)' : undefined }}
                 >
                   <div>
@@ -800,7 +836,7 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
                 {/* Submission Summary */}
                 {submissionResult && (
                   <div
-                    className="max-w-4xl mx-auto w-full mb-6 p-4 rounded-[16px] border fe-slide-up text-center"
+                    className="max-w-2xl mx-auto w-full mb-4 p-4 rounded-[16px] border fe-slide-up text-center"
                     style={{
                       background: submissionResult.incorrect.length === 0 && !submissionResult.safetyViolation ? p.correctBg : p.incorrectBg,
                       borderColor: submissionResult.incorrect.length === 0 && !submissionResult.safetyViolation ? p.accentDim : '#D70101',
@@ -895,7 +931,8 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
               </main>
             </div>
           </div>
-        </>
+        </div>
+        </div>
       )}
       </div>
       {!inline && <Dock items={dockItems} position="center-left" isDarkMode={isNight} />}

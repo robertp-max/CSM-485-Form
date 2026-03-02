@@ -207,7 +207,7 @@ export default function BookCarousel({ items, onSelect, isDarkMode, unlockedCoun
   // Pages rotate around the left edge, like a real book
   const variants: Variants = {
     enter: (dir: number) => ({
-      rotateY: dir > 0 ? -90 : 90,
+      rotateY: dir > 0 ? 90 : -90,
       opacity: 0,
       scale: 0.95,
     }),
@@ -218,7 +218,7 @@ export default function BookCarousel({ items, onSelect, isDarkMode, unlockedCoun
       transition: { type: 'spring' as const, stiffness: 200, damping: 28, mass: 0.8 },
     },
     exit: (dir: number) => ({
-      rotateY: dir > 0 ? 90 : -90,
+      rotateY: dir > 0 ? -90 : 90,
       opacity: 0,
       scale: 0.95,
       transition: { type: 'spring' as const, stiffness: 200, damping: 28, mass: 0.8 },
@@ -226,6 +226,25 @@ export default function BookCarousel({ items, onSelect, isDarkMode, unlockedCoun
   }
 
   return (
+    <div
+      className={`h-full w-full p-3 md:p-6 flex items-center justify-center ${isDarkMode ? 'text-white' : ''}`}
+      style={{
+        background: isDarkMode
+          ? 'radial-gradient(ellipse at 20% 0%, rgba(0,121,112,0.10) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(199,70,1,0.06) 0%, transparent 55%), #010809'
+          : 'radial-gradient(ellipse at 20% 0%, rgba(0,121,112,0.07) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(199,70,1,0.04) 0%, transparent 55%), #FAFBF8',
+      }}
+    >
+      <div
+        className="w-full max-w-[57.6rem] rounded-[32px] overflow-hidden border-l-[4.3px] backdrop-blur-2xl"
+        style={{
+          height: 'min(700px, 100%)',
+          background: isDarkMode ? 'rgba(1,8,8,0.55)' : 'rgba(255,255,255,0)',
+          borderLeftColor: isDarkMode ? '#64F4F5' : '#C74601',
+          boxShadow: isDarkMode
+            ? '0 24px 90px rgba(0, 10, 10, 0.82)'
+            : '0 24px 60px rgba(31, 28, 27, 0.12)',
+        }}
+      >
     <div className={`flex h-full w-full flex-col p-5 ${isDarkMode ? 'text-white' : ''}`}>
       {/* Header with progress */}
       <div className="flex items-center justify-between mb-4 shrink-0">
@@ -351,6 +370,8 @@ export default function BookCarousel({ items, onSelect, isDarkMode, unlockedCoun
         >
           Next Section <ArrowRight className="h-3.5 w-3.5" />
         </button>
+      </div>
+    </div>
       </div>
     </div>
   )

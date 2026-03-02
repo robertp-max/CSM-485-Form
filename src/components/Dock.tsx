@@ -92,8 +92,8 @@ export const Dock = ({ items, position = 'bottom-right', isDarkMode = false }: D
         className={`flex ${position === 'center-left' ? 'flex-col items-center gap-1.5 px-1.5 py-3 rounded-2xl' : 'items-end gap-1 px-0 py-0'} ${
           position === 'center-left'
             ? isDarkMode
-              ? 'bg-[#010809]/80 border border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.3)] backdrop-blur-md'
-              : 'bg-white/80 border border-[#E5E4E3] shadow-[0_4px_24px_rgba(0,0,0,0.08)] backdrop-blur-md'
+              ? 'bg-transparent shadow-none'
+              : 'bg-transparent shadow-none'
             : 'bg-transparent border-none shadow-none backdrop-blur-0'
         } transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-90'}`}
       >

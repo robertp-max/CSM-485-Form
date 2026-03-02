@@ -306,9 +306,10 @@ export default function LearningProfessional({
   const viewedTrainingCount = useMemo(() =>
     cards.filter((item, index) => item.kind === 'training' && viewedCardIndexes.has(index)).length,
   [cards, viewedCardIndexes])
+  const moduleUnlockedCount = Math.min(TRAINING_CARDS.length, Math.max(1, viewedTrainingCount + 1))
   const unlockedTrainingCount = isDebugMode
     ? TRAINING_CARDS.length
-    : Math.min(TRAINING_CARDS.length, Math.max(1, viewedTrainingCount + 1))
+    : moduleUnlockedCount
 
   const getPanelModeForTitle = (title: string): PanelMode => {
     if (helpModeForTitle === title) return 'help'
@@ -471,7 +472,7 @@ export default function LearningProfessional({
 
   const handleReportSelect = (nextIndex: number) => {
     const trainingCardNumber = nextIndex - trainingStartIndex + 1
-    const isLocked = !isDebugMode && trainingCardNumber > unlockedTrainingCount
+    const isLocked = trainingCardNumber > moduleUnlockedCount
     if (isLocked) return
     if (nextIndex === currentIndex) { setShowReportGrid(false); return }
     goTo(nextIndex, nextIndex > currentIndex ? 'next' : 'prev')
@@ -553,6 +554,17 @@ export default function LearningProfessional({
 
   /* ─── Renderers ─── */
   const renderTrainingSection = (card: typeof TRAINING_CARDS[number], metadata: typeof CARD_METADATA[number] | undefined) => {
+    // Special-case: render a visually-blank "glass" card for the Final Test — Q1 training entry only.
+    if (card.title === 'Final Test — Q1') {
+      return (
+        <section className={`flex h-full flex-col justify-start overflow-hidden px-10 py-6 ${isDarkMode ? 'text-white' : 'text-[#1F1C1B]'}`}>
+          <div className="mb-4">
+            {/* Intentionally empty to present only the card frame/border/shadow */}
+          </div>
+          <div className="flex-1" />
+        </section>
+      )
+    }
     const panelMode = getPanelModeForTitle(card.title)
     const additionalContent = getAdditionalContentForTitle(card.title)
     const challengeResult = challengeResultsByTitle[card.title] ?? null
@@ -727,7 +739,7 @@ export default function LearningProfessional({
             items={TRAINING_CARDS}
             onSelect={(itemIndex) => handleReportSelect(itemIndex + trainingStartIndex)}
             isDarkMode={isDarkMode}
-            unlockedCount={unlockedTrainingCount}
+            unlockedCount={moduleUnlockedCount}
           />
         )
       }
@@ -764,8 +776,8 @@ export default function LearningProfessional({
   /* ─── Render ─── */
   return (
     <div className={`h-full w-full overflow-hidden transition-colors duration-200 ${
-      isDarkMode ? 'bg-[#09090b] text-white' : 'bg-[#FAFBF8] text-[#1F1C1B]'
-    }`} style={{ fontFamily: 'Roboto, sans-serif' }}>
+      isDarkMode ? 'text-white' : 'text-[#1F1C1B]'
+    }`} style={{ fontFamily: 'Roboto, sans-serif', background: isDarkMode ? '#09090b' : 'var(--app-gradient)' }}>
 
       {/* Full-screen container */}
       <div className="flex h-full w-full flex-col">

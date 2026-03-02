@@ -46,20 +46,12 @@ export const HENDERSON_NARRATIVE = {
   ],
   sections: [
     {
-      title: 'History & Presentation',
-      content: 'Mr. Henderson is a Type 2 diabetic male presenting with a Wagner Grade 3 foot ulcer (probe-to-bone positive). Blood sugar is 342. HR is 48, patient is ashen and diaphoretic consistent with suspected Silent MI. Left leg is cold and pulseless indicating acute vascular ischemia.',
+      title: 'Clinical Evaluation Narrative',
+      content: 'Upon arrival, the environment was compromised by a loaded handgun, requiring tactical communication to secure the area. The patient is ashen and bradycardic (HR 48); while neuropathy masks chest pain, the presentation suggests a "silent" MI requiring immediate 911 transfer.\n\nSimultaneously, the patient has an urgent Wagner Grade 3 great toe ulcer that currently probes to the bone. Socially, a neighbor (Mrs. Gable) arrived unannounced to discuss feline care for the patient\'s cat, "Pickles," as the power remains out.',
     },
     {
-      title: 'Wound Assessment',
-      content: 'Right foot: deep ulcer with granulation tissue undermined by necrotic borders. Probe-to-bone test is POSITIVE — strongly suggestive of Osteomyelitis. The wound was hidden by ill-fitting shoes; patient has lost protective sensation (neuropathy) and was unaware of the infection.',
-    },
-    {
-      title: 'Environmental Safety',
-      content: 'A loaded firearm was observed on the nightstand beside the bed. The patient appeared confused. The residence has no power — insulin stored at room temperature is compromised. The patient\'s daughter, previously the primary caregiver, has quit.',
-    },
-    {
-      title: 'Coordination Notes',
-      content: HENDERSON_SCHEDULE_QUOTE(),
+      title: 'Physician Coordination',
+      content: 'The primary clinician established the following prospective schedule:\n\nSN: Stabilization requires oversight for the first 72 hours (3 visits in week one). Frequency then drops to twice-weekly for the remaining 3 weeks of the month to monitor for osteomyelitis. The second month transitions to once-weekly for 4 weeks.\n\nPT: Sidelined by a 48-hour vascular hold for the pulseless left leg. Thereafter, visits are twice-weekly for 3 weeks, followed by once-weekly for 2 weeks.',
     },
   ],
 }

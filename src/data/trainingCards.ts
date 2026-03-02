@@ -104,28 +104,7 @@ export const TRAINING_CARDS: TrainingCard[] = [
       correctLogic: 'Required POC elements include diagnoses, measurable goals, interventions, disciplines, frequency, duration, safety risks, homebound support, and discharge planning. Missing any of these can invalidate the necessity narrative and delay billing.',
     },
   },
-  {
-    title: 'Certification vs Recertification',
-    section: 'Certification Lifecycle',
-    objective: 'Differentiate certification and recertification requirements in practical workflow terms.',
-    bullets: [
-      'Certification establishes initial eligibility and plan authorization for the episode window.',
-      'Recertification must reflect ongoing need and updated clinical status, not copy-forward text.',
-      'Certification cycles must remain synchronized with reassessment and care progression.',
-    ],
-    challenge: {
-      scenario: 'A clinician submits a recertification POC for a patient entering a second 60-day episode. The clinical reviewer notices the goals, interventions, and narrative are identical to the initial certification with no updates to reflect current status.',
-      question: 'Why is this recertification problematic?',
-      options: [
-        'Recertification must reflect ongoing need and updated clinical status rather than copying forward text from the initial certification.',
-        'Recertification only requires a new physician signature and no content changes.',
-        'Identical content is acceptable as long as the patient is still receiving services.',
-        'Recertification narrative is only reviewed during ADR, so updates can be deferred.',
-        'The clinician should only update the diagnosis codes and leave all other content unchanged.',
-      ],
-      correctLogic: 'Recertification must reflect ongoing need and updated clinical status. Copy-forward text from the initial certification fails to demonstrate that the clinician has reassessed the patient and determined continued skilled services are reasonable and necessary.',
-    },
-  },
+
   {
     title: 'Recertification Drift Risk',
     section: 'Certification Lifecycle',
@@ -803,6 +782,21 @@ export const TRAINING_CARDS: TrainingCard[] = [
         'Prioritize billing volume over documentation quality to stabilize agency finances first.',
       ],
       correctLogic: 'A defensible CMS-485 workflow is built through consistency, traceability, and timely governance. Compliance-ready documentation protects clinicians, patients, and agency financial integrity. This framework should be applied as a repeatable operating standard across all episodes.',
+    },
+  },
+  // Final Test placeholder: single blank card 106 per request
+  {
+    title: '',
+    // Minimal scaffold — visual card only. Keep fields empty so UI shows a blank glass card.
+    section: '',
+    objective: '',
+    bullets: [],
+    auditFocus: ' ',
+    challenge: {
+      scenario: '',
+      question: '',
+      options: [''],
+      correctLogic: '',
     },
   },
 ]
