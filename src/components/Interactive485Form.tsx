@@ -3,12 +3,14 @@ import { sendChallengeResults } from '../sendResults'
 import { EASY_SCENARIO, INTERMEDIATE_SCENARIO, MASTER_SCENARIO } from '../data/practiceScenarios'
 import type { PracticeScenario } from '../data/practiceScenarios'
 import LayoutChallenge from './LayoutChallenge'
+import { Dock } from './Dock'
 import {
   AlertTriangle,
   ArrowLeft,
   BookOpen,
   CheckCircle2,
   ChevronRight,
+  ClipboardCheck,
   FileText,
   Heart,
   Home,
@@ -297,6 +299,12 @@ export default function Interactive485Form({ theme = 'night', onProceed }: Props
     handleReset()
     setActiveTab('EASY')
   }, [])
+
+  const dockItems = useMemo(() => [
+    { icon: <Home className="w-5 h-5" />, label: 'Training', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=course-selection&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'course-selection' })); } },
+    { icon: <FileText className="w-5 h-5" />, label: 'Help Center', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=glossary&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'glossary' })); } },
+    { icon: <ClipboardCheck className="w-5 h-5" />, label: 'Final Test', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=final-exam&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'final-exam' })); } },
+  ], [])
 
   const [activeTab, setActiveTab] = useState<string>('EASY')
 
@@ -819,15 +827,17 @@ export default function Interactive485Form({ theme = 'night', onProceed }: Props
   // ─── MAIN RENDER ───────────────────────────────────────────
   return (
     <div
-      className="i485-root min-h-screen w-full font-body p-8 md:p-14 flex items-center justify-center"
+      className="i485-root min-h-screen w-full font-body p-8 md:p-14 flex items-center justify-center relative"
       style={{
         background: isNight
           ? 'radial-gradient(135deg, #020F10 0%, #001A1A 50%, #010808 100%)'
-          : 'linear-gradient(135deg, #E2F0EE 0%, #F4F7F6 40%, #EBF3F1 100%)',  
+          : 'var(--app-gradient)',
+        backgroundAttachment: 'fixed',
         color: p.text,
       }}
     >
       <style>{dynamicCSS}</style>
+      <Dock items={dockItems} position="center-left" isDarkMode={isNight} />
 
       <div
         className="w-full max-w-[1200px] min-h-[500px] max-h-[calc(100vh-7rem)] rounded-[32px] overflow-hidden flex flex-col border-l-[4.3px]"

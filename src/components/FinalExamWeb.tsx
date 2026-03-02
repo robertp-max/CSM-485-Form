@@ -456,7 +456,8 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
           ? 'transparent'
           : (isNight
             ? 'radial-gradient(circle at top right, #020F10 0%, #010808 100%)'
-            : 'transparent'),
+            : 'var(--app-gradient)'),
+        backgroundAttachment: inline ? undefined : 'fixed',
       }}
     >
       <div
@@ -666,10 +667,10 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
       {phase === 'case' && (
         <div className="flex-1 flex flex-col p-4 md:p-6 min-h-0">
           <div
-            className="flex-1 min-h-0 w-full max-w-[1200px] mx-auto rounded-[32px] overflow-hidden border shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-2xl flex flex-col"
+            className="flex-1 min-h-0 w-full max-w-[1200px] mx-auto rounded-[32px] overflow-hidden border-l-[4.3px] shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-2xl flex flex-col"
             style={{
-              background: inline ? 'transparent' : (isNight ? 'rgba(1,8,9,0.55)' : 'rgba(255,255,255,0.55)'),
-              borderColor: 'rgba(255,255,255,0)',
+              background: inline ? 'transparent' : (isNight ? 'rgba(1,8,9,0.55)' : 'rgba(255,255,255,0)'),
+              borderLeftColor: isNight ? '#64F4F5' : '#C74601',
             }}
           >
           {/* ── Top Navbar ──────────────────────────── */}
