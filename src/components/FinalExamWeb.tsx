@@ -588,8 +588,8 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
           PHASE: RESULTS
           ═══════════════════════════════════════════ */}
       {phase === 'results' && (
-        <main className="flex-1 overflow-hidden fe-slide-up p-6" style={{ background: iCoverBg }}>
-          <div className="max-w-3xl mx-auto py-12">
+        <main className="flex-1 overflow-auto flex items-center justify-center fe-slide-up p-6" style={{ background: iCoverBg }}>
+          <div className="max-w-3xl mx-auto py-12 w-full">
             <div className="text-center mb-12">
               <div
                 className="inline-flex items-center justify-center w-20 h-20 rounded-3xl mb-6"
@@ -665,7 +665,7 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
           PHASE: CASE
           ═══════════════════════════════════════════ */}
       {phase === 'case' && (
-        <div className="flex flex-col p-4 md:p-6">
+        <div className="flex-1 flex items-center justify-center p-4 md:p-6 overflow-y-auto">
           <div
             className="w-full max-w-[1200px] mx-auto rounded-[32px] overflow-hidden border-l-[4.3px] shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-2xl flex flex-col"
             style={{
