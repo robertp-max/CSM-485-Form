@@ -308,7 +308,7 @@ const bookFlipVariants = {
   }),
 }
 
-export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?: (phase: string) => void }) {
+export default function CIHHLightCard({ onNavigate: _onNavigate, initialCardIndex }: { onNavigate?: (phase: string) => void; initialCardIndex?: number }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [modeTransitionKey, setModeTransitionKey] = useState(0);
   const [showCurtain, setShowCurtain] = useState(false);

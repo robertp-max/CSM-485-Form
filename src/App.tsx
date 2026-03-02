@@ -46,6 +46,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState('DEFAULT')
   const [learningStartTarget, setLearningStartTarget] = useState<LearningStartTarget>('course-selection')
   const [learningNavigationNonce, setLearningNavigationNonce] = useState(0)
+  const [lightCardInitialIndex, setLightCardInitialIndex] = useState(0)
   const qaModeEnabled = true
   const [theme, setTheme] = useState(getStoredTheme() === 'night' ? 'night' : 'day')
 
@@ -65,9 +66,8 @@ export default function App() {
   const handleModuleSelect = (moduleId: CourseModule) => {
     switch (moduleId) {
       case 'card-training':
-        setLearningStartTarget('course-selection')
-        setLearningNavigationNonce(prev => prev + 1)
-        setViewMode('LP')
+        setLightCardInitialIndex(4)
+        setViewMode('LC')
         break
       case 'book-training':
         setViewMode(theme === 'night' ? 'NW' : 'LW')
@@ -111,6 +111,7 @@ export default function App() {
         return
       case 'light-card':
         setAppPhase('training')
+        setLightCardInitialIndex(0)
         setViewMode('LC')
         return
       case 'night-web':
@@ -215,7 +216,7 @@ export default function App() {
   const renderViewContent = () => {
     switch (viewMode) {
       case 'NC': return <CIHHNightCard onNavigate={(p) => setAppPhase(p as AppPhase)} />
-      case 'LC': return <CIHHLightCard onNavigate={(p) => setAppPhase(p as AppPhase)} />
+      case 'LC': return <CIHHLightCard onNavigate={(p) => setAppPhase(p as AppPhase)} initialCardIndex={lightCardInitialIndex} />
       case 'NW': return <CIHHNightWeb onNavigate={(p) => setAppPhase(p as AppPhase)} />
       case 'LW': return <CIHHLightWeb onNavigate={(p) => setAppPhase(p as AppPhase)} />
       case 'FE': return <FinalExamWeb theme={theme as 'night' | 'day'} onExit={() => setViewMode(theme === 'day' ? 'LW' : 'NW')} />
