@@ -2,9 +2,10 @@
  *  A standalone glass-card page showing all course topic sections.
  *  Reads sections from TRAINING_CARDS, displays one card per section
  *  with a clean, intuitive grid layout. Supports night/day themes.
+ *  Chapters are locked until the previous chapter is completed.
  * ─────────────────────────────────────────────────────────────────── */
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
   BookOpen,
@@ -20,14 +21,25 @@ import {
   Heart,
   Home,
   Layers,
+  Lock,
   Scale,
   Search,
   Shield,
   Stethoscope,
+  CheckCircle2,
 } from 'lucide-react'
 import { TRAINING_CARDS } from '../data/trainingCards'
 import { Dock } from './Dock'
 import { useTheme } from '../hooks/useTheme'
+import {
+  getFirstCardIndexForSection,
+  isChapterUnlocked,
+  isChapterComplete,
+  getSectionCompletionCount,
+} from '../utils/progressTracker'
+
+// Number of intro cards before training cards
+const INTRO_CARD_COUNT = 5
 
 /* ── Section Icons ────────────────────────────────────────── */
 const SECTION_ICONS: Record<string, typeof Layers> = {
@@ -53,6 +65,7 @@ interface TopicSection {
   name: string
   count: number
   icon: typeof Layers
+  firstCardIndex: number // Global card index (including intro cards)
 }
 
 function buildSections(): TopicSection[] {
@@ -65,6 +78,7 @@ function buildSections(): TopicSection[] {
     name,
     count,
     icon: SECTION_ICONS[name] ?? Layers,
+    firstCardIndex: getFirstCardIndexForSection(name, TRAINING_CARDS, INTRO_CARD_COUNT),
   }))
 }
 
@@ -72,13 +86,42 @@ function buildSections(): TopicSection[] {
 export default function StandaloneCourseSelection() {
   const { isDarkMode } = useTheme()
   const sections = useMemo(buildSections, [])
+  const sectionNames = useMemo(() => sections.map(s => s.name), [sections])
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
+  
+  // Force re-render when progress changes (listen for storage events)
+  const [progressKey, setProgressKey] = useState(0)
+  useEffect(() => {
+    const handleStorage = () => setProgressKey(k => k + 1)
+    window.addEventListener('storage', handleStorage)
+    // Also refresh on mount to get latest progress
+    setProgressKey(k => k + 1)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
+
+  // Get current progress state
+  const progressState = useMemo(() => {
+    // Using progressKey ensures this recalculates when progress changes
+    void progressKey
+    return {
+      checkUnlocked: (idx: number) => isChapterUnlocked(idx, sectionNames, TRAINING_CARDS, INTRO_CARD_COUNT),
+      checkComplete: (name: string) => isChapterComplete(name, TRAINING_CARDS, INTRO_CARD_COUNT),
+      getCompletion: (name: string) => getSectionCompletionCount(name, TRAINING_CARDS, INTRO_CARD_COUNT),
+    }
+  }, [sectionNames, progressKey])
 
   /* ── Navigation helpers ── */
   const fire = useCallback((target: string) => {
     const nonce = Date.now()
     window.location.hash = `/?dock=${target}&n=${nonce}`
     window.dispatchEvent(new CustomEvent('dock-nav', { detail: target }))
+  }, [])
+
+  // Navigate to a specific card index
+  const navigateToCard = useCallback((cardIndex: number) => {
+    const nonce = Date.now()
+    window.location.hash = `/?dock=light-card&cardIndex=${cardIndex}&n=${nonce}`
+    window.dispatchEvent(new CustomEvent('dock-nav', { detail: { target: 'light-card', cardIndex } }))
   }, [])
 
   const dockItems = useMemo(() => [
@@ -208,30 +251,46 @@ export default function StandaloneCourseSelection() {
             {sections.map((sec, i) => {
               const isHovered = hoveredIdx === i
               const Icon = sec.icon
+              const isUnlocked = progressState.checkUnlocked(i)
+              const isComplete = progressState.checkComplete(sec.name)
+              const completion = progressState.getCompletion(sec.name)
+              
               return (
                 <button
                   key={sec.name}
-                  onClick={() => fire('light-card')}
+                  onClick={() => {
+                    if (isUnlocked) {
+                      navigateToCard(sec.firstCardIndex)
+                    }
+                  }}
                   onMouseEnter={() => setHoveredIdx(i)}
                   onMouseLeave={() => setHoveredIdx(null)}
-                  className="group rounded-2xl p-4 border text-left transition-all duration-300 relative overflow-hidden"
+                  disabled={!isUnlocked}
+                  className={`group rounded-2xl p-4 border text-left transition-all duration-300 relative overflow-hidden ${!isUnlocked ? 'cursor-not-allowed' : ''}`}
                   style={{
-                    background: isHovered ? p.tileHoverBg : p.tileBg,
-                    borderColor: isHovered ? p.tileHoverBorder : p.tileBorder,
-                    transform: isHovered ? 'translateY(-2px)' : 'none',
-                    boxShadow: isHovered
+                    background: isHovered && isUnlocked ? p.tileHoverBg : p.tileBg,
+                    borderColor: isComplete 
+                      ? p.accent 
+                      : isHovered && isUnlocked 
+                        ? p.tileHoverBorder 
+                        : p.tileBorder,
+                    transform: isHovered && isUnlocked ? 'translateY(-2px)' : 'none',
+                    boxShadow: isHovered && isUnlocked
                       ? isDarkMode
                         ? '0 12px 40px rgba(100,244,245,0.06)'
                         : '0 12px 40px rgba(0,121,112,0.10)'
                       : '0 2px 8px rgba(0,0,0,0.03)',
+                    opacity: isUnlocked ? 1 : 0.6,
                   }}
                 >
                   {/* Accent bar top */}
                   <div
                     className="absolute top-0 left-0 right-0 h-[2px] transition-opacity duration-300"
                     style={{
-                      background: `linear-gradient(90deg, ${p.accent}, ${p.accent2})`,
-                      opacity: isHovered ? 1 : 0,
+                      background: isComplete 
+                        ? p.accent 
+                        : `linear-gradient(90deg, ${p.accent}, ${p.accent2})`,
+                      opacity: isComplete || (isHovered && isUnlocked) ? 1 : 0,
                     }}
                   />
 
@@ -239,27 +298,55 @@ export default function StandaloneCourseSelection() {
                     <div
                       className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors duration-300"
                       style={{
-                        background: isHovered ? `${p.accent}18` : p.accentBg,
-                        border: `1px solid ${isHovered ? p.accent : p.accentBorder}`,
+                        background: isComplete 
+                          ? `${p.accent}30` 
+                          : isHovered && isUnlocked 
+                            ? `${p.accent}18` 
+                            : p.accentBg,
+                        border: `1px solid ${isComplete || (isHovered && isUnlocked) ? p.accent : p.accentBorder}`,
                       }}
                     >
-                      <Icon className="w-4.5 h-4.5" style={{ color: p.accent }} />
+                      {!isUnlocked ? (
+                        <Lock className="w-4.5 h-4.5" style={{ color: p.textDim }} />
+                      ) : isComplete ? (
+                        <CheckCircle2 className="w-4.5 h-4.5" style={{ color: p.accent }} />
+                      ) : (
+                        <Icon className="w-4.5 h-4.5" style={{ color: p.accent }} />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3
                         className="font-heading text-sm font-bold leading-tight mb-0.5 transition-colors"
-                        style={{ color: p.text }}
+                        style={{ color: isUnlocked ? p.text : p.textDim }}
                       >
                         {sec.name}
                       </h3>
                       <p className="text-[11px]" style={{ color: p.textDim }}>
-                        {sec.count} topic{sec.count !== 1 ? 's' : ''}
+                        {isUnlocked ? (
+                          isComplete ? (
+                            <span style={{ color: p.accent }}>Completed ✓</span>
+                          ) : completion.completed > 0 ? (
+                            `${completion.completed}/${completion.total} completed`
+                          ) : (
+                            `${sec.count} topic${sec.count !== 1 ? 's' : ''}`
+                          )
+                        ) : (
+                          'Complete previous chapter'
+                        )}
                       </p>
                     </div>
-                    <ArrowRight
-                      className="w-4 h-4 flex-shrink-0 mt-0.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
-                      style={{ color: p.accent }}
-                    />
+                    {isUnlocked && !isComplete && (
+                      <ArrowRight
+                        className="w-4 h-4 flex-shrink-0 mt-0.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
+                        style={{ color: p.accent }}
+                      />
+                    )}
+                    {isComplete && (
+                      <CheckCircle2
+                        className="w-4 h-4 flex-shrink-0 mt-0.5"
+                        style={{ color: p.accent }}
+                      />
+                    )}
                   </div>
                 </button>
               )

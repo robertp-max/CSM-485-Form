@@ -3,16 +3,12 @@ import {
   ArrowLeft,
   BookOpen,
   ChevronRight,
-  ClipboardCheck,
-  FileText,
   HelpCircle,
-  Home,
   MessageCircleQuestion,
   Search,
   X,
 } from 'lucide-react'
 import { useTheme } from '../hooks/useTheme'
-import { Dock } from './Dock'
 import {
   HELP_ARTICLES,
   HELP_CATEGORIES,
@@ -74,12 +70,6 @@ export default function HelpCenter() {
     window.location.hash = `/?dock=course-selection&n=${nonce}`
   }, [])
 
-  const dockItems = useMemo(() => [
-    { icon: <Home className="w-5 h-5" />, label: 'Training', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=course-selection&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'course-selection' })); } },
-    { icon: <FileText className="w-5 h-5" />, label: 'Help Center', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=glossary&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'glossary' })); }, isActive: true },
-    { icon: <ClipboardCheck className="w-5 h-5" />, label: 'Final Test', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=final-exam&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'final-exam' })); } },
-  ], [])
-
   /* ── dark/light tokens ────────────────────────────────── */
   const pageGradient = isDarkMode
     ? 'radial-gradient(ellipse at 20% 0%, rgba(0,121,112,0.10) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(199,70,1,0.06) 0%, transparent 55%), #010809'
@@ -96,8 +86,7 @@ export default function HelpCenter() {
   if (activeArticle) {
     const cat = HELP_CATEGORIES.find((c) => c.id === activeArticle.category)
     return (
-      <div className={`relative min-h-screen flex items-center justify-center ${text} font-sans p-4 md:p-8`} style={{ background: pageGradient, backgroundAttachment: 'fixed' }}>
-        <Dock items={dockItems} position="center-left" isDarkMode={isDarkMode} />
+      <div className={`min-h-screen flex items-center justify-center ${text} font-sans p-4 md:p-8`} style={{ background: pageGradient }}>
         <div
           className="w-full max-w-5xl mx-auto my-10 rounded-[32px] overflow-hidden border-l-[4.3px]"
           style={{
@@ -155,8 +144,7 @@ export default function HelpCenter() {
   }
 
   return (
-    <div className={`relative min-h-screen flex items-center justify-center ${text} font-sans p-4 md:p-8`} style={{ background: pageGradient, backgroundAttachment: 'fixed' }}>
-      <Dock items={dockItems} position="center-left" isDarkMode={isDarkMode} />
+    <div className={`min-h-screen flex items-center justify-center ${text} font-sans p-4 md:p-8`} style={{ background: pageGradient }}>
       <div
         className="w-full max-w-6xl mx-auto my-8 rounded-[32px] overflow-hidden border-l-[4.3px]"
         style={{

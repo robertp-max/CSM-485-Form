@@ -456,8 +456,7 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
           ? 'transparent'
           : (isNight
             ? 'radial-gradient(circle at top right, #020F10 0%, #010808 100%)'
-            : 'var(--app-gradient)'),
-        backgroundAttachment: inline ? undefined : 'fixed',
+            : 'transparent'),
       }}
     >
       <div
@@ -588,8 +587,8 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
           PHASE: RESULTS
           ═══════════════════════════════════════════ */}
       {phase === 'results' && (
-        <main className="flex-1 overflow-auto flex items-center justify-center fe-slide-up p-6" style={{ background: iCoverBg }}>
-          <div className="max-w-3xl mx-auto py-12 w-full">
+        <main className="flex-1 overflow-hidden fe-slide-up p-6" style={{ background: iCoverBg }}>
+          <div className="max-w-3xl mx-auto py-12">
             <div className="text-center mb-12">
               <div
                 className="inline-flex items-center justify-center w-20 h-20 rounded-3xl mb-6"
@@ -665,12 +664,12 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
           PHASE: CASE
           ═══════════════════════════════════════════ */}
       {phase === 'case' && (
-        <div className="flex-1 flex items-center justify-center p-4 md:p-6 overflow-y-auto">
+        <div className="flex-1 flex flex-col p-4 md:p-6 min-h-0">
           <div
-            className="w-full max-w-[1200px] mx-auto rounded-[32px] overflow-hidden border-l-[4.3px] shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-2xl flex flex-col"
+            className="flex-1 min-h-0 w-full max-w-[1200px] mx-auto rounded-[32px] overflow-hidden border shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-2xl flex flex-col"
             style={{
-              background: inline ? 'transparent' : (isNight ? 'rgba(1,8,9,0.55)' : 'rgba(255,255,255,0)'),
-              borderLeftColor: isNight ? '#64F4F5' : '#C74601',
+              background: inline ? 'transparent' : (isNight ? 'rgba(1,8,9,0.55)' : 'rgba(255,255,255,0.55)'),
+              borderColor: 'rgba(255,255,255,0)',
             }}
           >
           {/* ── Top Navbar ──────────────────────────── */}
@@ -723,7 +722,7 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
           </header>
 
           {/* ── Case Content ────────────────────────── */}
-          <div className="flex flex-col fe-slide-up relative" style={{ background: iChallengeBg }}>
+          <div className="flex-1 flex flex-col fe-slide-up h-full overflow-hidden relative" style={{ background: iChallengeBg }}>
             {/* Decorative glow */}
             {isNight && (
               <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#C74601] rounded-full mix-blend-screen filter blur-[120px] opacity-[0.15] animate-pulse pointer-events-none" />
@@ -738,10 +737,10 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
               <span className="text-xs font-medium" style={{ color: p.textMuted }}>{currentCase.summary}</span>
             </div>
 
-            <div className="flex flex-col lg:flex-row w-full z-10">
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden w-full z-10">
               {/* ── LEFT: Clinical Data Sidebar ──────── */}
               <aside
-                className="w-full lg:w-[260px] xl:w-[300px] border-r flex flex-col flex-shrink-0 lg:h-auto shadow-2xl relative"
+                className="w-full lg:w-[260px] xl:w-[300px] border-r flex flex-col flex-shrink-0 h-[44vh] lg:h-auto shadow-2xl relative"
                 style={{ borderColor: p.cardBorder, background: iSidebarBg }}
               >
                 <div className="p-4 space-y-4 border-b flex-shrink-0 z-10" style={{ borderColor: p.cardBorder, background: inline ? 'transparent' : (isNight ? p.bgDeep : p.card) }}>
@@ -783,7 +782,7 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
                 </div>
 
                 {/* Expandable Sections (accordion — only one open at a time) */}
-                <div className="p-4 space-y-4" style={{ background: iSidebarBg }}>
+                <div className="flex-1 overflow-hidden p-4 space-y-4" style={{ background: iSidebarBg }}>
                   {sections.map((s, i) => (
                     <ExpandableCard key={i} title={s.title} content={s.content} isOpen={openSection === i} onToggle={() => setOpenSection(openSection === i ? -1 : i)} p={p} />
                   ))}
@@ -791,7 +790,7 @@ export default function FinalExamWeb({ theme = 'night', onExit, inline = false }
               </aside>
 
               {/* ── RIGHT: Form + Answer Bank ────────── */}
-              <main className="flex-1 p-4 md:p-5 flex flex-col" style={{ background: inline ? 'transparent' : (isNight ? undefined : 'rgba(229,228,227,0.4)') }}>
+              <main className="flex-1 overflow-hidden p-4 md:p-5 flex flex-col h-full" style={{ background: inline ? 'transparent' : (isNight ? undefined : 'rgba(229,228,227,0.4)') }}>
                 {/* Case Header Bar */}
                 <div
                   className="max-w-2xl mx-auto w-full mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 rounded-[16px] border shadow-xl"

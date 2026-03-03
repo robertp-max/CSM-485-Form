@@ -1,4 +1,4 @@
-import { HENDERSON_BOXES, ANSWER_CHIPS } from '../data/hendersonData'
+import { HENDERSON_BOXES, ANSWER_CHIPS, SAFETY_ALERT } from '../data/hendersonData'
 import type { HendersonBox } from '../data/hendersonData'
 
 /* ── Submission result ─────────────────────────────────── */
@@ -6,9 +6,12 @@ export type SubmissionResult = {
   correct: string[]
   incorrect: string[]
   safetyFirst: boolean
+  safetyAlertTriggered: boolean
   score: number
   total: number
   confidenceLevel: 'master' | 'proficient' | 'developing' | 'needs-review'
+  /** Per-box remediation messages for incorrect answers */
+  remediations: { boxId: string; chipId: string; message: string }[]
 }
 
 /* ── Typed field definition ────────────────────────────── */
@@ -57,13 +60,14 @@ export function getFieldsBySection(): { section: string; fields: TypedFieldDef[]
   return Array.from(map, ([section, fields]) => ({ section, fields }))
 }
 
-/* ── Henderson placement validation ────────────────────── */
+/* ── Henderson placement validation (UPDATED) ─────────── */
 export function validatePlacements(
   placements: Record<string, string>,
   safetyPlacedOrder: string[],
 ): SubmissionResult {
   const correct: string[] = []
   const incorrect: string[] = []
+  const remediations: { boxId: string; chipId: string; message: string }[] = []
 
   for (const box of HENDERSON_BOXES) {
     const chipId = placements[box.id]
@@ -71,12 +75,29 @@ export function validatePlacements(
       correct.push(box.id)
     } else {
       incorrect.push(box.id)
+      // Find specific remediation for the chosen wrong answer
+      if (chipId) {
+        const remediation = box.remediation.find(r => r.wrongChipId === chipId)
+        if (remediation) {
+          remediations.push({ boxId: box.id, chipId, message: remediation.wrongExplanation })
+        } else {
+          // Fallback to first remediation if no specific match
+          const fallback = box.remediation[0]
+          if (fallback) {
+            remediations.push({ boxId: box.id, chipId, message: fallback.wrongExplanation })
+          }
+        }
+      }
     }
   }
 
+  // Safety-first constraint: box-24 must be placed BEFORE box-18
   const safetyIdx = safetyPlacedOrder.indexOf('box-24')
   const woundIdx = safetyPlacedOrder.indexOf('box-18')
   const safetyFirst = safetyIdx >= 0 && (woundIdx < 0 || safetyIdx < woundIdx)
+
+  // Safety alert: triggered if box-18 was placed before box-24
+  const safetyAlertTriggered = woundIdx >= 0 && (safetyIdx < 0 || woundIdx < safetyIdx)
 
   const score = correct.length + (safetyFirst ? 1 : 0)
   const total = HENDERSON_BOXES.length + 1 // +1 for safety-first ordering
@@ -87,8 +108,11 @@ export function validatePlacements(
   else if (score >= total - 2) confidenceLevel = 'developing'
   else confidenceLevel = 'needs-review'
 
-  return { correct, incorrect, safetyFirst, score, total, confidenceLevel }
+  return { correct, incorrect, safetyFirst, safetyAlertTriggered, score, total, confidenceLevel, remediations }
 }
+
+/* ── Safety Alert Data (re-export for use in UI) ──────── */
+export { SAFETY_ALERT } from '../data/hendersonData'
 
 /* ── Typed field validation ────────────────────────────── */
 export function validateTypedField(fieldId: string, value: string): { valid: boolean; message: string } {
@@ -106,16 +130,21 @@ export function validateTypedField(fieldId: string, value: string): { valid: boo
   return { valid: true, message: '' }
 }
 
-/* ── Remediation lookup ────────────────────────────────── */
+/* ── Remediation lookup (UPDATED) ──────────────────────── */
 export function getBoxRemediation(box: HendersonBox, chipId: string) {
   const chip = ANSWER_CHIPS.find((c) => c.id === chipId)
   if (!chip) return null
 
-  const match = box.remediation.find((r) =>
+  // Direct match by chipId in the remediation array
+  const directMatch = box.remediation.find((r) => r.wrongChipId === chipId)
+  if (directMatch) return directMatch
+
+  // Fallback: fuzzy match by label
+  const fuzzyMatch = box.remediation.find((r) =>
     chip.label.toLowerCase().includes(r.wrongLabel.split(' ')[0].toLowerCase()),
   )
 
-  return match ?? box.remediation[0] ?? null
+  return fuzzyMatch ?? box.remediation[0] ?? null
 }
 
 /* ── Correct chip lookup ───────────────────────────────── */

@@ -308,7 +308,7 @@ const bookFlipVariants = {
   }),
 }
 
-export default function CIHHLightCard({ onNavigate: _onNavigate, initialCardIndex }: { onNavigate?: (phase: string) => void; initialCardIndex?: number }) {
+export default function CIHHLightCard({ onNavigate: _onNavigate }: { onNavigate?: (phase: string) => void }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [modeTransitionKey, setModeTransitionKey] = useState(0);
   const [showCurtain, setShowCurtain] = useState(false);
@@ -406,7 +406,6 @@ export default function CIHHLightCard({ onNavigate: _onNavigate, initialCardInde
   const resumeCardIndex = firstIncompleteIdx >= 0 ? introCardCount + firstIncompleteIdx : introCardCount;
 
   const dockItems = [
-    { icon: <FileText className="w-5 h-5" />, label: 'Help', onClick: () => alert('Open help') },
     ...(!isOnIntroCard ? [{ icon: viewMode === 'card' ? <BookOpen className="w-5 h-5" /> : <Layers className="w-5 h-5" />, label: viewMode === 'card' ? 'Book' : 'Card', onClick: () => { sfxClick(); stopAudio(); setViewMode(prev => prev === 'card' ? 'web' : 'card'); }, isActive: viewMode === 'web' }] : []),
     { icon: <ShieldCheck className="w-5 h-5" />, label: debugMode ? 'QA: ON' : 'QA: OFF', onClick: () => setStatusMsg(prev => prev === 'QA: ON' ? 'QA: OFF' : 'QA: ON'), isActive: debugMode },
     { icon: isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />, label: isDarkMode ? 'Light' : 'Night', onClick: () => {
@@ -422,8 +421,9 @@ export default function CIHHLightCard({ onNavigate: _onNavigate, initialCardInde
     { icon: <Settings className="w-5 h-5" />, label: 'Calibrate', onClick: () => { sfxClick(); setNavDirection(cardIndex > 1 ? -1 : 1); setCardIndex(1); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
     { icon: <LayoutGrid className="w-5 h-5" />, label: 'Layout', onClick: () => { sfxClick(); setNavDirection(cardIndex > 2 ? -1 : 1); setCardIndex(2); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
     { icon: <HeartPulse className="w-5 h-5" />, label: 'Henderson', onClick: () => { sfxClick(); setNavDirection(cardIndex > 3 ? -1 : 1); setCardIndex(3); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
+    { icon: <FileText className="w-5 h-5" />, label: 'Help Center', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=glossary&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'glossary' })); } },
     { icon: <GraduationCap className="w-5 h-5" />, label: 'Courses', onClick: () => { sfxClick(); setNavDirection(cardIndex > 4 ? -1 : 1); setCardIndex(4); setPanelMode('main'); if (viewMode === 'web') setViewMode('card'); } },
-    { icon: <ClipboardCheck className="w-5 h-5" />, label: 'Final Exam', onClick: () => { sfxClick(); const nonce = Date.now(); window.location.hash = `/?dock=final-exam&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'final-exam' })); } },
+    { icon: <ClipboardCheck className="w-5 h-5" />, label: 'Final Exam', onClick: () => { const nonce = Date.now(); window.location.hash = `/?dock=final-exam&n=${nonce}`; window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'final-exam' })); } },
   ];
 
   const stopAudio = () => {
@@ -733,7 +733,7 @@ export default function CIHHLightCard({ onNavigate: _onNavigate, initialCardInde
   }, [viewMode, webCardIndex, canAdvanceSpread, totalSpreads])
 
   return (
-    <div className={`night-transition min-h-screen bg-[radial-gradient(circle_at_top_right,_#FAFBF8_0%,_#D9D6D5_100%)] dark:bg-[radial-gradient(circle_at_top_right,_#020F10_0%,_#010808_100%)] text-[#1F1C1B] dark:text-[#FAFBF8] font-body p-4 md:p-8 flex items-center overflow-hidden justify-center relative ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`night-transition min-h-screen app-gradient-bg dark:bg-[radial-gradient(circle_at_top_right,_#020F10_0%,_#010808_100%)] text-[#1F1C1B] dark:text-[#FAFBF8] font-body p-4 md:p-8 flex items-center overflow-hidden justify-center relative ${isDarkMode ? 'dark' : ''}`}>
       <StyleInjector />
 
       {/* â”€â”€ Cinematic edge-sweep overlay â”€â”€ */}
@@ -1110,11 +1110,11 @@ export default function CIHHLightCard({ onNavigate: _onNavigate, initialCardInde
                                         : isDarkMode ? 'hover:bg-white/[0.04]' : 'hover:bg-[#FAFBF8]'
                                       }`}
                                     >
-                                      {/* Status dot */}
-                                      <span className={`flex-shrink-0 w-2 h-2 rounded-full transition-colors ${done
-                                        ? 'bg-[#007970] dark:bg-[#64F4F5]'
-                                        : isDarkMode ? 'bg-white/20 group-hover:bg-[#C74601]' : 'bg-[#D9D6D5] group-hover:bg-[#007970]'
-                                      }`} />
+                                      {/* Number */}
+                                      <span className={`flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[0.68rem] font-bold transition-colors ${done
+                                        ? isDarkMode ? 'bg-[#007970]/30 text-[#64F4F5]' : 'bg-[#E5FEFF] text-[#007970]'
+                                        : isDarkMode ? 'bg-white/5 text-white/40' : 'bg-[#F2F2F1] text-[#747474] group-hover:bg-[#E5FEFF] group-hover:text-[#007970]'
+                                      }`}>{idx + 1}</span>
                                       {/* Title */}
                                       <span className={`flex-1 text-[0.82rem] leading-snug transition-colors ${done
                                         ? isDarkMode ? 'text-[#64F4F5] font-medium' : 'text-[#007970] font-medium'

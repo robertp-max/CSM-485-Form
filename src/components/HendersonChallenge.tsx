@@ -1,16 +1,15 @@
-﻿import React, { useState, useMemo, useCallback, useRef } from 'react'
+﻿import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
   AlertTriangle,
   BookOpen,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   FileText,
   Heart,
   Home,
   Info,
   LayoutTemplate,
-  Pointer,
-  RotateCcw,
   ShieldAlert,
   Trophy,
   X,
@@ -67,12 +66,12 @@ const HENDERSON_NARRATIVE = {
     {
       title: 'Clinical Evaluation Narrative',
       content:
-        'Upon arrival, the environment was compromised by a loaded handgun, requiring tactical communication to secure the area. The patient is ashen and bradycardic (HR 48); while neuropathy masks chest pain, the presentation suggests a "silent" MI requiring immediate 911 transfer. Simultaneously, the patient has an urgent Wagner Grade 3 great toe ulcer that currently probes to the bone. Socially, a neighbor (Mrs. Gable) arrived unannounced to discuss feline care for the patient\'s cat, "Pickles," as the power remains out.',
+        'Upon arrival, the environment was compromised by a loaded handgun, requiring tactical communication to secure the area. The patient is ashen and bradycardic (HR 48); while neuropathy masks chest pain, the presentation suggests a "silent" MI requiring immediate 911 transfer.\n\nSimultaneously, the patient has an urgent Wagner Grade 3 great toe ulcer that currently probes to the bone. Socially, a neighbor (Mrs. Gable) arrived unannounced to discuss feline care for the patient\'s cat, "Pickles," as the power remains out.',
     },
     {
       title: 'Physician Coordination',
       content:
-        'SN: Stabilization requires oversight for the first 72 hours (3 visits in week one). Frequency then drops to twice-weekly for the remaining 3 weeks of the month to monitor for osteomyelitis. The second month transitions to once-weekly for 4 weeks. PT: Sidelined by a 48-hour vascular hold for the pulseless left leg. Thereafter, visits are twice-weekly for 3 weeks, followed by once-weekly for 2 weeks.',
+        'The primary clinician established the following prospective schedule:\n\nSN: Stabilization requires oversight for the first 72 hours (3 visits in week one). Frequency then drops to twice-weekly for the remaining 3 weeks of the month to monitor for osteomyelitis. The second month transitions to once-weekly for 4 weeks.\n\nPT: Sidelined by a 48-hour vascular hold for the pulseless left leg. Thereafter, visits are twice-weekly for 3 weeks, followed by once-weekly for 2 weeks.',
     },
   ],
 }
@@ -81,63 +80,63 @@ const HENDERSON_NARRATIVE = {
 const ANSWER_CHIPS = [
   // BOX 11
   { id: '11-1', boxId: 'box-11', label: 'E11.621 (Type 2 DM w/ foot ulcer)' },
-  { id: '11-2', boxId: 'box-11', label: 'L03.115 (Cellulitis of R lower limb)', trapNote: 'Coding Rule: Cellulitis is a manifestation of the wound. To justify Home Health, you must code the etiology (Diabetes) linked to the manifestation (Ulcer) to capture the full clinical picture.' },
-  { id: '11-3', boxId: 'box-11', label: 'I70.202 (Atherosclerosis of L leg)', trapNote: 'Acuity Trap: While this is an acute issue, it is a reason for ER/Hospitalization. If it is the primary reason for the Home Health visit, the patient is technically too unstable for home care.' },
-  { id: '11-4', boxId: 'box-11', label: 'R00.1 (Bradycardia, unspecified)', trapNote: 'Acuity Trap: This is an acute ER issue. If bradycardia is the primary reason for the Home Health visit, the patient is too unstable for home care.' },
-  { id: '11-5', boxId: 'box-11', label: 'M86.9 (Osteomyelitis, unspecified)', trapNote: 'Pre-mature Coding: You cannot code Osteomyelitis as primary until it is confirmed by imaging (X-ray/MRI). Stick to the confirmed Wagner Grade 3 ulcer until the "probe-to-bone" is verified.' },
-  { id: '11-6', boxId: 'box-11', label: 'L97.519 (Non-pressure chronic ulcer, unspec. severity)', trapNote: 'Specificity Failure: Medicare requires the most specific code available. "Unspecified chronic ulcer" is too vague when we know the patient has Type 2 Diabetes.' },
-  { id: '11-7', boxId: 'box-11', label: 'I73.9 (Peripheral Vascular Disease)', trapNote: 'Specificity Failure: "PVD" is too vague for an ulcer case. Medicare requires the most specific code available.' },
-  { id: '11-8', boxId: 'box-11', label: 'E11.40 (Type 2 DM w/ Neuropathy)', trapNote: 'This ignores the more acute foot ulcer. Neuropathy is contributing but the ulcer drives the skilled nursing need.' },
-  { id: '11-9', boxId: 'box-11', label: 'Z48.01 (Encounter for change of surgical dressing)', trapNote: 'This is a routine aftercare code, not an illness code. It does not capture the medical necessity for home health.' },
+  { id: '11-2', boxId: 'box-11', label: 'L03.115 (Cellulitis of R lower limb)', trapNote: 'Cellulitis is a manifestation of the wound. To justify Home Health, you must code the etiology (Diabetes) linked to the manifestation (Ulcer) to capture the full clinical picture.' },
+  { id: '11-3', boxId: 'box-11', label: 'I70.202 (Atherosclerosis of L leg)', trapNote: 'While ischemia is life-threatening, it is a secondary dx here. If this were the primary reason for the visit, the patient should be in the ER, not home health.' },
+  { id: '11-4', boxId: 'box-11', label: 'R00.1 (Bradycardia, unspecified)', trapNote: 'Acute symptom, not home health primary. If bradycardia is the primary reason for the visit, the patient is too unstable for home care.' },
+  { id: '11-5', boxId: 'box-11', label: 'M86.9 (Osteomyelitis, unspecified)', trapNote: 'You cannot code Osteomyelitis as primary until it is confirmed by imaging (X-ray/MRI). Stick to the confirmed Wagner Grade 3 ulcer until the probe-to-bone is verified.' },
+  { id: '11-6', boxId: 'box-11', label: 'L97.519 (Non-pressure chronic ulcer, unspec. severity)', trapNote: 'Specificity Failure: Medicare requires the most specific code available. "Unspecified chronic ulcer" or "PVD" is too vague when we know the patient has Type 2 Diabetes.' },
+  { id: '11-7', boxId: 'box-11', label: 'I73.9 (Peripheral Vascular Disease)', trapNote: 'Too non-specific for an ulcer case. Medicare requires the most specific code available.' },
+  { id: '11-8', boxId: 'box-11', label: 'E11.40 (Type 2 DM w/ Neuropathy)', trapNote: 'Ignores the more acute foot ulcer. Coding it as uncomplicated fails to capture the full clinical picture.' },
+  { id: '11-9', boxId: 'box-11', label: 'Z48.01 (Encounter for change of surgical dressing)', trapNote: 'This is a routine code, not an illness code. It does not justify the skilled nursing need for wound care.' },
   { id: '11-10', boxId: 'box-11', label: 'R41.0 (Disorientation, unspecified)', trapNote: 'Distractor Alert: Disorientation is a symptom, likely of the "Silent MI" or hyperglycemia. It does not justify the skilled nursing need for wound care.' },
 
   // BOX 15
   { id: '15-1', boxId: 'box-15', label: 'Endurance, Ambulation, LOPS (Loss of Protective Sensation)' },
   { id: '15-2', boxId: 'box-15', label: 'Total Assist for ADLs, Bedbound, Speech Impairment', trapNote: 'Overstates acuity; patient is chair-bound, not bedbound.' },
   { id: '15-3', boxId: 'box-15', label: 'Legally Blind, Hearing Impairment, Paralysis', trapNote: 'Not supported by the evaluation.' },
-  { id: '15-4', boxId: 'box-15', label: 'Dyspnea with Minimal Exertion, Orthostatic Hypotension', trapNote: 'Clinically true but misses the neurological component (LOPS).' },
-  { id: '15-5', boxId: 'box-15', label: 'Contracture, Amputation Risk, Bowel/Bladder Incontinence', trapNote: 'Plausible but lacks specific primary evidence from the narrative.' },
+  { id: '15-4', boxId: 'box-15', label: 'Dyspnea with Minimal Exertion, Orthostatic Hypotension', trapNote: 'Clinically true but misses the neurological component.' },
+  { id: '15-5', boxId: 'box-15', label: 'Contracture, Amputation Risk, Bowel/Bladder Incontinence', trapNote: 'Plausible but lacks specific primary evidence.' },
   { id: '15-6', boxId: 'box-15', label: 'Cognitive Impairment, Memory Loss, Disorientation', trapNote: 'Confusion is secondary to the cardiac/metabolic crisis.' },
-  { id: '15-7', boxId: 'box-15', label: 'Severe Pain, Joint Stiffness, Limited Range of Motion', trapNote: 'Neuropathy often masks pain in Grade 3 ulcers \u2014 contradicts the narrative.' },
-  { id: '15-8', boxId: 'box-15', label: 'Fragile Skin, Decubitus Ulcer Risk, Poor Nutritional Status', trapNote: 'General "catch-all" used incorrectly for this specific case.' },
+  { id: '15-7', boxId: 'box-15', label: 'Severe Pain, Joint Stiffness, Limited Range of Motion', trapNote: 'Neuropathy often masks pain in Grade 3 ulcers.' },
+  { id: '15-8', boxId: 'box-15', label: 'Fragile Skin, Decubitus Ulcer Risk, Poor Nutritional Status', trapNote: 'General "Catch-all" used incorrectly.' },
   { id: '15-9', boxId: 'box-15', label: 'Profound Generalized Weakness and Fatigue Only', trapNote: 'Not specific enough for Box 15.' },
-  { id: '15-10', boxId: 'box-15', label: 'Dependent on Oxygen, Wheelchair Bound, Aphasia', trapNote: 'Irrelevant clinical data not supported by the narrative.' },
+  { id: '15-10', boxId: 'box-15', label: 'Dependent on Oxygen, Wheelchair Bound, Aphasia', trapNote: 'Irrelevant clinical data.' },
 
   // BOX 18
   { id: '18-1', boxId: 'box-18', label: 'Cleanse w/ NS, apply Collagen, cover foam; notify MD of Wagner 3 & request X-ray' },
-  { id: '18-2', boxId: 'box-18', label: 'Cleanse w/ Betadine, apply dry sterile dressing, change every 3 days', trapNote: 'Betadine is cytotoxic to healthy tissue; every 3 days is too infrequent for a Grade 3 ulcer.' },
-  { id: '18-3', boxId: 'box-18', label: 'Soak foot in Epsom salts 15 mins daily; apply OTC antibiotic ointment', trapNote: 'Soaking is strictly contraindicated for diabetics with neuropathy.' },
-  { id: '18-4', boxId: 'box-18', label: 'Apply Silver Sulfadiazine cream and leave open to air to promote drying', trapNote: 'Wounds need moisture balance, not drying. Leaving open increases infection risk.' },
-  { id: '18-5', boxId: 'box-18', label: 'Cleanse w/ Hydrogen Peroxide and pack with wet-to-dry gauze BID', trapNote: 'Peroxide damages healthy tissue; wet-to-dry is outdated practice.' },
-  { id: '18-6', boxId: 'box-18', label: 'Apply Hydrogel and instruct patient on autolytic debridement daily', trapNote: 'Too passive for a bone-involved infection requiring immediate escalation.' },
-  { id: '18-7', boxId: 'box-18', label: 'Enforce bedrest; wrap foot in heating pad to increase circulation', trapNote: 'Danger! Heating pads cause burns in neuropathy patients because they cannot feel the heat.' },
-  { id: '18-8', boxId: 'box-18', label: 'Apply Honey-based dressing and check pulse once weekly', trapNote: 'Pulse must be checked daily in ischemia cases, not once weekly.' },
-  { id: '18-9', boxId: 'box-18', label: "Irrigate wound with Dakin\u2019s solution and apply pressure dressing", trapNote: "Too aggressive; Dakin\u2019s is for specific necrotic cases, not appropriate here." },
-  { id: '18-10', boxId: 'box-18', label: 'Debride yellow slough at bedside with surgical blade; apply gauze', trapNote: 'Debridement requires a specific physician order and specialist involvement.' },
+  { id: '18-2', boxId: 'box-18', label: 'Cleanse w/ Betadine, apply dry sterile dressing, change every 3 days', trapNote: 'Betadine is cytotoxic and can delay granulation in a diabetic wound. A dry sterile dressing is inappropriate for a Wagner Grade 3 ulcer requiring moisture balance.' },
+  { id: '18-3', boxId: 'box-18', label: 'Soak foot in Epsom salts 15 mins daily; apply OTC antibiotic ointment', trapNote: 'NEVER soak a diabetic foot. Maceration increases infection risk, and hot water can cause burns due to peripheral neuropathy.' },
+  { id: '18-4', boxId: 'box-18', label: 'Apply Silver Sulfadiazine cream and leave open to air to promote drying', trapNote: 'Wounds need moisture balance, not drying. Leaving open to air can lead to desiccation and delayed healing.' },
+  { id: '18-5', boxId: 'box-18', label: 'Cleanse w/ Hydrogen Peroxide and pack with wet-to-dry gauze BID', trapNote: 'Peroxide damages healthy tissue; wet-to-dry is outdated and painful, causing unnecessary trauma.' },
+  { id: '18-6', boxId: 'box-18', label: 'Apply Hydrogel and instruct patient on autolytic debridement daily', trapNote: 'Too passive for a bone-involved infection. Wagner Grade 3 requires active medical escalation.' },
+  { id: '18-7', boxId: 'box-18', label: 'Enforce bedrest; wrap foot in heating pad to increase circulation', trapNote: 'Heating pads cause burns in neuropathy patients. Bedrest alone does not address the infection.' },
+  { id: '18-8', boxId: 'box-18', label: 'Apply Honey-based dressing and check pulse once weekly', trapNote: 'Pulse must be checked daily in ischemia cases. Honey dressings are not standard for Wagner Grade 3.' },
+  { id: '18-9', boxId: 'box-18', label: "Irrigate wound with Dakin\u2019s solution and apply pressure dressing", trapNote: "Too aggressive; Dakin's is for specific necrotic cases. Pressure can worsen ischemia." },
+  { id: '18-10', boxId: 'box-18', label: 'Debride yellow slough at bedside with surgical blade; apply gauze', trapNote: 'Debridement requires a specific order/specialist. Bedside debridement is not appropriate for bone-involved wounds.' },
 
   // BOX 21
   { id: '21-1', boxId: 'box-21', label: 'SN: 3w1, 2w3, 1w4 | PT: 2w3, 1w2' },
-  { id: '21-2', boxId: 'box-21', label: 'SN: 7w1, 2w3, 1w4 | PT: 2w3, 1w2', trapNote: '72 hours of stabilization equals 3 calendar days. Coding 7w1 suggests a full week of daily visits \u2014 over-utilization not supported by the 72-hour narrative.' },
-  { id: '21-3', boxId: 'box-21', label: 'SN: 3w1, 2w7 | PT: 1w5', trapNote: 'Audit Failure: Keeping a high frequency for 7 weeks without a step-down suggests the patient is not improving, which can lead to claim denials.' },
-  { id: '21-4', boxId: 'box-21', label: 'SN: 3w1, 2w3, 1w4 | PT: 1w1, 2w4', trapNote: 'The narrative states PT starts after a 48-hour hold within the existing week. Adding an extra 1w1 evaluation week incorrectly extends the certification period.' },
-  { id: '21-5', boxId: 'box-21', label: 'SN: 1w9 | PT: 2w5', trapNote: 'Safety Risk: 1w9 is insufficient for a Wagner Grade 3 ulcer and unstable cardiac status. This fails to provide the skilled oversight required.' },
-  { id: '21-6', boxId: 'box-21', label: 'SN: 7w1, 2w8 | PT: 2w5', trapNote: 'Documentation Discrepancy: These numbers do not appear in the physician coordination notes. The 485 must match the coordination exactly.' },
-  { id: '21-7', boxId: 'box-21', label: 'SN: 3w1, 2w3, 1w4 | PT: 2w5', trapNote: 'PT Logic Error: The narrative explicitly requested a taper to once-weekly for the final two weeks. Failing to taper suggests a lack of discharge planning.' },
-  { id: '21-8', boxId: 'box-21', label: 'SN: 5w1, 3w3, 2w5 | PT: 3w2, 1w3', trapNote: 'Documentation Discrepancy: Arbitrary numbers not supported by the physician coordination narrative.' },
-  { id: '21-9', boxId: 'box-21', label: 'SN: 2w4, 1w5 | PT: 2w4, 1w5', trapNote: 'Mirroring disciplines (giving SN and PT the same schedule) is a red flag for "cookie-cutter" care. Each discipline must have its own justified frequency.' },
-  { id: '21-10', boxId: 'box-21', label: 'SN: 4w1, 2w8 | PT: 2w8', trapNote: 'Mirroring and math errors. Fails to address the 72-hour stabilization requirement.' },
+  { id: '21-2', boxId: 'box-21', label: 'SN: 7w1, 2w3, 1w4 | PT: 2w3, 1w2', trapNote: '72 hours of stabilization equals 3 calendar days. Coding 7w1 suggests a full week of daily visits, which is an over-utilization of resources not supported by the 72-hour narrative.' },
+  { id: '21-3', boxId: 'box-21', label: 'SN: 3w1, 2w7 | PT: 1w5', trapNote: 'Audit Failure: Frequencies must reflect the patient\'s expected progress. Keeping a high frequency for 7 weeks straight without a \'step-down\' (e.g., 2w7) suggests the patient is not improving, which can lead to claim denials.' },
+  { id: '21-4', boxId: 'box-21', label: 'SN: 3w1, 2w3, 1w4 | PT: 1w1, 2w4', trapNote: 'Careful: The narrative states PT starts after a 48-hour hold within the existing week. Adding an extra 1w1 evaluation week incorrectly extends the certification period beyond the physician\'s intent.' },
+  { id: '21-5', boxId: 'box-21', label: 'SN: 1w9 | PT: 2w5', trapNote: 'Safety Risk: 1w9 is insufficient for a Wagner Grade 3 ulcer and an unstable cardiac status. This frequency fails to provide the \'Skilled Oversight\' required for a patient of this acuity.' },
+  { id: '21-6', boxId: 'box-21', label: 'SN: 7w1, 2w8 | PT: 2w5', trapNote: 'Documentation Discrepancy: These numbers do not appear in the physician\'s coordination notes. In a real audit, the 485 must match the verbal or written coordination exactly.' },
+  { id: '21-7', boxId: 'box-21', label: 'SN: 3w1, 2w3, 1w4 | PT: 2w5', trapNote: 'PT Logic Error: The narrative explicitly requested a taper to once-weekly for the final two weeks. Failing to document the taper suggests a lack of discharge planning.' },
+  { id: '21-8', boxId: 'box-21', label: 'SN: 5w1, 3w3, 2w5 | PT: 3w2, 1w3', trapNote: 'Arbitrary numbers not in narrative. Documentation Discrepancy: These numbers do not appear in the physician\'s coordination notes.' },
+  { id: '21-9', boxId: 'box-21', label: 'SN: 2w4, 1w5 | PT: 2w4, 1w5', trapNote: 'Mirroring disciplines (giving SN and PT the same schedule) is a red flag for \'cookie-cutter\' care. Each discipline must have a frequency justified by its specific goals.' },
+  { id: '21-10', boxId: 'box-21', label: 'SN: 4w1, 2w8 | PT: 2w8', trapNote: 'Fails to address the 72-hour stabilization. Documentation Discrepancy: These numbers do not appear in the physician\'s coordination notes.' },
 
   // BOX 24
-  { id: '24-1', boxId: 'box-24', label: 'Establish safe environment: secure firearm, initiate 911 transfer for HR 48' },
+  { id: '24-1', boxId: 'box-24', label: 'Establish safety: secure firearm, initiate 911 for suspected Silent MI' },
   { id: '24-2', boxId: 'box-24', label: 'Perform wound care to R great toe to prevent further infection', trapNote: 'Clinical Negligence: Performing wound care while a patient is ashen and bradycardic (HR 48) is a failure to recognize a life-threatening cardiac event.' },
-  { id: '24-3', boxId: 'box-24', label: 'Secure the firearm and then perform a 12-lead EKG', trapNote: 'Delay of Care: You are in a home, not an ER. Performing a 12-lead EKG delays the definitive care provided by EMS and the hospital.' },
-  { id: '24-4', boxId: 'box-24', label: 'Educate daughter on insulin storage temperatures (78\u00B0F)', trapNote: 'Priority Error: Insulin temperatures are a logistical issue. You are currently facing a life-safety issue.' },
+  { id: '24-3', boxId: 'box-24', label: 'Secure the firearm and then perform a 12-lead EKG', trapNote: 'Delay of Care: You are in a home, not an ER. Performing a 12-lead EKG yourself delays the definitive care provided by EMS and the hospital.' },
+  { id: '24-4', boxId: 'box-24', label: 'Educate daughter on insulin storage temperatures (78°F)', trapNote: 'Priority Error: While power outages and insulin temperatures are important, they are \'Logistical\' issues. You are currently facing a \'Life-Safety\' issue.' },
   { id: '24-5', boxId: 'box-24', label: 'Assess the L leg pulselessness and apply a warm compress', trapNote: 'Danger! Applying heat to an ischemic limb (no pulse) can cause catastrophic tissue damage because the blood flow cannot carry the heat away.' },
-  { id: '24-6', boxId: 'box-24', label: 'Locate "Pickles" the cat to reduce patient anxiety/confusion', trapNote: 'Focus! While the patient is worried about the cat, the clinician must ignore the "Pickles" distractor to manage the active Myocardial Infarction.' },
-  { id: '24-7', boxId: 'box-24', label: 'Contact the power company to restore electricity for the patient', trapNote: 'Priority Error: Power restoration is a social work task, not a life-safety priority during a cardiac emergency.' },
-  { id: '24-8', boxId: 'box-24', label: 'Reconcile the Glyburide/Lisinopril error immediately', trapNote: 'Important, but secondary. Medication reconciliation does not fix the active Silent MI.' },
-  { id: '24-9', boxId: 'box-24', label: 'Apply a pressure dressing to the R great toe ulcer', trapNote: 'Improper wound care technique for a Wagner Grade 3 ulcer, and ignores the active cardiac emergency.' },
-  { id: '24-10', boxId: 'box-24', label: 'Instruct Mrs. Gable to take the patient to her house', trapNote: 'Abandonment: Moving an unstable, bradycardic patient to a neighbor\u2019s house without medical transport is unsafe and legally indefensible.' },
+  { id: '24-6', boxId: 'box-24', label: 'Locate "Pickles" the cat to reduce patient anxiety/confusion', trapNote: 'Focus! While the patient is worried about the cat, the clinician must ignore the \'Pickles\' distractor to manage the active Myocardial Infarction.' },
+  { id: '24-7', boxId: 'box-24', label: 'Contact the power company to restore electricity for the patient', trapNote: 'Priority Error: While power outages are important, they are \'Logistical\' issues. You are currently facing a \'Life-Safety\' issue.' },
+  { id: '24-8', boxId: 'box-24', label: 'Reconcile the Glyburide/Lisinopril error immediately', trapNote: 'Important, but doesn\'t fix the active MI. Priority Error: You are currently facing a \'Life-Safety\' issue.' },
+  { id: '24-9', boxId: 'box-24', label: 'Apply a pressure dressing to the R great toe ulcer', trapNote: 'Improper wound care technique. Clinical Negligence: Performing wound care while a patient is ashen and bradycardic (HR 48) is a failure to recognize a life-threatening cardiac event.' },
+  { id: '24-10', boxId: 'box-24', label: 'Instruct Mrs. Gable to take the patient to her house', trapNote: 'Abandonment: Moving an unstable, bradycardic patient to a neighbor\'s house without medical transport is unsafe and legally indefensible.' },
 ]
 
 const FORM_BOXES = [
@@ -146,35 +145,35 @@ const FORM_BOXES = [
     label: '11. Principal Diagnosis',
     correctChipId: '11-1',
     tooltipWhy: 'CMS requires the primary diagnosis to be the root condition requiring oversight, not just the superficial symptom.',
-    validationAffirmation: 'E11.621 identifies both the underlying cause (Diabetes) and the acute manifestation (foot ulcer) requiring skilled care. While the patient is also bradycardic, the bradycardia is an emergency reason for transfer, not the primary driver of the home health certification period.',
+    validationAffirmation: 'Excellent! You prioritized the metabolic cause over the superficial symptoms. Coding Diabetes with Foot Ulcer justifies high-acuity skilled nursing.',
   },
   {
     id: 'box-15',
     label: '15. Functional Limitations',
     correctChipId: '15-1',
     tooltipWhy: 'Why did the wound get so bad? The patient cannot feel their feet.',
-    validationAffirmation: 'Ambulation/Endurance are limited by the current cardiac status (HR 48) and the pulseless left leg. LOPS is confirmed by the clinical narrative stating "profound diabetic peripheral neuropathy" is masking typical symptoms like chest pressure.',
+    validationAffirmation: 'Spot on. Identifying LOPS (Loss of Protective Sensation) justifies the need for advanced skilled teaching on foot inspections.',
   },
   {
     id: 'box-18',
     label: '18. Skilled Nursing Orders',
     correctChipId: '18-1',
     tooltipWhy: 'Probe-to-bone is a major red flag indicating suspected osteomyelitis.',
-    validationAffirmation: 'The evaluation specifies a Wagner Grade 3 great toe ulcer that "probes to the bone." Standard clinical practice for a probe-to-bone finding requires immediate MD notification and an X-ray to rule out osteomyelitis (bone infection).',
+    validationAffirmation: "Critical catch! You didn't just \"clean a wound\"; you identified a medical emergency and escalated for an X-ray to save the limb.",
   },
   {
     id: 'box-21',
     label: '21. Visit Frequency',
     correctChipId: '21-1',
     tooltipWhy: '72 hours = 3 days. Month 1 has 4 weeks. Month 2 has 4 weeks.',
-    validationAffirmation: 'SN: The physician notes state \"72 hours\" of stabilization = 3 days in week one (3w1), NOT 7w1. Then twice-weekly for the remaining 3 weeks (2w3), once-weekly for month two (1w4). PT: After a 48-hour vascular hold, twice-weekly for 3 weeks (2w3), tapering to once-weekly for 2 weeks (1w2).',
+    validationAffirmation: 'Spot-on calculation! You navigated the "Stabilization Trap" perfectly. 72 hours is 3w1, not 7w1.',
   },
   {
     id: 'box-24',
     label: '24. Safety / Emergency Actions',
     correctChipId: '24-1',
     tooltipWhy: 'Safety and life-stabilization always precede wound healing.',
-    validationAffirmation: 'Life-Safety First: Clinical protocols mandate establishing a safe environment (securing the loaded handgun) before beginning medical interventions. A heart rate of 48 bpm (bradycardia) in an ashen, diaphoretic patient suggests a \"silent\" myocardial infarction masked by neuropathy \u2014 a life-threatening emergency requiring immediate 911 transfer.',
+    validationAffirmation: 'Master-Level Priority! You recognized that clinical care cannot occur in a vacuum of danger. Safety first.',
   },
 ]
 
@@ -221,6 +220,8 @@ export default function HendersonChallenge({ theme = 'night', inline, onComplete
   const [submissionResult, setSubmissionResult] = useState<{ correct: string[]; incorrect: string[]; safetyFirst: boolean } | null>(null)
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [safetyPlacedOrder, setSafetyPlacedOrder] = useState<string[]>([])
+  const [reviewIndex, setReviewIndex] = useState(0)
+  const [reviewDirection, setReviewDirection] = useState<1 | -1>(1)
 
   const optionsRef = useRef<HTMLDivElement>(null)
 
@@ -271,9 +272,9 @@ export default function HendersonChallenge({ theme = 'night', inline, onComplete
     const safetyFirst = safetyIdx >= 0 && (woundIdx < 0 || safetyIdx < woundIdx)
     setSubmissionResult({ correct, incorrect, safetyFirst })
     setActiveField(null)
-    if (correct.length === FORM_BOXES.length && safetyFirst) {
-      setShowBreakdown(true)
-    }
+    setReviewIndex(0)
+    setReviewDirection(1)
+    setShowBreakdown(true)
   }, [placements, safetyPlacedOrder])
 
   const handleReset = () => {
@@ -286,6 +287,18 @@ export default function HendersonChallenge({ theme = 'night', inline, onComplete
 
   const allBoxesFilled = FORM_BOXES.every((b) => placements[b.id])
   const showCrisisWarning = allBoxesFilled && !placements['box-24']
+
+  useEffect(() => {
+    if (!showBreakdown) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [showBreakdown])
 
   /* ─── CSS ────────────────────────────────────────────────── */
   const dynamicCSS = `
@@ -300,7 +313,17 @@ export default function HendersonChallenge({ theme = 'night', inline, onComplete
       from { opacity: 0; transform: translateY(15px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    @keyframes hcWipeInRight {
+      from { opacity: 0; transform: translateX(60px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes hcWipeInLeft {
+      from { opacity: 0; transform: translateX(-60px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
     .hc-slide-up { animation: hcSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .hc-wipe-right { animation: hcWipeInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .hc-wipe-left { animation: hcWipeInLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   `
 
   /* ─── Interactive field renderer ─────────────────────────── */
@@ -492,69 +515,200 @@ export default function HendersonChallenge({ theme = 'night', inline, onComplete
 
   /* ─── COMPLETION MODAL ───────────────────────────────────── */
   if (showBreakdown && submissionResult) {
+    const isPerfect = submissionResult.correct.length === FORM_BOXES.length && submissionResult.safetyFirst
+    const reviewItems = [
+      ...FORM_BOXES.map((box) => ({ type: 'box' as const, box })),
+      { type: 'safety' as const },
+      { type: 'help' as const },
+    ]
+    const currentIndex = Math.min(reviewIndex, reviewItems.length - 1)
+    const currentItem = reviewItems[currentIndex]
+    const isLastItem = currentIndex === reviewItems.length - 1
+
+    const goBack = () => {
+      if (currentIndex <= 0) return
+      setReviewDirection(-1)
+      setReviewIndex((prev) => Math.max(0, prev - 1))
+    }
+
+    const goNext = () => {
+      if (!isLastItem) {
+        setReviewDirection(1)
+        setReviewIndex((prev) => Math.min(reviewItems.length - 1, prev + 1))
+        return
+      }
+      const nonce = Date.now()
+      window.location.hash = `/?dock=glossary&n=${nonce}`
+      window.dispatchEvent(new CustomEvent('dock-nav', { detail: 'glossary' }))
+      onComplete?.()
+    }
+
     return (
-      <div className="hc-root font-body flex items-center justify-center p-6 flex-1 overflow-y-auto" style={{ background: p.bg, color: p.text }}>
+      <div className="hc-root font-body flex items-center justify-center p-6 flex-1 overflow-hidden" style={{ background: p.bg, color: p.text }}>
         <style>{dynamicCSS}</style>
         <div
-          className="max-w-4xl w-full rounded-[32px] border shadow-2xl p-10 lg:p-16 hc-slide-up relative overflow-hidden"
-          style={{ background: p.bgAlt, borderColor: p.cardBorder }}
+          className="max-w-5xl w-full px-8 py-7 lg:px-10 lg:py-8 hc-slide-up relative overflow-hidden"
+          style={{ background: 'transparent', borderColor: 'transparent', backdropFilter: 'none' }}
         >
           {isNight && (
             <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#007970] rounded-full mix-blend-screen filter blur-[120px] opacity-20 pointer-events-none z-0" />
           )}
           <div className="relative z-10">
-            <div className="text-center mb-12">
-              <div
-                className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6"
-                style={{ background: isNight ? '#004142' : '#E5FEFF', boxShadow: `0 0 24px -4px ${isNight ? 'rgba(100,244,245,0.4)' : 'rgba(0,121,112,0.25)'}` }}
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-xl font-heading font-bold" style={{ color: p.text }}>
+                {currentIndex + 1} <span className="text-base font-body" style={{ color: p.textDim }}>/ {reviewItems.length}</span>
+              </p>
+              <button
+                className="px-4 py-2 rounded-full text-sm font-semibold"
+                style={{ color: p.accent2, background: isNight ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.35)' }}
               >
-                <Trophy className="h-12 w-12" style={{ color: p.accent }} />
+                Options
+              </button>
+            </div>
+
+            <div className="text-center mb-9">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{
+                  background: isPerfect ? (isNight ? '#004142' : '#E5FEFF') : (isNight ? '#3D1400' : '#FFF5F0'),
+                  boxShadow: isPerfect
+                    ? `0 0 24px -4px ${isNight ? 'rgba(100,244,245,0.4)' : 'rgba(0,121,112,0.25)'}`
+                    : `0 0 24px -4px ${isNight ? 'rgba(199,70,1,0.4)' : 'rgba(199,70,1,0.25)'}`,
+                }}
+              >
+                {isPerfect
+                  ? <Trophy className="h-8 w-8" style={{ color: p.accent }} />
+                  : <AlertTriangle className="h-8 w-8" style={{ color: p.accent2 }} />}
               </div>
-              <h1 className="font-heading text-4xl lg:text-5xl font-bold mb-4" style={{ color: p.text }}>
-                Henderson POC — Complete
+              <h1 className="font-heading text-5xl font-bold mb-2" style={{ color: p.text }}>
+                Plan of Care Review
               </h1>
-              <p style={{ color: p.textMuted }} className="text-lg">
-                CareIndeed Clinical Master Confirmed! You successfully navigated 27 clinical and administrative traps. You prioritized life over logistics, etiology over symptoms, and precise math over "cookie-cutter" scheduling. George Henderson is safe because of your clinical judgment.
+              <p style={{ color: p.textMuted }} className="text-base leading-relaxed">
+                You scored {submissionResult.correct.length} of {FORM_BOXES.length} correctly. Review the feedback below to understand the clinical logic.
               </p>
             </div>
 
-            <div className="space-y-6">
-              {FORM_BOXES.map((box) => (
-                <div key={box.id} className="rounded-[20px] border p-6 shadow-sm" style={{ background: p.bg, borderColor: p.cardBorder }}>
-                  <h3 className="font-heading text-lg font-bold mb-2" style={{ color: p.accent }}>{box.label}</h3>
-                  <p className="leading-relaxed font-light" style={{ color: p.text }}>{box.validationAffirmation}</p>
-                </div>
-              ))}
+            <div key={`${currentItem.type}-${currentIndex}`} className={reviewDirection > 0 ? 'hc-wipe-right' : 'hc-wipe-left'}>
+              {currentItem.type === 'box' && (() => {
+                const box = currentItem.box
+                const isCorrect = submissionResult.correct.includes(box.id)
+                const chipId = placements[box.id]
+                const selectedChip = chipId ? ANSWER_CHIPS.find((c) => c.id === chipId) : null
+                const correctChip = ANSWER_CHIPS.find((c) => c.id === box.correctChipId)
 
-              {submissionResult.safetyFirst && (
-                <div className="rounded-[20px] border p-8 shadow-md" style={{ borderColor: p.accent2, background: `${p.accent2}15` }}>
-                  <h3 className="font-heading text-xl font-bold mb-3 flex items-center gap-2" style={{ color: p.accent2Light }}>
-                    <ShieldAlert className="h-6 w-6" style={{ color: p.accent2 }} /> The Priority Task: 911/Safety First
+                return (
+                  <div
+                    key={box.id}
+                    className="rounded-[36px] p-8"
+                    style={{
+                      background: 'rgba(255,255,255,0)',
+                      border: `1px solid ${isNight ? 'rgba(171,246,246,0.18)' : 'rgba(0,121,112,0.16)'}`,
+                      backdropFilter: 'blur(16px) saturate(140%)',
+                      WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+                      boxShadow: isNight ? '0 20px 48px -30px rgba(0,0,0,0.65)' : '0 20px 48px -30px rgba(0,0,0,0.20)',
+                    }}
+                  >
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="p-2 rounded-xl" style={{ background: isCorrect ? `${p.accent}20` : `${p.accent2}20` }}>
+                        {isCorrect
+                          ? <CheckCircle2 className="h-5 w-5" style={{ color: p.accent }} />
+                          : <XCircle className="h-5 w-5" style={{ color: p.accent2 }} />}
+                      </div>
+                      <div>
+                        <h3 className="font-heading text-[2rem] font-bold" style={{ color: p.text }}>{box.label}</h3>
+                        <p className="text-sm font-bold tracking-widest uppercase" style={{ color: isCorrect ? p.accent : p.accent2 }}>
+                          {isCorrect ? 'Correct Answer' : 'Incorrect Answer'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="rounded-[16px] p-5" style={{ background: isNight ? 'rgba(215,1,1,0.07)' : '#FFF2F2' }}>
+                        <p className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: p.accent2 }}>Your Answer</p>
+                        <p className="text-2xl font-heading font-semibold mb-4" style={{ color: p.text }}>{selectedChip?.label ?? 'No answer selected'}</p>
+                        {!isCorrect && selectedChip && (selectedChip as any).trapNote && (
+                          <>
+                            <p className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: p.accent2 }}>Why This Is Incorrect</p>
+                            <p className="text-xl leading-relaxed" style={{ color: p.textMuted }}>{(selectedChip as any).trapNote}</p>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="rounded-[16px] p-5" style={{ background: isNight ? 'rgba(0,121,112,0.08)' : '#ECFDF5' }}>
+                        <p className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: p.accent }}>Correct Answer</p>
+                        <p className="text-2xl font-heading font-semibold mb-4" style={{ color: p.text }}>{correctChip?.label}</p>
+                        <p className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: p.accent }}>Why It&apos;s Correct</p>
+                        <p className="text-xl leading-relaxed" style={{ color: p.textMuted }}>{box.validationAffirmation}</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {currentItem.type === 'safety' && (
+                submissionResult.safetyFirst ? (
+                  <div className="rounded-[32px] p-10 shadow-md" style={{ background: 'transparent' }}>
+                    <h3 className="font-heading text-4xl font-bold mb-4 flex items-center justify-center gap-3" style={{ color: p.accent }}>
+                      <ShieldAlert className="h-10 w-10" style={{ color: p.accent }} /> Safety First — Correct Priority Order
+                    </h3>
+                    <p className="leading-relaxed text-2xl text-center" style={{ color: p.text }}>
+                      Master-Level Priority! You recognized that clinical care cannot occur in a vacuum of danger. By prioritizing the Bradycardia (Silent MI) and the unsecured firearm over the wound care, you demonstrated the most important trait of a CareIndeed clinician: Total Patient Advocacy and Safety First.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-[32px] p-10 shadow-md" style={{ background: `${p.accent2}12` }}>
+                    <h3 className="font-heading text-4xl font-bold mb-4 flex items-center justify-center gap-3" style={{ color: p.accent2 }}>
+                      <ShieldAlert className="h-10 w-10" style={{ color: p.accent2 }} /> Safety First — Priority Order Error
+                    </h3>
+                    <p className="leading-relaxed text-2xl text-center" style={{ color: p.text }}>
+                      Stop! You attempted clinical care while a patient was in cardiac distress (HR 48) and a weapon was unsecured. Safety and 911 take precedence over dressings. Always address life-safety before wound care.
+                    </p>
+                  </div>
+                )
+              )}
+
+              {currentItem.type === 'help' && (
+                <div className="rounded-[32px] p-10 shadow-md" style={{ background: 'transparent' }}>
+                  <h3 className="font-heading text-4xl font-bold mb-4 text-center" style={{ color: p.accent }}>
+                    Help Center
                   </h3>
-                  <p className="leading-relaxed font-medium" style={{ color: p.text }}>
-                    Master-Level Priority! You recognized that clinical care cannot occur in a vacuum of danger. By prioritizing the Bradycardia (Silent MI) and the unsecured firearm over the wound care, you demonstrated the most important trait of a CareIndeed clinician: Total Patient Advocacy and Safety First.
+                  <p className="leading-relaxed text-2xl text-center" style={{ color: p.textMuted }}>
+                    Great work completing the review. Continue to open the Help Center for references, definitions, and clinical support resources.
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="flex justify-center mt-12 gap-4">
+            <div className="flex justify-center mt-8 mb-8 gap-2">
+              {reviewItems.map((_, index) => (
+                <div
+                  key={index}
+                  className="h-2.5 rounded-full transition-all duration-300"
+                  style={{
+                    width: index === currentIndex ? 34 : 8,
+                    background: index === currentIndex ? p.accent2 : `${p.accent2}33`,
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="flex justify-between items-center mt-3">
               <button
-                onClick={handleReset}
-                className="rounded-[16px] px-10 py-4 font-bold text-lg tracking-wide transition-all hover:-translate-y-1 flex items-center gap-2"
-                style={{ background: isNight ? p.bgDeep : '#F2F4F7', color: p.text, border: `1px solid ${p.cardBorder}` }}
+                onClick={goBack}
+                disabled={currentIndex === 0}
+                className="rounded-[16px] px-6 py-3 font-bold text-lg tracking-wide transition-all flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: isNight ? 'rgba(255,255,255,0.08)' : '#E7ECF2', color: p.text }}
               >
-                <RotateCcw className="w-5 h-5" /> Try Again
+                <ChevronLeft className="w-5 h-5" /> Back
               </button>
-              {onComplete && (
-                <button
-                  onClick={onComplete}
-                  className="rounded-[16px] text-white px-10 py-4 font-bold text-lg tracking-wide transition-all hover:-translate-y-1"
-                  style={{ background: p.accent2, boxShadow: `0 0 24px -4px ${p.accent2}99` }}
-                >
-                  Continue
-                </button>
-              )}
+
+              <button
+                onClick={goNext}
+                className="rounded-[16px] text-white px-8 py-3.5 font-bold text-lg tracking-wide transition-all hover:-translate-y-0.5 flex items-center gap-2"
+                style={{ background: p.accent, boxShadow: `0 0 24px -4px ${p.accent}99` }}
+              >
+                {isLastItem ? 'Continue' : 'Next Item'} <ChevronRight className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>
@@ -653,15 +807,18 @@ export default function HendersonChallenge({ theme = 'night', inline, onComplete
               <p className="text-xs" style={{ color: p.textMuted }}>Click on the highlighted fields below to choose an answer.</p>
             </div>
             <div className="flex items-center gap-3">
-              {submissionResult && (
-                <button
-                  onClick={handleReset}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-1.5"
-                  style={{ background: isNight ? '#002B2C' : '#F2F4F7', color: p.accent, border: `1px solid ${p.cardBorder}` }}
-                >
-                  <RotateCcw className="w-3.5 h-3.5" /> Reset
-                </button>
-              )}
+                {submissionResult && (
+                  <button
+                    onClick={() => {
+                      if (showBreakdown) onComplete?.()
+                      else setShowBreakdown(true)
+                    }}
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
+                    style={{ background: isNight ? p.accent : p.accent2, color: '#fff', border: 'none' }}
+                  >
+                    Next
+                  </button>
+                )}
               <button
                 onClick={handleSubmit}
                 disabled={!allBoxesFilled || !!submissionResult}
@@ -674,76 +831,95 @@ export default function HendersonChallenge({ theme = 'night', inline, onComplete
                   boxShadow: allBoxesFilled && !submissionResult ? `0 0 24px -4px ${p.accent2}99` : undefined,
                 }}
               >
-                Validate Plan
+                Generate Plan of Care
               </button>
             </div>
           </div>
 
           {renderForm()}
 
-          {/* Answer Bank */}
-          <div ref={optionsRef} className="max-w-4xl mx-auto w-full mb-20 scroll-mt-6">
-            {!activeField ? (
+          {/* Answer Bank Modal */}
+          {activeField && (
+            <div 
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 sm:p-4 transition-all duration-300 backdrop-blur-sm"
+              style={{ background: isNight ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.4)' }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setActiveField(null)
+              }}
+            >
               <div
-                className="border-2 border-dashed rounded-[24px] p-10 text-center flex flex-col items-center justify-center"
-                style={{ background: isNight ? 'rgba(3,18,19,0.6)' : 'rgba(255,255,255,0.6)', borderColor: p.cardBorder }}
+                className="w-full max-w-2xl rounded-[24px] border shadow-2xl hc-slide-up relative overflow-hidden"
+                style={{ 
+                  background: isNight ? p.bgDeep : '#ffffff', 
+                  borderColor: isNight ? p.accentDim : p.accent,
+                  maxHeight: 'min(90vh, 700px)',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}
               >
-                <Pointer className="w-10 h-10 mb-3" style={{ color: p.cardBorder }} />
-                <h3 className="font-heading font-bold text-lg" style={{ color: isNight ? p.accent : p.textDim }}>Answer Bank is Hidden</h3>
-                <p className="text-sm mt-1" style={{ color: isNight ? p.accentDim : p.textMuted }}>Click on any highlighted box in the CMS-485 form above to view its options.</p>
-              </div>
-            ) : (
-              <div
-                className="rounded-[24px] border p-6 md:p-8 shadow-xl hc-slide-up relative"
-                style={{ background: isNight ? p.bgDeep : p.card, borderColor: p.accentDim }}
-              >
-                <button
-                  onClick={() => setActiveField(null)}
-                  className="absolute top-6 right-6 p-1.5 rounded-full transition-colors"
-                  style={{ color: p.accent, background: isNight ? '#002B2C' : '#F2F4F7' }}
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                {/* Header */}
+                <div className="p-6 md:p-8 pb-4 relative z-10" style={{ borderBottom: `1px solid ${p.cardBorder}` }}>
+                  <button
+                    onClick={() => setActiveField(null)}
+                    className="absolute top-6 right-6 p-2 rounded-full transition-all hover:rotate-90"
+                    style={{ color: p.textDim, background: isNight ? '#002B2C' : '#F2F4F7' }}
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
 
-                <div className="mb-6 border-b pb-4 pr-10" style={{ borderColor: p.cardBorder }}>
-                  <h3 className="font-heading text-xl font-bold flex items-center gap-2" style={{ color: p.text }}>
-                    <LayoutTemplate className="h-6 w-6" style={{ color: p.accentDim }} />
-                    Select Answer for {FORM_BOXES.find((b) => b.id === activeField)?.label}
-                  </h3>
-                  <p className="text-sm mt-1 font-light" style={{ color: p.textMuted }}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 rounded-lg" style={{ background: `${p.accent}20` }}>
+                      <LayoutTemplate className="h-6 w-6" style={{ color: p.accent }} />
+                    </div>
+                    <h3 className="font-heading text-xl font-bold" style={{ color: p.text }}>
+                      Select Answer for {FORM_BOXES.find((b) => b.id === activeField)?.label}
+                    </h3>
+                  </div>
+                  <p className="text-sm font-light leading-relaxed" style={{ color: p.textMuted }}>
                     Choose the most clinically accurate and defensible option below.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {currentOptions.map((chip) => (
-                    <button
-                      key={chip.id}
-                      onClick={() => handleOptionSelect(chip.id)}
-                      className="w-full text-left rounded-[12px] border px-4 py-3 text-sm font-medium transition-all group flex items-start gap-3"
-                      style={{ background: p.bg, borderColor: p.cardBorder, color: p.text }}
-                      onMouseEnter={(e) => {
-                        ;(e.currentTarget as HTMLElement).style.borderColor = p.accentDim
-                        ;(e.currentTarget as HTMLElement).style.background = isNight ? '#002B2C' : '#E5FEFF'
-                      }}
-                      onMouseLeave={(e) => {
-                        ;(e.currentTarget as HTMLElement).style.borderColor = p.cardBorder
-                        ;(e.currentTarget as HTMLElement).style.background = p.bg
-                      }}
-                    >
-                      <div
-                        className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors"
-                        style={{ borderColor: p.cardBorder }}
+                {/* Options List */}
+                <div className="flex-1 overflow-y-auto p-6 md:p-8 pt-6 custom-scrollbar">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {currentOptions.map((chip) => (
+                      <button
+                        key={chip.id}
+                        onClick={() => handleOptionSelect(chip.id)}
+                        className="w-full text-left rounded-[16px] border px-5 py-4 text-sm font-medium transition-all group flex items-start gap-4 hover:shadow-md"
+                        style={{ 
+                          background: isNight ? 'rgba(255,255,255,0.03)' : '#ffffff', 
+                          borderColor: p.cardBorder, 
+                          color: p.text 
+                        }}
+                        onMouseEnter={(e) => {
+                          const target = e.currentTarget as HTMLElement;
+                          target.style.borderColor = p.accent;
+                          target.style.background = isNight ? 'rgba(100,244,245,0.08)' : '#F0FDFA';
+                          target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          const target = e.currentTarget as HTMLElement;
+                          target.style.borderColor = p.cardBorder;
+                          target.style.background = isNight ? 'rgba(255,255,255,0.03)' : '#ffffff';
+                          target.style.transform = 'translateY(0)';
+                        }}
                       >
-                        <div className="w-2.5 h-2.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: p.accent }} />
-                      </div>
-                      <span className="leading-snug">{chip.label}</span>
-                    </button>
-                  ))}
+                        <div
+                          className="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all group-hover:scale-110"
+                          style={{ borderColor: p.cardBorder }}
+                        >
+                          <div className="w-3 h-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: p.accent }} />
+                        </div>
+                        <span className="leading-snug">{chip.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </main>
       </div>
     </div>

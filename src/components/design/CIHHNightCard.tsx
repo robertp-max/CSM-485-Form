@@ -3,7 +3,7 @@ import {
   Play, Pause,
   ArrowRight, ArrowLeft, CheckCircle2, XCircle,
   ShieldCheck, FileText, Activity, Check,
-  Home, Settings, LayoutGrid, HeartPulse, GraduationCap, ClipboardCheck,
+  Home, Settings, LayoutGrid, HeartPulse, GraduationCap,
 } from 'lucide-react'
 import { ClipboardCheck } from 'lucide-react'
 import { TRAINING_CARDS } from '../../data/trainingCards'

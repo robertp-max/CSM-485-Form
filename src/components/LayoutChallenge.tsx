@@ -341,7 +341,6 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline, qaM
           borderColor: border,
           height: '100%',
           width: '100%',
-          minHeight: 40,
           padding: '20px 8px 8px',
         }}
         onDragOver={(e) => onDragOverZone(e, box)}
@@ -661,7 +660,7 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline, qaM
       )}
 
       {/* Main content */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] overflow-hidden">
+      <div className="flex-1 grid grid-cols-1 grid-rows-[auto_1fr] lg:grid-rows-[1fr] lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] overflow-hidden">
         {/* Left: Parts Bank */}
         <div
           className="w-full border-r flex flex-col"
@@ -698,10 +697,10 @@ export default function LayoutChallenge({ theme, onComplete, onBack, inline, qaM
         </div>
 
         {/* Right: CMS-485 Form Grid */}
-        <div className="flex-1 overflow-auto p-0" style={{ background: isNight ? '#020C0D' : '#F3F4F6' }}>
+        <div className="w-full h-full overflow-hidden p-0" style={{ background: isNight ? '#020C0D' : '#F3F4F6' }}>
           <div
-            className="w-full flex flex-col border-r"
-            style={{ background: p.formBg, borderColor: p.cardBorder, minHeight: '100%' }}
+            className="w-full h-full flex flex-col border-r"
+            style={{ background: p.formBg, borderColor: p.cardBorder }}
           >
             <div className="flex-[0.8] flex border-b" style={{ borderColor: p.cardBorder }}>
               {['1', '2', '3', '4', '5'].map((b, i) => (
