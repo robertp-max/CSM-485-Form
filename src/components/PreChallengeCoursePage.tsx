@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import { ArrowRight, BookOpen, CheckCircle2, Layers } from 'lucide-react'
 import { TRAINING_CARDS } from '../data/trainingCards'
+import { ProgressDots } from './ui'
+import { gradient } from '../design-tokens'
 
 interface Props {
   theme: 'day' | 'night'
@@ -23,7 +25,7 @@ export default function PreChallengeCoursePage({ theme, onContinue, onBack }: Pr
 
   const p = isNight
     ? {
-        bg: 'radial-gradient(circle at 20% 20%, #031213 0%, #010809 45%, #010809 100%)',
+        bg: gradient.nightPanel,
         shell: 'rgba(1,8,8,0.55)',
         border: '#64F4F5',
         text: '#FAFBF8',
@@ -57,23 +59,7 @@ export default function PreChallengeCoursePage({ theme, onContinue, onBack }: Pr
               3 <span className="text-sm font-normal" style={{ color: p.textMuted }}>/ 5</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <span
-                key={i}
-                className="h-[6px] rounded-full"
-                style={{
-                  width: i === 2 ? 32 : 18,
-                  background:
-                    i < 2
-                      ? isNight ? '#004142' : '#D9D6D5'
-                      : i === 2
-                        ? isNight ? '#64F4F5' : '#007970'
-                        : isNight ? '#07282A' : '#E5E4E3',
-                }}
-              />
-            ))}
-          </div>
+          <ProgressDots current={2} isDark={isNight} />
         </div>
 
         <div

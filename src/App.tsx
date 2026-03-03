@@ -38,6 +38,8 @@ const SummaryPage = lazy(() => import('./components/SummaryPage'))
 import { applyTheme, getStoredTheme } from './theme'
 import type { CourseModule } from './components/CourseSelectionPage'
 import { Dock, type DockItem } from './components/Dock'
+import { SectionLabel, ProgressDots } from './components/ui'
+import { gradient } from './design-tokens'
 import {
   Home,
   BookOpen,
@@ -435,40 +437,14 @@ export default function App() {
           style={{
             background:
               theme === 'night'
-                ? 'radial-gradient(circle at 20% 20%, #031213 0%, #010809 45%, #010809 100%)'
+                ? gradient.nightPanel
                 : 'linear-gradient(180deg, #F6F7F4 0%, #F0EBE6 100%)',
           }}
         >
           <div className="max-w-6xl w-full mx-auto px-5 md:px-10 py-8 md:py-12 flex flex-col gap-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className="text-[11px] font-bold uppercase tracking-[0.24em]"
-                  style={{ color: theme === 'night' ? '#64F4F5' : '#C74601' }}
-                >
-                  Onboarding
-                </div>
-                <div className="flex items-center gap-2 text-xl font-heading font-bold" style={{ color: theme === 'night' ? '#FAFBF8' : '#1F1C1B' }}>
-                  4 <span className="text-sm font-normal" style={{ color: theme === 'night' ? '#64F4F5' : '#747474' }}>/ 5</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <span
-                    key={i}
-                    className="h-[6px] rounded-full"
-                    style={{
-                      width: i === 3 ? 32 : 18,
-                      background:
-                        i < 3
-                          ? theme === 'night' ? '#004142' : '#D9D6D5'
-                          : i === 3
-                            ? theme === 'night' ? '#64F4F5' : '#007970'
-                            : theme === 'night' ? '#07282A' : '#E5E4E3',
-                    }}
-                  />
-                ))}
-              </div>
+              <SectionLabel label="Onboarding" current={4} total={5} isDark={isDarkMode} />
+              <ProgressDots current={3} isDark={isDarkMode} />
             </div>
 
             <div
