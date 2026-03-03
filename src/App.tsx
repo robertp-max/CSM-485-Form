@@ -47,6 +47,7 @@ import {
   ClipboardCheck,
   LayoutGrid,
   HeartPulse,
+  GraduationCap,
   Sun,
   Moon,
 } from 'lucide-react'
@@ -301,6 +302,8 @@ export default function App() {
         isActive: viewMode === 'HELP' },
       { icon: <LayoutGrid className="w-5 h-5" />, label: 'Course Selection', onClick: () => fire('course-selection'),
         isActive: appPhase === 'course-selection' },
+      { icon: <GraduationCap className="w-5 h-5" />, label: 'Choose Training', onClick: () => fire('course-selection'),
+        isActive: viewMode === 'SCS' },
       { icon: <HeartPulse className="w-5 h-5" />, label: 'CMS-485 Form', onClick: () => fire('cms-485'),
         isActive: viewMode === '485' },
       { icon: <ClipboardCheck className="w-5 h-5" />, label: 'Final Test', onClick: () => fire('final-exam'),
